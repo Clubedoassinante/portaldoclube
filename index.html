@@ -327,8 +327,8 @@ const mesIdx=m=>{const [y,mm]=m.split('-').map(Number);return (y-2023)*12+mm-7};
 const GL=[
  ['Uso do Clube',[
   ['penetracao','Penetração','Usuários únicos dividido pela carteira ativa.','Em períodos de vários meses, é a média dos meses.'],
-  ['vouchers','Vouchers gerados','Total de vouchers gerados no período.','Se a pessoa gerou 2 vouchers (por exemplo, para ela e um acompanhante), conta como 2.'],
-  ['usuarios-unicos','Usuários únicos','Pessoas diferentes que geraram pelo menos 1 voucher no período.','Quem gerou em mais de um mês conta uma vez só.'],
+  ['vouchers','Vouchers gerados','Total de vouchers gerados no período.','Se a pessoa gerou 2 vouchers (por exemplo, para ela e um acompanhante), conta como 2. O total do mês vem dos totais da plataforma; os recortes por perfil vêm das bases por pessoa e podem somar um pouco diferente.'],
+  ['usuarios-unicos','Usuários únicos','Pessoas diferentes que geraram pelo menos 1 voucher no período.','Quem gerou em mais de um mês conta uma vez só. O número de um mês vem dos totais da plataforma; o de vários meses juntos vem das bases por pessoa.'],
   ['frequencia','Frequência de uso','Vouchers gerados dividido por usuários únicos: quantos vouchers cada pessoa gerou, em média.',''],
   ['media-dia','Média de uso por dia','Vouchers gerados dividido pelo número de dias do período.',''],
   ['primeira-vez','Primeira vez','Pessoas que geraram o primeiro voucher desde jul/2023 naquele mês.',''],
@@ -386,11 +386,12 @@ const GLX={};GL.forEach(([g,it])=>it.forEach(([id,n,d,x])=>GLX[id]={n,d,x,g}));
 const T=(id,txt)=>`<span class="t" data-term="${id}">${txt||GLX[id].n}</span>`;
 
 /* ---------- dados (vêm do banco) ---------- */
-let RAW=null, M=[], RESSALVA={}, ATIV=[], UNI={}, PERFIL={}, LAST=null, FI=0, YEARS=[], ADMIN=false;
+let TOT={}, RAW=null, M=[], RESSALVA={}, ATIV=[], UNI={}, PERFIL={}, LAST=null, FI=0, YEARS=[], ADMIN=false;
 let sm, sa, sc, sp;
 function prepararDados(raw){
  RAW=raw; ADMIN=!!raw.admin; RESSALVA=raw.ressalvas||{}; PERFIL=raw.perfil||{};
- M=(raw.serie||[]).map(r=>{const [y,mm]=r.m.split('-').map(Number);const dias=new Date(y,mm,0).getDate();
+ TOT=raw.totais||{};
+ M=(raw.serie||[]).map(r0=>{const t=TOT[r0.m];const r=t?{...r0,vou_pessoas:r0.vou,ger_pessoas:r0.ger,vou:t[0]??r0.vou,ger:t[1]??r0.ger}:r0;const [y,mm]=r.m.split('-').map(Number);const dias=new Date(y,mm,0).getDate();
   return {...r,i:mesIdx(r.m),dias,pf:r.cart?100*r.pf_ativo/r.cart:null,pen:r.pessoas?100*r.ger/r.pessoas:null,freq:r.ger?r.vou/r.ger:null,dia:r.vou/dias,saldo:r.canc==null?null:r.novos-r.canc}});
  UNI={};(raw.unicos||[]).forEach(([a,b,n])=>UNI[a+'-'+b]=n);
  ATIV=(raw.ativacao||[]).map(r=>({...r,pct:r.n?100*r.ativou/r.n:0}));
@@ -407,7 +408,7 @@ const idx=m=>M.findIndex(s=>s.m===m);
 function shift(m,k){let[y,mm]=m.split('-').map(Number);mm+=k;while(mm<1){mm+=12;y--}while(mm>12){mm-=12;y++}return y+'-'+String(mm).padStart(2,'0')}
 function clampM(m){return idx(m)>=FI?m:M[FI].m}
 const has=m=>{const i=idx(m);return i>=FI&&i>=0};
-function uniq(a,b){return UNI[mesIdx(a)+'-'+mesIdx(b)]??null}
+function uniq(a,b){if(a===b&&TOT[a]&&TOT[a][1]!=null)return TOT[a][1];return UNI[mesIdx(a)+'-'+mesIdx(b)]??null}
 function agg(a,b){const rows=M.slice(idx(a),idx(b)+1);const s=k=>rows.reduce((t,r)=>t+(r[k]??0),0);const last=rows[rows.length-1];
  const prevCart=idx(a)>0?M[idx(a)-1].cart:null;
  return {n:rows.length,rows,pen:100*s('ger')/s('pessoas'),vou:s('vou'),freq:s('vou')/s('ger'),dia:s('vou')/s('dias'),novos:s('novos'),canc:s('canc'),saldo:s('novos')-s('canc'),
@@ -693,8 +694,13 @@ function telaCarga(){return shell('clube-enviar',`
  </div>
  <div id="cg-meses"></div>
  <div id="cg-log"></div>
+ <div class="card"><h3>Totais da plataforma</h3><p class="sub">Arquivo de uso na plataforma (site + app) com, por mês, a carteira do Clube, os benefícios gerados e os usuários únicos. Viram os números do mês no Clube em números: vouchers gerados, usuários únicos, frequência, penetração e média por dia. Os recortes por perfil continuam vindo das carteiras e dos vouchers por pessoa.</p>
+  <label class="drop" style="margin-top:10px"><b>Uso na plataforma</b><span>.csv ou .xlsx (ex.: Clube_Assinante_Historico_Uso_jun23-set26Plataforma.csv). Pode ter vários meses; os que já existem são atualizados.</span><input type="file" id="f-tot" accept=".csv,.xlsx"></label>
+  <div id="cg-tot"></div></div>
  <div class="card"><div class="row-head"><div><h3>Já no portal</h3><p class="sub" id="cg-uso">Consultando o banco…</p></div></div><div id="cg-sit"></div></div>`)}
 function bindCarga(){libs();
+ document.getElementById('f-tot').onchange=async e=>{const f=e.target.files[0];const box=document.getElementById('cg-tot');if(!f)return;box.innerHTML='<p class="carregando">Lendo…</p>';
+  try{const rows=await lerTotais(f);desenharTotais(rows)}catch(err){box.innerHTML=`<div class="note">${esc(err.message||err)}</div>`}};
  document.getElementById('f-cart').onchange=e=>{CG.cart=[...e.target.files].map(f=>({file:f,mes:mesDoArquivo(f.name)}));desenharMeses()};
  document.getElementById('f-vou').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CG.vou=new Map();CG.vouArq=fs.map(f=>f.name);CG.lendo=true;CG.erro=null;desenharMeses();
   try{for(const f of fs){await lerVouchers(f,est=>{const el=document.getElementById('cg-lendo');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers válidos…`})}}
@@ -767,17 +773,17 @@ async function lerTotais(file){let linhas;
   let ano=iA>=0?num(L[iA]):null;if(!ano&&m[2])ano=m[2].length===2?2000+ +m[2]:+m[2];if(!ano)continue;
   out.push({m:`${ano}-${pad2(MES_ABREV[m[1]])}`,carteira:iC>=0?num(L[iC]):null,usos:num(L[iB]),usuarios:iU>=0?num(L[iU]):null})}
  if(!out.length)throw new Error('O arquivo não tem nenhum mês reconhecível.');return out}
-async function desenharTotais(rows){const box=document.getElementById('cg-tot');let atual={};
- try{const {data}=await sb.rpc('dados_semanal');(data.plataforma||[]).forEach(r=>atual[r.m]=r)}catch(_){}
+async function desenharTotais(rows){const box=document.getElementById('cg-tot');const atual={};
+ Object.entries(TOT||{}).forEach(([m,v])=>atual[m]={usos:v[0],usuarios:v[1]});
  const dif=(a,b)=>a!=null&&b!=null&&a!==b;
- const muda=rows.filter(r=>{const a=atual[r.m];return !a||dif(r.usos,a.usos)||dif(r.usuarios,a.usuarios)||dif(r.carteira,a.carteira)});
+ const muda=rows.filter(r=>{const a=atual[r.m];return !a||dif(r.usos,a.usos)||dif(r.usuarios,a.usuarios)});
  box.innerHTML=`<p class="hint" style="margin-top:10px">${rows.length} meses no arquivo, de ${lab(rows[0].m)} a ${lab(rows[rows.length-1].m)}. ${muda.length?`${muda.length} ${muda.length>1?'meses novos ou com números diferentes':'mês novo ou com números diferentes'}:`:'Nenhum número muda.'}</p>
- ${muda.length?`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Benefícios gerados</th><th class="n">Usuários únicos</th><th class="n">Carteira</th></tr></thead><tbody>${muda.map(r=>{const a=atual[r.m]||{};const c=(v,o)=>`${fmt(v)}${o!=null&&o!==v?` <small>era ${fmt(o)}</small>`:''}`;
-  return `<tr><td>${lab(r.m)}</td><td class="n">${c(r.usos,a.usos)}</td><td class="n">${c(r.usuarios,a.usuarios)}</td><td class="n">${c(r.carteira,a.carteira)}</td></tr>`}).join('')}</tbody></table></div>
+ ${muda.length?`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Vouchers gerados</th><th class="n">Usuários únicos</th></tr></thead><tbody>${muda.map(r=>{const a=atual[r.m]||{};const c=(v,o)=>`${fmt(v)}${o!=null&&o!==v?` <small>era ${fmt(o)}</small>`:''}`;
+  return `<tr><td>${lab(r.m)}</td><td class="n">${c(r.usos,a.usos)}</td><td class="n">${c(r.usuarios,a.usuarios)}</td></tr>`}).join('')}</tbody></table></div>
  <div class="acoes"><button class="btn" id="cg-tot-ok" type="button">Salvar totais</button><span class="hint" id="cg-tot-msg"></span></div>`:''}`;
  const b=document.getElementById('cg-tot-ok');if(b)b.onclick=async()=>{const m=document.getElementById('cg-tot-msg');b.disabled=true;m.textContent='Salvando…';
-  const {data,error}=await sb.rpc('salvar_totais_plataforma',{p:rows});if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
-  await semCarregar(true);desenharPlataforma();m.textContent=`Pronto: ${data} meses salvos. Os gráficos mensais do painel já usam estes números.`}}
+  const {data,error}=await sb.rpc('salvar_totais_clube',{p:rows});if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
+  await carregarDados(true);m.textContent=`Pronto: ${data} meses salvos. O Clube em números já usa estes totais.`}}
 
 /* =====================================================================
    Relatório semanal — semana de sexta a quinta.
@@ -1093,10 +1099,7 @@ function enviarPagina(){const ult=[...SEM.dados.semanas].reverse().filter(s=>!s.
   <label class="drop"><b>2. Base do mês até a data</b><span>Do dia 1º do mês até a quinta-feira da semana. Alimenta o bloco do mês: total, usuários únicos, Top 5 parceiros e eventos e média diária.</span><input type="file" id="wfm" accept=".xlsx,.xls,.csv"></label>
  </div>
  <div id="wprev"></div>
- <div class="card"><h3>3. Totais do mês fechado</h3><p class="sub">Arquivo de uso na plataforma (site + app) com, por mês, a carteira do Clube, os benefícios gerados e os usuários únicos. São os números fechados dos gráficos mensais do painel (uso e usuários mês a mês, penetração e média diária). Envie quando o mês fechar.</p>
-  <label class="drop" style="margin-top:10px"><b>Uso na plataforma</b><span>.csv ou .xlsx (ex.: Clube_Assinante_Historico_Uso_jun23-set26Plataforma.csv). Pode ter vários meses; os que já existem são atualizados.</span><input type="file" id="f-tot" accept=".csv,.xlsx"></label>
-  <div id="cg-tot"></div></div>
- <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel. Uso, usuários e carteira vêm do arquivo de totais acima; aqui dá para corrigir. Os usos de cortesia são preenchidos aqui quando o mês fechar. O mês em andamento vem da base do mês.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
+ <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel: uso e usuários do site, carteira da penetração e usos de cortesia. Preencha quando o mês fechar. O mês em andamento vem da base do mês.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
  <div class="grid2">
   <div class="card"><h3>Produtoras de eventos</h3><p class="sub">Uma por linha, com o nome exatamente como aparece na coluna Marca. Define o ranking de ${T('eventos','Eventos')}.</p><textarea id="wpr" rows="9">${esc(SEM.dados.produtoras.join('\n'))}</textarea><div class="acoes"><button class="btn" id="wpr-ok" type="button">Salvar lista</button><span class="hint" id="wpr-msg"></span></div></div>
   <div class="card"><h3>Semanas enviadas</h3>${ult.length?`<div class="mes-chips">${ult.map(s=>`<span>${semLab(s)}${s.mtd&&!s.mtd.antiga?'':' · sem base do mês'}</span>`).join('')}</div>`:'<p class="hint">Nenhuma ainda.</p>'}<p class="hint" style="margin-top:10px">Enviar de novo uma semana que já está no portal substitui a anterior. Se enviar só a Base da semana, a base do mês que já estava salva é mantida.</p></div>
@@ -1110,8 +1113,6 @@ function bindEnviar(){libs();SEM.envio=SEM.envio||{};
   const lista=document.getElementById('wpr').value.split('\n').map(x=>x.trim()).filter(Boolean);
   const {error}=await sb.rpc('salvar_produtoras',{p_lista:lista});if(error){m.textContent='Não salvou: '+error.message;return}
   await semCarregar(true);m.textContent='Lista salva.'};
- document.getElementById('f-tot').onchange=async e=>{const f=e.target.files[0];const box=document.getElementById('cg-tot');if(!f)return;box.innerHTML='<p class="carregando">Lendo…</p>';
-  try{const rows=await lerTotais(f);desenharTotais(rows)}catch(err){box.innerHTML=`<div class="note">${esc(err.message||err)}</div>`}};
  desenharPlataforma();desenharEnvio()}
 function desenharPlataforma(){const box=document.getElementById('wpl'),ch=document.getElementById('wpl-anos');if(!box)return;
  const hoje=new Date();const anos=[];for(let a=2024;a<=hoje.getFullYear();a++)anos.push(a);SEM.anoPl=SEM.anoPl||hoje.getFullYear();
