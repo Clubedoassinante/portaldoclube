@@ -485,14 +485,16 @@ function stackRange(a,b,hl,pct){const ia=Math.max(FI,idx(a)),ib=idx(b);const row
  let g='';for(let i=0;i<=4;i++){const t=mx*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${pct?fmt(t)+'%':fmt(t/1000,1)+' mil'}</text>`}
  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quem gerou voucher">${g}${rows.map((r,i)=>{let acc=0;const x=L+i*gap+(gap-bw)/2;const segs=parts.map(([k,c])=>{const bruto=r[k]||0;const val=bruto*sc(r);const y1=y(acc+val),y0=y(acc);acc+=val;return `<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(0,y0-y1-1)}" fill="${c}" ${on(r.m)?'':'opacity=".45"'}><title>${lab(r.m)}: ${fmt(bruto)} pessoas (${fmt(100*bruto/(soma(r)||1),1)}%)</title></rect>`}).join('');
   return segs+`<text x="${x+bw/2}" y="${H-12}" text-anchor="middle" font-size="11" fill="${on(r.m)?'var(--ink)':'var(--muted)'}" ${on(r.m)?'font-weight="700"':''}>${MESES[+r.m.slice(5)-1]}</text>`}).join('')}</svg>`}
-function ativChart(year){const rows=ATIV;const W=760,H=250,L=46,R=10,T0=22,B=34;
+function ativChart(year,pess){const rows=ATIV;const W=760,H=250,L=52,R=10,T0=22,B=34;
  if(!rows.length)return '<p class="hint">Sem safras suficientes.</p>';
- const mx=Math.max(10,Math.ceil(Math.max(...rows.map(r=>r.pct))/10)*10);const y=t=>T0+(1-t/mx)*(H-T0-B);const gap=(W-L-R)/rows.length,bw=gap*.62;
- let g='';for(let t=0;t<=mx;t+=10){g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${t}%</text>`}
+ const val=r=>pess?(r.pessoas_ativ??r.ativou):r.pct;const fv=v=>pess?fmt(v):fmt(v,1)+'%';
+ let mx,step;if(pess){const top=Math.max(...rows.map(val));step=top>4000?1000:500;mx=Math.ceil(top*1.12/step)*step}else{mx=Math.max(10,Math.ceil(Math.max(...rows.map(r=>r.pct))/10)*10);step=10}
+ const y=t=>T0+(1-t/mx)*(H-T0-B);const gap=(W-L-R)/rows.length,bw=gap*.62;
+ let g='';for(let t=0;t<=mx;t+=step){g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${pess?fmt(t):t+'%'}</text>`}
  const fs=rows.length>8?10.5:11.5;
- return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ativação nos primeiros 6 meses por safra">${g}${rows.map((r,i)=>{const x=L+i*gap+(gap-bw)/2;const sel=r.safra.endsWith(year);
-  const col=!r.completa?'#c9b3bf':(sel?'#ed6e21':'#721a50');
-  return `<rect x="${x}" y="${y(r.pct)}" width="${bw}" height="${y(0)-y(r.pct)}" rx="5" fill="${col}"><title>${r.safra}: ${fmt(r.ativou)} de ${fmt(r.n)} assinaturas (${fmt(r.pct,1)}%)${r.completa?'':'. Parcial: nem todas completaram 6 meses'}</title></rect><text x="${x+bw/2}" y="${y(r.pct)-7}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${fmt(r.pct,1)}%</text><text x="${x+bw/2}" y="${H-12}" text-anchor="middle" font-size="${fs}" fill="${sel?'var(--ink)':'var(--muted)'}" ${sel?'font-weight="700"':''}>${r.safra}${r.completa?'':'*'}</text>`}).join('')}</svg>`}
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ativação nos primeiros 6 meses por safra">${g}${rows.map((r,i)=>{const x=L+i*gap+(gap-bw)/2;const sel=r.safra.endsWith(year);const v=val(r);
+  const col=!r.completa?'#c9b3bf':(sel?'#ed6e21':'#721a50');const pp=r.pessoas?100*(r.pessoas_ativ/r.pessoas):r.pct;
+  return `<rect x="${x}" y="${y(v)}" width="${bw}" height="${y(0)-y(v)}" rx="5" fill="${col}"><title>${r.safra}: ${pess?`${fmt(r.pessoas_ativ)} de ${fmt(r.pessoas)} pessoas (${fmt(pp,1)}%)`:`${fmt(r.ativou)} de ${fmt(r.n)} assinaturas (${fmt(r.pct,1)}%)`}${r.completa?'':'. Parcial: nem todas completaram 6 meses'}</title></rect><text x="${x+bw/2}" y="${y(v)-7}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${fv(v)}</text><text x="${x+bw/2}" y="${H-12}" text-anchor="middle" font-size="${fs}" fill="${sel?'var(--ink)':'var(--muted)'}" ${sel?'font-weight="700"':''}>${r.safra}${r.completa?'':'*'}</text>`}).join('')}</svg>`}
 
 /* =====================================================================
    Clube em números — visões mensal e anual, comparar períodos e perfil
@@ -550,17 +552,25 @@ function renderVisao(kind){const box=document.getElementById('res');const P=peri
      :`<div class="card"><h3>Entradas e saídas da carteira</h3><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart sm">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</div>`}
  </div>
  <div class="card" id="hist"></div>
- ${kind==='ano'?`<div class="card"><h3>${T('ativacao-6m','Ativação nos primeiros 6 meses')}, por safra de venda</h3><p class="sub">% das assinaturas vendidas em cada semestre que gerou pelo menos 1 voucher do mês da venda até o 5º mês seguinte. Laranja: safras de ${sa.y}. Cinza: safra parcial.</p><div class="chart">${ativChart(sa.y)}</div>${ATIV.some(r=>!r.completa)?`<p class="hint">* Safra parcial: ainda há assinaturas que não completaram 6 meses, então o número vai subir.</p>`:''}</div>`:''}
+ ${kind==='ano'?`<div class="card" id="ativ"></div>`:''}
  <div class="mais">
   ${B?`<details class="card"><summary>Entradas e saídas da carteira</summary><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</details>`:''}
   <details class="card" id="det-coorte"><summary>Ativação por mês de venda</summary><div></div></details>
   <details class="card" id="det-rec"><summary>Recorrência: quem volta a usar</summary><div><p class="carregando">Carregando…</p></div></details>
   <details class="card" id="det-usu"><summary>Por que os números de usuários são diferentes</summary><div></div></details>
  </div>`;
- renderQuemGerou(kind,P,hl);renderHist(kind,P,A);
+ renderQuemGerou(kind,P,hl);renderHist(kind,P,A);if(kind==='ano')renderAtiv();
  document.querySelector('#det-coorte>div').innerHTML=coorteTabela(kind,P);
  document.querySelector('#det-usu>div').innerHTML=usuariosExplica(P,A,ultimo);
  const rec=document.getElementById('det-rec');rec.addEventListener('toggle',()=>{if(rec.open&&!rec.dataset.ok){rec.dataset.ok=1;renderRecorrencia(rec.querySelector('div'),P.b)}})}
+
+/* ---------- ativação por safra: % ou número de pessoas ---------- */
+function renderAtiv(){const box=document.getElementById('ativ');if(!box)return;sa.at=sa.at||'pct';const pess=sa.at==='pes';
+ const temP=ATIV.some(r=>r.pessoas_ativ!=null);
+ box.innerHTML=`<div class="row-head"><div><h3>${T('ativacao-6m','Ativação nos primeiros 6 meses')}, por safra de venda</h3><p class="sub">${pess?'Pessoas que compraram assinatura em cada semestre e geraram pelo menos 1 voucher':'% das assinaturas vendidas em cada semestre que gerou pelo menos 1 voucher'} do mês da venda até o 5º mês seguinte. Laranja: safras de ${sa.y}. Cinza: safra parcial.</p></div>
+ ${temP?`<div class="chips"><button class="chip ${pess?'':'on'}" data-at="pct" type="button">%</button><button class="chip ${pess?'on':''}" data-at="pes" type="button">Pessoas</button></div>`:''}</div>
+ <div class="chart">${ativChart(sa.y,pess&&temP)}</div>${ATIV.some(r=>!r.completa)?`<p class="hint">* Safra parcial: ainda há ${pess?'pessoas':'assinaturas'} que não completaram 6 meses, então o número vai subir.${pess?' Quem comprou mais de uma assinatura no semestre conta uma vez.':''}</p>`:''}`;
+ box.querySelectorAll('[data-at]').forEach(b=>b.onclick=()=>{sa.at=b.dataset.at;renderAtiv()})}
 
 /* ---------- quem gerou voucher: 3 grupos, pessoas ou % ---------- */
 function renderQuemGerou(kind,P,hl){const S=kind==='mes'?sm:sa;S.qg=S.qg||'n';const box=document.getElementById('qg');
