@@ -258,6 +258,26 @@ table.cmp.pl input{width:110px;padding:6px 8px;border:1px solid var(--line);bord
 .jx-abas{background:#fff;color:#000}
 .jx-aba{max-height:640px;overflow:auto}
 @media (max-width:760px){.jx-wide{overflow-x:auto}.jx-wide .jx-svg{min-width:720px}}
+/* clube em números: camadas */
+.sintese{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:16px;line-height:1.45;max-width:90ch}
+.sintese b{font-weight:700}
+.sub-chips{margin:8px 0 2px}.sub-chips .chip{font-size:12px;padding:4px 10px}
+.mais{display:flex;flex-direction:column;gap:10px}
+details.card>summary{cursor:pointer;font-weight:700;font-size:15px;list-style:none;display:flex;align-items:center;gap:8px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::before{content:'+';display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--chip);color:var(--vinho);font-weight:700}
+details.card[open]>summary::before{content:'−'}
+details.card[open]>summary{margin-bottom:10px}
+details.card h4{margin:0 0 4px;font-size:14px}
+table.cmp td small{display:block;margin:2px 0 0;font-size:11.5px;color:var(--muted);font-weight:400}
+table.cmp tr.grp td{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--vinho);font-weight:700;padding-top:16px;border-bottom:1px solid var(--line)}
+table.cmp.hist td small{display:block;color:var(--muted);font-size:11px}
+table.cmp.hist tr.sel td{background:color-mix(in srgb,var(--laranja) 10%,transparent)}
+table.cmp.coorte td.n{background:color-mix(in srgb,var(--vinho) calc(var(--p,0)*45%),transparent)}
+table.cmp.coorte td.na{color:var(--muted);background:repeating-linear-gradient(45deg,transparent 0 4px,var(--chip) 4px 8px)}
+table.cmp.usu td{vertical-align:top}table.cmp.usu td.n{white-space:nowrap;font-size:16px}
+table.cmp.prof tr.peq td{color:var(--muted)}
+details .grid2>div{min-width:0;overflow:hidden}details table.cmp.prof td:last-child{padding-right:18px}
 </style>
 </head>
 <body>
@@ -326,15 +346,20 @@ const mesIdx=m=>{const [y,mm]=m.split('-').map(Number);return (y-2023)*12+mm-7};
 /* ---------- glossário ---------- */
 const GL=[
  ['Uso do Clube',[
-  ['penetracao','Penetração','Usuários únicos dividido pela carteira ativa.','Em períodos de vários meses, é a média dos meses.'],
+  ['penetracao','Penetração','Usuários únicos do mês dividido pelas pessoas da carteira ativa (cada titular conta uma vez, mesmo com mais de uma assinatura).','Entram no numerador todas as pessoas que geraram voucher, inclusive quem não está na carteira. Em períodos de vários meses, é a média do período. Na página Perfil de quem usa, a penetração de cada segmento conta só quem está na carteira.'],
   ['vouchers','Vouchers gerados','Total de vouchers gerados no período.','Se a pessoa gerou 2 vouchers (por exemplo, para ela e um acompanhante), conta como 2. O total do mês vem dos totais da plataforma; os recortes por perfil vêm das bases por pessoa e podem somar um pouco diferente.'],
   ['usuarios-unicos','Usuários únicos','Pessoas diferentes que geraram pelo menos 1 voucher no período.','Quem gerou em mais de um mês conta uma vez só. O número de um mês vem dos totais da plataforma; o de vários meses juntos vem das bases por pessoa.'],
   ['frequencia','Frequência de uso','Vouchers gerados dividido por usuários únicos: quantos vouchers cada pessoa gerou, em média.',''],
   ['media-dia','Média de uso por dia','Vouchers gerados dividido pelo número de dias do período.',''],
-  ['primeira-vez','Primeira vez','Pessoas que geraram o primeiro voucher desde jul/2023 naquele mês.',''],
-  ['seguido','Também no mês anterior','Pessoas que geraram voucher no mês e também no mês anterior.',''],
-  ['voltou','Voltaram a usar','Pessoas que já tinham gerado voucher antes, ficaram pelo menos um mês sem gerar e voltaram.',''],
+  ['primeira-vez','Primeira vez','Pessoas que geraram voucher pela primeira vez no mês, considerando o histórico desde jul/2023.','Nos primeiros meses da série quase todo mundo aparece como primeira vez, porque não há histórico antes de jul/2023.'],
+  ['seguido','Recorrentes','Pessoas que geraram voucher no mês e também no mês anterior.',''],
+  ['voltou','Voltaram a usar','Pessoas que já tinham gerado voucher antes, ficaram pelo menos um mês sem gerar e voltaram.','Recorrentes, voltaram a usar e primeira vez somam todas as pessoas que geraram voucher no mês, pelas bases por pessoa.'],
   ['ativacao-6m','Ativação nos primeiros 6 meses','Parte das assinaturas vendidas num semestre que gerou pelo menos 1 voucher nos 6 primeiros meses (o mês da venda e os 5 seguintes).','Conta só assinaturas que entraram na carteira até 2 meses depois da venda. Safra parcial: ainda há assinaturas que não completaram 6 meses, então o número ainda vai subir.'],
+ ]],
+ ['Leituras',[
+  ['media-movel','Média móvel de 3 meses','Média do mês com os 2 meses anteriores. Suaviza oscilações de um mês para outro e ajuda a ver a tendência.','Aparece só quando ligada no gráfico de evolução, sempre identificada.'],
+  ['recorrencia','Recorrência','Em quantos meses a mesma pessoa gerou voucher numa janela de 6 meses, e há quantos meses seguidos gera.',''],
+  ['fora-carteira','Fora da carteira','Pessoas que geraram voucher no mês sem estar na carteira ativa daquele mês. Contam na penetração e nos usuários únicos, mas não têm perfil.','A maior parte nunca apareceu como titular numa carteira; o caso mais provável são dependentes do Plano Família.'],
  ]],
  ['Assinantes',[
   ['carteira-ativa','Carteira ativa','Assinaturas ativas no fim do mês.','Inclui assinaturas suspensas e com entrega pausada, que voltam a ficar ativas.'],
@@ -454,11 +479,11 @@ function barsYoY(year){const cur=M.filter(r=>r.m.startsWith(year)),prev=M.filter
   bars+=`<text x="${x}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--muted)">${MESES[mth-1]}</text>`}
  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vouchers por mês">${g}${bars}</svg>`}
 const legend=items=>`<div class="legend">${items.map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join('')}</div>`;
-function stackRange(a,b,hl){const ia=Math.max(FI,idx(a)),ib=idx(b);const rows=M.slice(ia,ib+1);const W=480,H=230,L=46,R=6,T0=12,B=30;
- const mx=Math.max(1,...rows.map(r=>r.ger));const y=t=>T0+(1-t/mx)*(H-T0-B);const gap=(W-L-R)/Math.max(rows.length,1),bw=gap*.62;
+function stackRange(a,b,hl,pct){const ia=Math.max(FI,idx(a)),ib=idx(b);const rows=M.slice(ia,ib+1).filter(r=>r.g_primeira!=null);const W=480,H=230,L=46,R=6,T0=12,B=30;
+ const soma=r=>(r.g_seguido||0)+(r.g_voltou||0)+(r.g_primeira||0);const mx=pct?100:Math.max(1,...rows.map(soma));const sc=r=>pct?100/(soma(r)||1):1;const y=t=>T0+(1-t/mx)*(H-T0-B);const gap=(W-L-R)/Math.max(rows.length,1),bw=gap*.62;
  const parts=[['g_seguido','#721a50'],['g_voltou','#a06a91'],['g_primeira','#ed6e21']];const on=m=>hl.includes(m);
- let g='';for(let i=0;i<=4;i++){const t=mx*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(t/1000,1)} mil</text>`}
- return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quem gerou voucher">${g}${rows.map((r,i)=>{let acc=0;const x=L+i*gap+(gap-bw)/2;const segs=parts.map(([k,c])=>{const val=r[k]||0;const y1=y(acc+val),y0=y(acc);acc+=val;return `<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(0,y0-y1-1)}" fill="${c}" ${on(r.m)?'':'opacity=".45"'}><title>${lab(r.m)}: ${fmt(val)}</title></rect>`}).join('');
+ let g='';for(let i=0;i<=4;i++){const t=mx*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${pct?fmt(t)+'%':fmt(t/1000,1)+' mil'}</text>`}
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quem gerou voucher">${g}${rows.map((r,i)=>{let acc=0;const x=L+i*gap+(gap-bw)/2;const segs=parts.map(([k,c])=>{const bruto=r[k]||0;const val=bruto*sc(r);const y1=y(acc+val),y0=y(acc);acc+=val;return `<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(0,y0-y1-1)}" fill="${c}" ${on(r.m)?'':'opacity=".45"'}><title>${lab(r.m)}: ${fmt(bruto)} pessoas (${fmt(100*bruto/(soma(r)||1),1)}%)</title></rect>`}).join('');
   return segs+`<text x="${x+bw/2}" y="${H-12}" text-anchor="middle" font-size="11" fill="${on(r.m)?'var(--ink)':'var(--muted)'}" ${on(r.m)?'font-weight="700"':''}>${MESES[+r.m.slice(5)-1]}</text>`}).join('')}</svg>`}
 function ativChart(year){const rows=ATIV;const W=760,H=250,L=46,R=10,T0=22,B=34;
  if(!rows.length)return '<p class="hint">Sem safras suficientes.</p>';
@@ -469,7 +494,20 @@ function ativChart(year){const rows=ATIV;const W=760,H=250,L=46,R=10,T0=22,B=34;
   const col=!r.completa?'#c9b3bf':(sel?'#ed6e21':'#721a50');
   return `<rect x="${x}" y="${y(r.pct)}" width="${bw}" height="${y(0)-y(r.pct)}" rx="5" fill="${col}"><title>${r.safra}: ${fmt(r.ativou)} de ${fmt(r.n)} assinaturas (${fmt(r.pct,1)}%)${r.completa?'':'. Parcial: nem todas completaram 6 meses'}</title></rect><text x="${x+bw/2}" y="${y(r.pct)-7}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${fmt(r.pct,1)}%</text><text x="${x+bw/2}" y="${H-12}" text-anchor="middle" font-size="${fs}" fill="${sel?'var(--ink)':'var(--muted)'}" ${sel?'font-weight="700"':''}>${r.safra}${r.completa?'':'*'}</text>`}).join('')}</svg>`}
 
-const METS={pen:['Penetração',v=>fmt(v,1)+'%','#721a50'],vou:['Vouchers gerados',v=>fmt(v),'#ed6e21'],freq:['Frequência de uso',v=>fmt(v,2),'#69a392'],cart:['Carteira ativa',v=>fmt(v/1000,1)+' mil','#54143f']};
+/* =====================================================================
+   Clube em números — visões mensal e anual, comparar períodos e perfil
+   Camadas: síntese → KPIs principais → secundários → análises → detalhes (abrem sob demanda)
+   ===================================================================== */
+const METS={
+ pen:['Penetração','%',v=>fmt(v,2)+'%','#721a50'],
+ vou:['Vouchers gerados','vouchers',v=>fmt(v),'#ed6e21'],
+ freq:['Frequência de uso','vouchers por pessoa',v=>fmt(v,2),'#69a392'],
+ cart:['Carteira ativa','assinaturas',v=>fmt(v),'#54143f'],
+ ger:['Usuários únicos do mês','pessoas',v=>fmt(v),'#a06a91'],
+ dia:['Média de uso por dia','vouchers por dia',v=>fmt(v),'#d15c22']};
+const mm3=(rows,k)=>rows.map((_,j)=>{const w=rows.slice(Math.max(0,j-2),j+1).map(r=>r[k]).filter(v=>v!=null&&isFinite(v));return w.length===3?w.reduce((a,b)=>a+b,0)/3:null});
+const sinal=(v,d=0)=>(v>0?'+':v<0?'−':'')+fmt(Math.abs(v),d);
+
 function periodo(kind){
  if(kind==='mes'){const a=sm.m,b=sm.m;const pm=sm.cmp==='yoy'?shift(a,-12):shift(a,-1);return {a,b,ca:has(pm)?pm:null,cb:has(pm)?pm:null,lab:lab(a),labB:has(pm)?lab(pm):''}}
  const ms=M.slice(FI).filter(r=>r.m.startsWith(sa.y));const a=ms[0].m,b=ms[ms.length-1].m;const off=(+sa.y-+sa.cmp)*12;
@@ -480,59 +518,193 @@ function visao(kind){const yrOpts=YEARS.map(y=>`<option value="${y}" ${y===sa.y?
  const bar=kind==='mes'?`<label class="fld"><span>Mês</span><select id="mm">${monthOpts(sm.m)}</select></label><label class="fld"><span>Comparar com</span><select id="mcmp"><option value="yoy" ${sm.cmp==='yoy'?'selected':''}>Mesmo mês do ano anterior</option><option value="prev" ${sm.cmp==='prev'?'selected':''}>Mês anterior</option></select></label>`
   :`<label class="fld"><span>Ano</span><select id="ay">${yrOpts}</select></label><label class="fld"><span>Comparar com</span><select id="acmp">${cmpOpts}</select></label>`;
  return shell(kind==='mes'?'clube':'clube-ano',`<div class="bar">${bar}</div><div id="res"></div>`)}
+
+/* ---------- síntese: no máximo 3 frases, só o que os números sustentam ---------- */
+function sintese(P,A,B){const L=[];const n=A.n;
+ L.push(`Penetração de <b>${fmt(A.pen,2)}%</b>${n>1?' (média do período)':''}${B?`, ${Math.abs(A.pen-B.pen)<0.05?'estável':`${A.pen>B.pen?'acima':'abaixo'} de ${P.labB} (${fmt(B.pen,2)}%; ${sinal(A.pen-B.pen,2)} p.p.)`}`:''}.`);
+ if(B&&B.vou){const v=(A.vou/B.vou-1)*100;const dU=(A.ger-B.ger)*B.freq,dF=(A.freq-B.freq)*A.ger;
+  let causa;if(Math.abs(v)<1)causa='';
+  else if(Math.abs(dU)>=2*Math.abs(dF))causa=` A diferença veio principalmente do número de pessoas usando (${sinal(A.ger-B.ger)} ${n>1?'pessoas-mês':'pessoas'}).`;
+  else if(Math.abs(dF)>=2*Math.abs(dU))causa=` A diferença veio principalmente da frequência: ${fmt(A.freq,2)} vouchers por pessoa, contra ${fmt(B.freq,2)}.`;
+  else causa=' Mudaram tanto o número de pessoas usando quanto a frequência; não dá para apontar um só motivo.';
+  L.push(`<b>${fmt(A.vou)}</b> vouchers gerados, ${Math.abs(v)<1?`praticamente o mesmo que em ${P.labB}`:`${sinal(v,1)}% em relação a ${P.labB}`}.${causa}`)}
+ else L.push(`<b>${fmt(A.vou)}</b> vouchers gerados por <b>${fmt(A.unicos)}</b> ${n>1?'pessoas diferentes no período':'pessoas'}.`);
+ if(A.canc!=null)L.push(`Carteira ${n>1?'terminou o período com':'com'} <b>${fmt(A.cart)}</b> assinaturas: ${fmt(A.novos)} novas e ${fmt(A.canc)} cancelamentos (saldo de ${sinal(A.saldo)}).`);
+ return `<ul class="sintese">${L.map(x=>`<li>${x}</li>`).join('')}</ul>`}
+
 function renderVisao(kind){const box=document.getElementById('res');const P=periodo(kind);const A=agg(P.a,P.b);const B=P.ca?agg(P.ca,P.cb):null;const n=A.n;
- const S=kind==='mes'?sm:sa;const vs=B?` vs ${P.labB}`:'';const d=(x,y,k,inv)=>B?delta(x,y,k,inv)+vs:'sem comparação';const d2=(x,y,k,inv)=>B?delta(x,y,k,inv):'';
- const media=n>1?' (média por mês)':'';
- const dU=B?(A.ger-B.ger)*B.freq:0,dF=B?(A.freq-B.freq)*A.ger:0;
- const quem=B?(Math.abs(dU)>=Math.abs(dF)?(dU>=0?'mais pessoas usando':'menos pessoas usando'):(dF>=0?'cada pessoa gerando mais':'cada pessoa gerando menos')):'';
- const notes=[];if(B&&B.n!==n)notes.push(`O período de comparação tem ${B.n} ${B.n>1?'meses':'mês'} e este tem ${n}: compare as médias por mês, não os totais.`);
- const hl=A.rows.map(r=>r.m);const sp=(k,c)=>kind==='mes'?spark(k,P.b,c):'';
- box.innerHTML=`<p class="answer">Em <b>${P.lab}</b>, <b>${fmt(A.pen,2)}%</b> da carteira gerou voucher${n>1?' por mês, em média':''}${B?` (${P.labB}: ${fmt(B.pen,2)}%)`:''}. Foram <b>${fmt(A.vou)}</b> vouchers${B?`, ${A.vou>=B.vou?'mais':'menos'} que em ${P.labB}, puxados principalmente por ${quem}`:''}.</p>
+ const S=kind==='mes'?sm:sa;S.met=S.met||'pen';S.rng=S.rng||'24';const vs=B?` vs ${P.labB}`:'';
+ const d=(x,y,k,inv)=>B?delta(x,y,k,inv)+vs:'sem comparação';const d2=(x,y,k,inv)=>B?delta(x,y,k,inv):'';
+ const notes=[];if(B&&B.n!==n)notes.push(`O período de comparação tem ${B.n} ${B.n>1?'meses':'mês'} e este tem ${n}: compare as médias, não os totais.`);
+ const hl=A.rows.map(r=>r.m);const sp=(k,c)=>kind==='mes'?spark(k,P.b,c):'';const media=n>1?' (média)':'';
+ const ultimo=M[idx(P.b)];
+ box.innerHTML=`${sintese(P,A,B)}
  ${notes.map(t=>`<div class="note">${t}</div>`).join('')}${ressalvas(A.rows.concat(B?B.rows:[]))}
- <div><div class="label">Uso dos benefícios</div><div class="kpis" style="margin-top:8px">
-  ${KPI('P1','penetracao',fmt(A.pen,2)+'%',d(A.pen,B?.pen,'pp'),sp('pen','#721a50'),'Penetração'+media)}${KPI('P2','vouchers',fmt(A.vou),d(A.vou,B?.vou),sp('vou','#ed6e21'))}${KPI('P3','frequencia',fmt(A.freq,2),d(A.freq,B?.freq),sp('freq','#69a392'),'Frequência de uso'+media)}${KPI('','media-dia',fmt(A.dia),d(A.dia,B?.dia),sp('dia','#54143f'))}</div></div>
- <div><div class="label">Assinantes e uso</div><div class="sec" style="margin-top:8px">
-  ${KPI('','carteira-ativa',fmt(A.cart),d2(A.cart,B?.cart),'',n>1?'Carteira ativa no fim':'Carteira ativa')}${KPI('','novos',fmt(A.novos),d2(A.novos,B?.novos))}${KPI('','cancelamentos',fmt(A.canc),d2(A.canc,B?.canc,'%',true))}${KPI('','saldo',(A.saldo>=0?'+':'')+fmt(A.saldo),d2(A.saldo,B?.saldo,'abs'))}${KPI('','usuarios-unicos',fmt(A.unicos),d2(A.unicos,B?.unicos))}${KPI('','plano-familia',fmt(A.pf,1)+'%',d2(A.pf,B?.pf,'pp'),'',n>1?'Plano Família no fim':'Plano Família ativo')}</div></div>
+ <div class="kpis">
+  ${KPI('P1','penetracao',fmt(A.pen,2)+'%',d(A.pen,B?.pen,'pp'),sp('pen','#721a50'),'Penetração'+media)}${KPI('P2','vouchers',fmt(A.vou),d(A.vou,B?.vou),sp('vou','#ed6e21'),n>1?'Vouchers gerados (soma)':'Vouchers gerados')}${KPI('P3','frequencia',fmt(A.freq,2),d(A.freq,B?.freq),sp('freq','#69a392'),'Frequência de uso'+media)}${KPI('','media-dia',fmt(A.dia),d(A.dia,B?.dia),sp('dia','#54143f'))}</div>
+ <div class="sec">
+  ${KPI('','carteira-ativa',fmt(A.cart),d2(A.cart,B?.cart),'',n>1?'Carteira no fim':'Carteira ativa')}${KPI('','novos',fmt(A.novos),d2(A.novos,B?.novos))}${KPI('','cancelamentos',fmt(A.canc),d2(A.canc,B?.canc,'%',true))}${KPI('','saldo',sinal(A.saldo),d2(A.saldo,B?.saldo,'abs'))}${KPI('','usuarios-unicos',fmt(A.unicos),d2(A.unicos,B?.unicos),'',n>1?'Usuários únicos sem repetir':'Usuários únicos')}${KPI('','plano-familia',fmt(A.pf,1)+'%',d2(A.pf,B?.pf,'pp'),'',n>1?'Plano Família no fim':'Plano Família')}</div>
  <div class="grid2">
-  ${B?`<div class="card"><h3>O que mudou nos vouchers</h3><p class="sub">De ${P.labB} para ${P.lab}: quanto veio de ter mais ou menos pessoas usando e quanto veio de cada pessoa gerar mais ou menos.</p><div class="chart sm">${bridge([[[P.labB.length>10?'Antes':P.labB,''],B.vou,'total'],[['Pessoas',''],Math.round(dU),'d'],[['Vouchers','por pessoa'],Math.round(dF),'d'],[[P.lab.length>10?'Agora':P.lab,''],A.vou,'total']])}</div></div>`:''}
-  <div class="card"><h3>Quem gerou voucher</h3><p class="sub">${kind==='mes'?`Últimos 12 meses. ${lab(P.b)}`:`Mês a mês em ${P.lab}. Soma dos meses`}: ${fmt(A.rows.reduce((t,r)=>t+(r.g_primeira||0),0))} pela ${T('primeira-vez','primeira vez')}, ${fmt(A.rows.reduce((t,r)=>t+(r.g_seguido||0),0))} ${T('seguido','também no mês anterior')} e ${fmt(A.rows.reduce((t,r)=>t+(r.g_voltou||0),0))} que ${T('voltou','voltaram a usar')}.</p><div class="chart sm">${kind==='mes'?stackRange(shift(P.b,-11),P.b,hl):stackRange(P.a,P.b,hl)}</div>${legend([['#721a50','Também no mês anterior'],['#a06a91','Voltaram a usar'],['#ed6e21','Primeira vez']])}</div>
+  <div class="card" id="qg"></div>
+  ${B?`<div class="card"><h3>O que mudou nos vouchers</h3><p class="sub">De ${P.labB} para ${P.lab}, em vouchers: parte por ter mais ou menos pessoas usando, parte por cada pessoa gerar mais ou menos.</p><div class="chart sm">${bridge([[[P.labB.length>10?'Antes':P.labB,''],B.vou,'total'],[['Pessoas',''],Math.round((A.ger-B.ger)*B.freq),'d'],[['Frequência',''],Math.round((A.freq-B.freq)*A.ger),'d'],[[P.lab.length>10?'Agora':P.lab,''],A.vou,'total']])}</div></div>`
+     :`<div class="card"><h3>Entradas e saídas da carteira</h3><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart sm">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</div>`}
  </div>
- ${kind==='ano'?`<div class="card"><h3>${T('ativacao-6m','Ativação nos primeiros 6 meses')}, por safra de venda</h3><p class="sub">Parte das assinaturas vendidas em cada semestre que gerou pelo menos 1 voucher nos 6 primeiros meses. Laranja: safras de ${sa.y}.</p><div class="chart">${ativChart(sa.y)}</div>${ATIV.some(r=>!r.completa)?`<p class="hint">* Em cinza, safras parciais: ainda há assinaturas que não completaram 6 meses, então o número ainda vai subir.</p>`:''}</div>`:''}
- <div class="card"><div class="row-head"><div><h3>Evolução</h3><p class="sub">24 meses até ${lab(P.b)}. Faixa laranja: ${kind==='mes'?'mês escolhido':'período escolhido'}. ⚠: mês com ressalva.</p></div><div class="chips">${Object.entries(METS).map(([k,[nm]])=>`<button class="chip ${S.met===k?'on':''}" data-met="${k}">${nm}</button>`).join('')}</div></div><div class="chart">${lineChart(S.met,P.b,METS[S.met][1],METS[S.met][2],[P.a,P.b])}</div></div>`;
- box.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{S.met=b.dataset.met;renderVisao(kind)})}
+ <div class="card" id="hist"></div>
+ ${kind==='ano'?`<div class="card"><h3>${T('ativacao-6m','Ativação nos primeiros 6 meses')}, por safra de venda</h3><p class="sub">% das assinaturas vendidas em cada semestre que gerou pelo menos 1 voucher do mês da venda até o 5º mês seguinte. Laranja: safras de ${sa.y}. Cinza: safra parcial.</p><div class="chart">${ativChart(sa.y)}</div>${ATIV.some(r=>!r.completa)?`<p class="hint">* Safra parcial: ainda há assinaturas que não completaram 6 meses, então o número vai subir.</p>`:''}</div>`:''}
+ <div class="mais">
+  ${B?`<details class="card"><summary>Entradas e saídas da carteira</summary><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</details>`:''}
+  <details class="card" id="det-coorte"><summary>Ativação por mês de venda</summary><div></div></details>
+  <details class="card" id="det-rec"><summary>Recorrência: quem volta a usar</summary><div><p class="carregando">Carregando…</p></div></details>
+  <details class="card" id="det-usu"><summary>Por que os números de usuários são diferentes</summary><div></div></details>
+ </div>`;
+ renderQuemGerou(kind,P,hl);renderHist(kind,P,A);
+ document.querySelector('#det-coorte>div').innerHTML=coorteTabela(kind,P);
+ document.querySelector('#det-usu>div').innerHTML=usuariosExplica(P,A,ultimo);
+ const rec=document.getElementById('det-rec');rec.addEventListener('toggle',()=>{if(rec.open&&!rec.dataset.ok){rec.dataset.ok=1;renderRecorrencia(rec.querySelector('div'),P.b)}})}
+
+/* ---------- quem gerou voucher: 3 grupos, pessoas ou % ---------- */
+function renderQuemGerou(kind,P,hl){const S=kind==='mes'?sm:sa;S.qg=S.qg||'n';const box=document.getElementById('qg');
+ const a=kind==='mes'?shift(P.b,-11):P.a;const rows=M.slice(Math.max(FI,idx(a)),idx(P.b)+1).filter(r=>r.g_primeira!=null);
+ const tot=k=>rows.filter(r=>hl.includes(r.m)).reduce((t,r)=>t+(r[k]||0),0);const T3=tot('g_seguido')+tot('g_voltou')+tot('g_primeira');
+ const pc=k=>T3?` (${fmt(100*tot(k)/T3,0)}%)`:'';
+ box.innerHTML=`<div class="row-head"><div><h3>Quem gerou voucher</h3><p class="sub">${kind==='mes'?`Últimos 12 meses até ${lab(P.b)}`:`Mês a mês em ${P.lab}`}. Pessoas, não vouchers. ${hl.length>1?'Soma dos meses':lab(P.b)}: ${fmt(tot('g_seguido'))} ${T('seguido','recorrentes')}${pc('g_seguido')}, ${fmt(tot('g_voltou'))} ${T('voltou','voltaram')}${pc('g_voltou')} e ${fmt(tot('g_primeira'))} pela ${T('primeira-vez','primeira vez')}${pc('g_primeira')}.</p></div>
+  <div class="chips"><button class="chip ${S.qg==='n'?'on':''}" data-qg="n" type="button">Pessoas</button><button class="chip ${S.qg==='p'?'on':''}" data-qg="p" type="button">%</button></div></div>
+  <div class="chart sm">${stackRange(a,P.b,hl,S.qg==='p')}</div>${legend([['#721a50','Recorrentes (também no mês anterior)'],['#a06a91','Voltaram a usar'],['#ed6e21','Primeira vez']])}`;
+ box.querySelectorAll('[data-qg]').forEach(b=>b.onclick=()=>{S.qg=b.dataset.qg;renderQuemGerou(kind,P,hl)})}
+
+/* ---------- evolução: métrica, alcance, média móvel e tabela ---------- */
+function renderHist(kind,P,A){const S=kind==='mes'?sm:sa;const hl=A.rows.map(r=>r.m);const box=document.getElementById('hist');const [nome,un,fv,cor]=METS[S.met];
+ const e=idx(P.b),s=S.rng==='all'?FI:Math.max(FI,e-23);const fim=S.rng==='all'?M.length-1:e;const rows=M.slice(s,fim+1);
+ const sel=M[e];const ok=rows.length>=2;
+ const head=`<div class="row-head"><div><h3>${nome} mês a mês</h3><p class="sub">${un[0].toUpperCase()+un.slice(1)}, valor de cada mês. ${S.mm?'Linha forte: média móvel de 3 meses; tracejado: valor do mês. ':''}Faixa laranja: ${kind==='mes'?'mês escolhido':'período escolhido'}. ${lab(P.b)}: <b>${fv(sel[S.met])}</b>.</p></div>
+  <div class="chips">${Object.entries(METS).map(([k,[n]])=>`<button class="chip ${S.met===k?'on':''}" data-met="${k}" type="button">${n}</button>`).join('')}</div></div>
+  <div class="chips sub-chips"><button class="chip ${S.rng==='24'?'on':''}" data-rng="24" type="button">24 meses</button><button class="chip ${S.rng==='all'?'on':''}" data-rng="all" type="button">Desde ${lab(M[FI].m)}</button>
+  <button class="chip ${S.mm?'on':''}" data-mm type="button">Média móvel de 3 meses</button><button class="chip ${S.tab?'on':''}" data-tab type="button">${S.tab?'Ver gráfico':'Ver tabela'}</button></div>`;
+ let corpo;
+ if(S.tab){const m3={};Object.keys(METS).forEach(k=>m3[k]=mm3(rows,k));
+  corpo=`<div class="tw"><table class="cmp hist"><thead><tr><th>Mês</th>${Object.entries(METS).map(([k,[n]])=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${rows.map((r,j)=>`<tr class="${hl.includes(r.m)?'sel':''}"><td>${lab(r.m)}${RESSALVA[r.m]?' ⚠':''}</td>${Object.entries(METS).map(([k,[, ,f]])=>`<td class="n">${r[k]!=null?f(r[k]):'—'}${S.mm&&m3[k][j]!=null?`<small>${f(m3[k][j])}</small>`:''}</td>`).join('')}</tr>`).reverse().join('')}</tbody></table></div>${S.mm?'<p class="hint">Número pequeno: média móvel de 3 meses (o mês e os 2 anteriores).</p>':''}`}
+ else corpo=ok?`<div class="chart">${histChart(rows,S.met,fv,cor,hl,S.mm)}</div>${S.mm?legend([[cor,'Média móvel de 3 meses'],['#b9a5b0','Valor do mês']]):''}`:'<p class="hint">Ainda não há meses suficientes para o gráfico.</p>';
+ box.innerHTML=head+corpo;
+ box.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{S.met=b.dataset.met;renderHist(kind,P,A)});
+ box.querySelectorAll('[data-rng]').forEach(b=>b.onclick=()=>{S.rng=b.dataset.rng;renderHist(kind,P,A)});
+ box.querySelector('[data-mm]').onclick=()=>{S.mm=!S.mm;renderHist(kind,P,A)};box.querySelector('[data-tab]').onclick=()=>{S.tab=!S.tab;renderHist(kind,P,A)}}
+function histChart(rows,key,fv,color,hl,comMM){const W=760,H=240,L=62,R=30,T0=18,B=34;const v=rows.map(r=>r[key]);const m3=mm3(rows,key);
+ const all=v.concat(comMM?m3:[]).filter(x=>x!=null&&isFinite(x));let mn=Math.min(...all),mx=Math.max(...all);const pad=(mx-mn)*.15||1;mn-=pad;mx+=pad;
+ const x=j=>L+j*(W-L-R)/Math.max(rows.length-1,1),y=t=>T0+(mx-t)/(mx-mn)*(H-T0-B);
+ let g='';for(let i=0;i<=4;i++){const t=mn+(mx-mn)*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fv(t)}</text>`}
+ const sel=rows.map((r,j)=>hl.includes(r.m)?j:-1).filter(j=>j>=0);
+ const band=sel.length?`<rect x="${x(sel[0])-9}" y="${T0}" width="${x(sel[sel.length-1])-x(sel[0])+18}" height="${H-T0-B}" fill="#ed6e21" opacity=".13" rx="6"/>`:'';
+ const path=arr=>{let p='',up=false;arr.forEach((t,j)=>{if(t==null||!isFinite(t)){up=false;return}p+=`${up?'L':'M'}${x(j).toFixed(1)} ${y(t).toFixed(1)}`;up=true});return p};
+ const st=Math.max(1,Math.ceil(rows.length/9));
+ const lbl=rows.map((r,j)=>(j%st===0&&rows.length-1-j>=st*.6)||j===rows.length-1?`<text x="${x(j)}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--muted)">${lab(r.m)}</text>`:'').join('');
+ const pts=rows.map((r,j)=>v[j]==null?'':`<circle cx="${x(j)}" cy="${y(v[j])}" r="${hl.includes(r.m)?4.5:(comMM?2:3)}" fill="${RESSALVA[r.m]?'#b7791f':(comMM?'#b9a5b0':color)}"><title>${lab(r.m)}: ${fv(v[j])}${comMM&&m3[j]!=null?` · média de 3 meses: ${fv(m3[j])}`:''}${RESSALVA[r.m]?'. '+esc(RESSALVA[r.m]):''}</title></circle>${RESSALVA[r.m]?`<text x="${x(j)}" y="${y(v[j])-9}" text-anchor="middle" font-size="11" fill="#b7791f">⚠</text>`:''}`).join('');
+ const js=sel.length?sel[sel.length-1]:rows.length-1;const vl=v[js];
+ const tag=vl!=null?`<text x="${Math.min(x(js),W-R-4)}" y="${y(vl)-12}" text-anchor="${x(js)>W-80?'end':'middle'}" font-size="12.5" font-weight="700" fill="var(--ink)">${fv(vl)}</text>`:'';
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mês a mês">${band}${g}${comMM?`<path d="${path(v)}" fill="none" stroke="#b9a5b0" stroke-width="1.4" stroke-dasharray="4 4"/><path d="${path(m3)}" fill="none" stroke="${color}" stroke-width="2.8"/>`:`<path d="${path(v)}" fill="none" stroke="${color}" stroke-width="2.4"/>`}${pts}${tag}${lbl}</svg>`}
+
+/* ---------- entradas e saídas ---------- */
+function ioChart(a,b,hl){const rows=M.slice(Math.max(FI,idx(a)),idx(b)+1).filter(r=>r.canc!=null);if(!rows.length)return '<p class="hint">Sem meses com entradas e saídas.</p>';
+ const W=480,H=230,L=48,R=8,T0=14,B=30;const mx=Math.max(...rows.map(r=>Math.max(r.novos,r.canc,Math.abs(r.saldo))))*1.1||1;
+ const y=t=>T0+(mx-t)/(2*mx)*(H-T0-B);const gap=(W-L-R)/rows.length,bw=gap*.32;
+ let g='';[-mx,-mx/2,0,mx/2,mx].forEach(t=>{g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="${t===0?'var(--muted)':'var(--line)'}"/><text x="${L-6}" y="${y(t)+4}" text-anchor="end" font-size="10.5" fill="var(--muted)">${sinal(Math.round(t/100)*100)}</text>`});
+ const cx=i=>L+i*gap+gap/2;let p='';
+ const bars=rows.map((r,i)=>{const on=hl.includes(r.m);const op=on?'':' opacity=".5"';p+=`${i?'L':'M'}${cx(i).toFixed(1)} ${y(r.saldo).toFixed(1)}`;
+  return `<rect x="${cx(i)-bw-1}" y="${y(r.novos)}" width="${bw}" height="${y(0)-y(r.novos)}" fill="#69a392"${op}><title>${lab(r.m)}: ${fmt(r.novos)} novos</title></rect><rect x="${cx(i)+1}" y="${y(0)}" width="${bw}" height="${y(-r.canc)-y(0)}" fill="#d15c22"${op}><title>${lab(r.m)}: ${fmt(r.canc)} cancelamentos</title></rect><text x="${cx(i)}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="${on?'var(--ink)':'var(--muted)'}"${on?' font-weight="700"':''}>${MESES[+r.m.slice(5)-1]}</text>`}).join('');
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Entradas e saídas">${g}${bars}<path d="${p}" fill="none" stroke="#721a50" stroke-width="2.2"/>${rows.map((r,i)=>`<circle cx="${cx(i)}" cy="${y(r.saldo)}" r="3" fill="#721a50"><title>${lab(r.m)}: saldo ${sinal(r.saldo)}</title></circle>`).join('')}</svg>`}
+
+/* ---------- ativação por mês de venda (coortes mensais) ---------- */
+function coorteTabela(kind,P){const C=(RAW.coortes||[]).map(([vi,n,...a])=>({vi,n,a,m:shift('2023-07',vi)}));
+ if(!C.length)return '<p class="hint">Ainda não calculado. Rode o arquivo 6_clube_numeros.sql no Supabase.</p>';
+ const ult=mesIdx(LAST);const e=mesIdx(P.b);const lista=kind==='mes'?C.filter(c=>c.vi<=e).slice(-12):C.filter(c=>c.m.startsWith(sa.y));
+ const cols=['No mês da venda','Até o 1º mês','Até o 2º','Até o 3º','Até o 4º','Até o 5º'];
+ return `<p class="sub">% das assinaturas vendidas em cada mês que já gerou pelo menos 1 voucher. Denominador: assinaturas vendidas no mês que entraram na carteira em até 2 meses (a mesma regra da safra). Cinza: o mês ainda não aconteceu, então não há como medir.</p>
+ <div class="tw"><table class="cmp coorte"><thead><tr><th>Mês da venda</th><th class="n">Assinaturas</th>${cols.map(c=>`<th class="n">${c}</th>`).join('')}</tr></thead><tbody>${lista.map(c=>`<tr><td>${lab(c.m)}${c.vi+5>ult?' <small>parcial</small>':''}</td><td class="n">${fmt(c.n)}</td>${c.a.map((v,k)=>c.vi+k>ult?'<td class="n na">—</td>':`<td class="n" style="--p:${(c.n?v/c.n:0).toFixed(3)}">${c.n?fmt(100*v/c.n,1)+'%':'—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ <p class="hint">A última coluna é a mesma medida da ativação por safra (6 primeiros meses), só que mês a mês.</p>`}
+
+/* ---------- recorrência (consulta sob demanda) ---------- */
+async function renderRecorrencia(box,m){const {data,error}=await sb.rpc('recorrencia',{p_mes:m+'-01'});
+ if(error){box.innerHTML=`<p class="hint">${/recorrencia/.test(error.message)?'Ainda não disponível: rode o arquivo 6_clube_numeros.sql no Supabase.':'Não foi possível carregar: '+esc(error.message)}</p>`;return}
+ if(!data||!data.distintos){box.innerHTML='<p class="hint">Sem dados de recorrência para este mês.</p>';return}
+ const ini=shift('2023-07',data.ini),fim=shift('2023-07',data.fim);const nm=data.fim-data.ini+1;
+ const dist=Object.entries(data.distintos||{}).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);const tD=dist.reduce((t,x)=>t+x[1],0);
+ const seg={};Object.entries(data.seguidos||{}).forEach(([k,v])=>{const kk=Math.min(+k,6);seg[kk]=(seg[kk]||0)+v});const sg=Object.entries(seg).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);const tS=sg.reduce((t,x)=>t+x[1],0);
+ const tab=(rows,tot,rot)=>{const mx=Math.max(...rows.map(r=>r[1]));return `<table class="cmp prof"><tbody>${rows.map(([k,v])=>`<tr><td>${rot(k)}</td><td class="n">${fmt(v)}</td><td><div class="barcell"><span style="width:${(v/mx*100).toFixed(1)}%"></span><b>${fmt(100*v/tot,1)}%</b></div></td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt(tot)}</td><td></td></tr></tbody></table>`};
+ box.innerHTML=`<div class="grid2"><div><h4>Em quantos meses gerou voucher, de ${lab(ini)} a ${lab(fim)}</h4><p class="sub">Pessoas que geraram pelo menos 1 voucher nesses ${nm} meses${nm<6?' (só há estes meses de dados)':''}.</p>${tab(dist,tD,k=>`${k} ${k>1?'meses':'mês'}`)}</div>
+ <div><h4>Há quantos meses seguidos gera voucher</h4><p class="sub">De quem gerou voucher em ${lab(fim)}: sequência de meses seguidos até ${lab(fim)}.</p>${tab(sg,tS,k=>k>=6?'6 meses ou mais':`${k} ${k>1?'meses':'mês'}`)}</div></div>`}
+
+/* ---------- por que os números de usuários são diferentes ---------- */
+function usuariosExplica(P,A,r){const m=r.m;const tot=TOT[m]?.[1];const base=r.ger_pessoas??r.ger;const fora=r.fora??0;const nunca=Math.min(RAW.fora_nunca?.[m]??NaN,fora);
+ const linhas=[];
+ if(tot!=null)linhas.push(['Usuários únicos no mês, pelos totais da plataforma',fmt(tot),'É o número que aparece nos indicadores do mês.']);
+ linhas.push(['Usuários únicos no mês, pelas bases por pessoa',fmt(base),tot!=null?`Diferença de ${sinal(base-tot)} (${fmt(Math.abs(100*(base-tot)/tot),1)}%) para os totais: as duas fontes contam o mesmo uso por caminhos diferentes.`:'Pessoas diferentes que geraram voucher no mês, sem a conta de testes e sem farmácias.']);
+ linhas.push(['…na carteira ativa do mês (têm perfil)',fmt(base-fora),'É o total da página Perfil de quem usa.']);
+ linhas.push(['…fora da carteira ativa do mês',fmt(fora),'Entram na penetração, mas não têm perfil.']);
+ if(isFinite(nunca)){linhas.push(['……nunca apareceram como titulares numa carteira desde jul/2023',fmt(nunca),'O caso mais provável são dependentes do Plano Família; a base não permite confirmar.']);
+  linhas.push(['……já tiveram assinatura, mas não estavam ativos no mês',fmt(fora-nunca),'Já foram titulares em alguma carteira desde jul/2023, como ex-assinantes.'])}
+ if(A.n>1)linhas.push([`Usuários únicos em ${P.lab}, sem repetir`,fmt(A.unicos),'Cada pessoa conta uma vez no período, mesmo que tenha gerado em vários meses; por isso é menor que a soma dos meses. Vem das bases por pessoa.']);
+ return `<p class="sub">Referência: ${lab(m)}. Usuários são pessoas; vouchers são vouchers (${fmt(r.vou)} no mês). Nenhum desses números é ajustado para bater com o outro.</p>
+ <table class="cmp usu"><tbody>${linhas.map(([a,b,c])=>`<tr><td>${a}<small>${c}</small></td><td class="n"><b>${b}</b></td></tr>`).join('')}</tbody></table>`}
 
 /* ---- relatório: comparar períodos ---- */
 function comparar(){const sel=(id,v)=>`<select id="${id}">${monthOpts(v)}</select>`;
- return shell('clube-comparar',`<div class="bar"><div class="fld"><span>Período A</span><div class="pair">${sel('a1',sc.a1)}<em>até</em>${sel('b1',sc.b1)}</div></div><div class="fld"><span>Período B</span><div class="pair">${sel('a2',sc.a2)}<em>até</em>${sel('b2',sc.b2)}</div></div></div><div id="res"></div>`)}
+ return shell('clube-comparar',`<div class="bar"><div class="fld"><span>Período A</span><div class="pair">${sel('a1',sc.a1)}<em>até</em>${sel('b1',sc.b1)}</div></div><div class="fld"><span>Período B</span><div class="pair">${sel('a2',sc.a2)}<em>até</em>${sel('b2',sc.b2)}</div></div></div><p class="hint" style="margin:-4px 0 0">Para um mês só, escolha o mesmo mês nos dois campos. Os períodos podem atravessar a virada do ano.</p><div id="res"></div>`)}
 function renderComp(){const box=document.getElementById('res');for(const [a,b] of [['a1','b1'],['a2','b2']])if(idx(sc[a])>idx(sc[b]))[sc[a],sc[b]]=[sc[b],sc[a]];
- const A=agg(sc.a1,sc.b1),B=agg(sc.a2,sc.b2);const nA=A.n,nB=B.n;const pA=`${lab(sc.a1)} a ${lab(sc.b1)}`,pB=`${lab(sc.a2)} a ${lab(sc.b2)}`;
- const rows=[['penetracao','Penetração média por mês',A.pen,B.pen,v=>fmt(v,2)+'%','pp'],['vouchers','Vouchers gerados',A.vou,B.vou,v=>fmt(v),'%'],['frequencia','Frequência média por mês',A.freq,B.freq,v=>fmt(v,2),'%'],['media-dia','Média de uso por dia',A.dia,B.dia,v=>fmt(v),'%'],['usuarios-unicos','Usuários únicos no período',A.unicos,B.unicos,v=>fmt(v),'%'],['novos','Novos assinantes',A.novos,B.novos,v=>fmt(v),'%'],['cancelamentos','Cancelamentos',A.canc,B.canc,v=>fmt(v),'%',true],['saldo','Saldo líquido',A.saldo,B.saldo,v=>(v>=0?'+':'')+fmt(v),'abs'],['carteira-ativa','Carteira ativa no fim',A.cart,B.cart,v=>fmt(v),'%'],['plano-familia','Plano Família no fim',A.pf,B.pf,v=>fmt(v,1)+'%','pp']];
- box.innerHTML=`${nA!==nB?`<div class="note">Os períodos têm tamanhos diferentes (${nA} e ${nB} meses). Totais como vouchers, novos e cancelamentos não são comparáveis; prefira as médias por mês.</div>`:''}${ressalvas([...A.rows,...B.rows])}
- <div class="card tablecard"><table class="cmp"><thead><tr><th></th><th>A · ${pA}</th><th>B · ${pB}</th><th>A vs B</th></tr></thead><tbody>${rows.map(([t,n,a,b,f,k,inv])=>`<tr><td>${T(t,n)}</td><td>${f(a)}</td><td>${f(b)}</td><td class="d">${delta(a,b,k,inv)}</td></tr>`).join('')}</tbody></table></div>`}
+ const A=agg(sc.a1,sc.b1),B=agg(sc.a2,sc.b2);const nA=A.n,nB=B.n;const pl=(a,b)=>a===b?lab(a):`${lab(a)} a ${lab(b)}`;const pA=pl(sc.a1,sc.b1),pB=pl(sc.a2,sc.b2);
+ const pct=v=>fmt(v,2)+'%',int=v=>fmt(v);
+ const rows=[
+  ['Uso dos benefícios'],
+  ['penetracao','Penetração','média do período',A.pen,B.pen,pct,'pp'],
+  ['vouchers','Vouchers gerados','soma do período',A.vou,B.vou,int,'%'],
+  ['frequencia','Frequência de uso','vouchers ÷ pessoas, média',A.freq,B.freq,v=>fmt(v,2),'%'],
+  ['media-dia','Média de uso por dia','vouchers ÷ dias',A.dia,B.dia,int,'%'],
+  ['usuarios-unicos','Usuários únicos',nA>1||nB>1?'pessoas sem repetir no período':'pessoas no mês',A.unicos,B.unicos,int,'%'],
+  ['Assinantes'],
+  ['novos','Novos assinantes','soma do período',A.novos,B.novos,int,'%'],
+  ['cancelamentos','Cancelamentos','soma do período',A.canc,B.canc,int,'%',true],
+  ['saldo','Saldo líquido','soma do período',A.saldo,B.saldo,v=>sinal(v),'abs'],
+  ['carteira-ativa','Carteira ativa','fim do período',A.cart,B.cart,int,'%'],
+  ['plano-familia','Plano Família','fim do período',A.pf,B.pf,v=>fmt(v,1)+'%','pp']];
+ if(nA!==nB)rows.push(['Médias por mês (para períodos de tamanhos diferentes)'],
+  ['vouchers','Vouchers por mês','média por mês',A.vou/nA,B.vou/nB,int,'%'],
+  ['novos','Novos por mês','média por mês',A.novos/nA,B.novos/nB,int,'%'],
+  ['cancelamentos','Cancelamentos por mês','média por mês',A.canc/nA,B.canc/nB,int,'%',true]);
+ const dif=(a,b,k,f)=>{if(a==null||b==null||!isFinite(a)||!isFinite(b))return '—';if(k==='pp')return `${sinal(a-b,2)} p.p.`;return f===int||k==='abs'?sinal(a-b):sinal(a-b,2)};
+ box.innerHTML=`${nA!==nB?`<div class="note">Os períodos têm tamanhos diferentes (${nA} e ${nB} meses). Somas não são comparáveis diretamente: veja as médias por mês no fim da tabela.</div>`:''}${ressalvas([...A.rows,...B.rows])}
+ <div class="card tablecard"><div class="tw"><table class="cmp comp"><thead><tr><th>Indicador</th><th>A · ${pA}</th><th>B · ${pB}</th><th>Diferença (A − B)</th><th>Variação</th></tr></thead><tbody>${rows.map(r=>{if(r.length===1)return `<tr class="grp"><td colspan="5">${r[0]}</td></tr>`;
+  const [t,n,tipo,a,b,f,k,inv]=r;return `<tr><td>${T(t,n)}<small>${tipo}</small></td><td>${f(a)}</td><td>${f(b)}</td><td>${dif(a,b,k,f)}</td><td class="d">${k==='pp'||k==='abs'?'—':delta(a,b,'%',inv)}</td></tr>`}).join('')}</tbody></table></div>
+ <p class="hint">Diferença em pontos percentuais (p.p.) para indicadores que já são porcentagens. Usuários únicos de vários meses contam cada pessoa uma vez no período inteiro.</p></div>`}
 
 /* ---- relatório: perfil de quem usa ---- */
 const DIMS={produto:'Produto',modalidade:'Modalidade',geracao:'Geração',tempo:'Tempo de casa',familia:'Plano Família',safra:'Safra'};
 const DIMT={produto:'produto',modalidade:'modalidade',geracao:'geracoes',tempo:'tempo-casa',familia:'plano-familia',safra:'safra'};
 const ORD={geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido']};
+const BASE_MIN=500;
+function ordSafra(a,b){const k=s=>s==='Safras anteriores'?'0':s==='Sem data de venda'?'9':s.replace(/(\d)º sem\/(\d{4})/,'$2-$1');return k(a).localeCompare(k(b))}
 function perfil(){return shell('clube-perfil',`<div class="bar"><label class="fld"><span>Mês</span><select id="pm">${monthOpts(sp.m,0)}</select></label><div class="fld"><span>Ver por</span><div class="chips">${Object.entries(DIMS).map(([k,n])=>`<button class="chip ${sp.d===k?'on':''}" data-d="${k}">${n}</button>`).join('')}</div></div></div><div id="res"></div>`)}
 function renderPerfil(){const box=document.getElementById('res');const P=PERFIL[sp.m]||{};const c=M[idx(sp.m)];
  if(!P[sp.d]){box.innerHTML=`<p class="answer">${DIMS[sp.d]} não existe na carteira de ${lab(sp.m)}${sp.d==='modalidade'?' (só a partir de jan/2026)':''}. Escolha outro mês.</p>`;return}
+ if(sp.o==='ord'&&!ORD[sp.d]&&sp.d!=='safra')sp.o='pen';
  let cats=Object.entries(P[sp.d]).map(([k,[cart,ger]])=>({k,cart,ger,pen:cart?100*ger/cart:0})).filter(r=>r.cart>0);
- if(sp.o==='pen')cats.sort((a,b)=>b.pen-a.pen);else if(sp.o==='cart')cats.sort((a,b)=>b.cart-a.cart);else if(ORD[sp.d])cats.sort((a,b)=>ORD[sp.d].indexOf(a.k)-ORD[sp.d].indexOf(b.k));
- const tot=cats.reduce((t,r)=>t+r.cart,0),totg=cats.reduce((t,r)=>t+r.ger,0);const mx=Math.max(...cats.map(r=>r.pen));
- const big=cats.filter(r=>r.cart>=500).length?cats.filter(r=>r.cart>=500):cats;const best=[...big].sort((a,b)=>b.pen-a.pen)[0],worst=[...big].sort((a,b)=>a.pen-b.pen)[0];
- box.innerHTML=`<p class="answer">Em <b>${lab(sp.m)}</b>, por ${T(DIMT[sp.d],DIMS[sp.d].toLowerCase())}: quem mais usa é <b>${esc(best.k)}</b> (${fmt(best.pen,1)}% geraram voucher) e quem menos usa é <b>${esc(worst.k)}</b> (${fmt(worst.pen,1)}%).</p>
- <div class="card tablecard"><div class="row-head"><h3>${DIMS[sp.d]}</h3><div class="chips">${[['pen','Mais uso'],['cart','Maior carteira']].concat(ORD[sp.d]?[['ord','Ordem natural']]:[]).map(([k,n])=>`<button class="chip ${sp.o===k?'on':''}" data-o="${k}">${n}</button>`).join('')}</div></div>
- <table class="cmp prof"><thead><tr><th>${DIMS[sp.d]}</th><th>Na carteira</th><th>Geraram voucher</th><th>${T('penetracao')}</th></tr></thead><tbody>${cats.map(r=>`<tr><td>${esc(r.k)}</td><td>${fmt(r.cart)} <small>${fmt(100*r.cart/tot,1)}%</small></td><td>${fmt(r.ger)}</td><td><div class="barcell"><span style="width:${(r.pen/mx*100).toFixed(1)}%"></span><b>${fmt(r.pen,1)}%</b></div></td></tr>`).join('')}
- <tr class="tot"><td>Total na carteira</td><td>${fmt(tot)}</td><td>${fmt(totg)}</td><td><b>${fmt(100*totg/tot,1)}%</b></td></tr></tbody></table>
- <p class="hint">A penetração do mês (${fmt(c.pen,2)}%) é maior que a desta tabela porque inclui também ${fmt(c.fora)} pessoas que geraram voucher sem estar na carteira (dependentes, ex-assinantes e outros). Essas pessoas não têm perfil.</p></div>`;
+ if(sp.o==='pen')cats.sort((a,b)=>b.pen-a.pen);else if(sp.o==='cart')cats.sort((a,b)=>b.cart-a.cart);else if(sp.d==='safra')cats.sort((a,b)=>ordSafra(a.k,b.k));else if(ORD[sp.d])cats.sort((a,b)=>ORD[sp.d].indexOf(a.k)-ORD[sp.d].indexOf(b.k));
+ const tot=cats.reduce((t,r)=>t+r.cart,0),totg=cats.reduce((t,r)=>t+r.ger,0);const penT=100*totg/tot;const mx=Math.max(...cats.map(r=>r.pen));
+ const big=cats.filter(r=>r.cart>=BASE_MIN);const best=[...big].sort((a,b)=>b.pen-a.pen)[0],worst=[...big].sort((a,b)=>a.pen-b.pen)[0];
+ const oport=[...big].filter(r=>r.pen<penT).sort((a,b)=>(b.cart-b.ger)-(a.cart-a.ger))[0];
+ const resumo=big.length>=2?`Em <b>${lab(sp.m)}</b>, por ${T(DIMT[sp.d],DIMS[sp.d].toLowerCase())}: maior uso em <b>${esc(best.k)}</b> (${fmt(best.pen,1)}%) e menor em <b>${esc(worst.k)}</b> (${fmt(worst.pen,1)}%), contra ${fmt(penT,1)}% de quem está na carteira.${oport?` Maior grupo que ainda não usa: <b>${esc(oport.k)}</b>, com ${fmt(oport.cart-oport.ger)} pessoas na carteira sem voucher no mês.`:''}`
+  :`Em <b>${lab(sp.m)}</b>, ${DIMS[sp.d].toLowerCase()} não tem segmentos com base suficiente para destacar.`;
+ const ordens=[['pen','Maior penetração'],['cart','Maior carteira']].concat(ORD[sp.d]||sp.d==='safra'?[['ord','Ordem natural']]:[]);
+ box.innerHTML=`<p class="answer">${resumo}</p>
+ <div class="card tablecard"><div class="row-head"><h3>${DIMS[sp.d]}</h3><div class="chips">${ordens.map(([k,n])=>`<button class="chip ${sp.o===k?'on':''}" data-o="${k}" type="button">${n}</button>`).join('')}</div></div>
+ <div class="tw"><table class="cmp prof"><thead><tr><th>${DIMS[sp.d]}</th><th class="n">Na carteira</th><th class="n">% da carteira</th><th class="n">Geraram voucher</th><th class="n">% dos que geraram</th><th>${T('penetracao','Penetração do segmento')}</th></tr></thead><tbody>${cats.map(r=>`<tr${r.cart<BASE_MIN?' class="peq"':''}><td>${esc(r.k)}${r.cart<BASE_MIN?' <small>base pequena</small>':''}</td><td class="n">${fmt(r.cart)}</td><td class="n">${fmt(100*r.cart/tot,1)}%</td><td class="n">${fmt(r.ger)}</td><td class="n">${totg?fmt(100*r.ger/totg,1):'0'}%</td><td><div class="barcell"><span style="width:${(r.pen/mx*100).toFixed(1)}%;${r.pen<penT?'background:#d9a98f':''}"></span><b>${fmt(r.pen,1)}%</b></div></td></tr>`).join('')}
+ <tr class="tot"><td>Total na carteira</td><td class="n">${fmt(tot)}</td><td class="n">100%</td><td class="n">${fmt(totg)}</td><td class="n">100%</td><td><b>${fmt(penT,1)}%</b></td></tr></tbody></table></div>
+ <p class="hint">Segmentos com menos de ${fmt(BASE_MIN)} pessoas na carteira aparecem como "base pequena" e não entram no destaque de maior e menor uso. Barra mais clara: abaixo da média da carteira.</p>
+ <p class="hint">Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(c.pen,2)}%) usa todas as ${fmt(c.ger)} pessoas que geraram voucher, inclusive ${fmt(c.fora)} fora da carteira, que não têm perfil. <a href="#clube" onclick="sm.m='${sp.m}'">Ver a explicação na visão mensal</a>.</p></div>`;
  box.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{sp.o=b.dataset.o;renderPerfil()})}
 
 function bindClube(h){const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
  if(h==='clube'){on('mm',v=>{sm.m=v;renderVisao('mes')});on('mcmp',v=>{sm.cmp=v;renderVisao('mes')});renderVisao('mes')}
  if(h==='clube-ano'){on('ay',v=>{sa.y=v;sa.cmp=YEARS.includes(String(+v-1))?String(+v-1):String(+v+1);const c=document.getElementById('acmp');c.innerHTML=YEARS.filter(y=>y!==sa.y).map(y=>`<option value="${y}" ${y===sa.cmp?'selected':''}>${y}${y===String(+sa.y-1)?' (ano anterior)':''}</option>`).join('');renderVisao('ano')});on('acmp',v=>{sa.cmp=v;renderVisao('ano')});renderVisao('ano')}
  if(h==='clube-comparar'){['a1','b1','a2','b2'].forEach(k=>on(k,v=>{sc[k]=v;renderComp()}));renderComp()}
- if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;if(sp.o==='ord'&&!ORD[sp.d])sp.o='pen';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
+ if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
 const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-comparar':comparar,'clube-perfil':perfil};
 
 /* ---------- áreas e relatórios ---------- */
