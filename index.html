@@ -311,6 +311,15 @@ details.card>summary{font-size:14px}
 .note{font-size:12px;padding:5px 9px}
 @media (max-width:640px){.chart svg{min-width:520px;max-height:none}.chart.sm svg{min-width:0}}
 .barcell span{max-width:min(110px,calc(100% - 56px))}table.cmp.usu td.n{font-size:14px}
+/* menu lateral recolhível */
+.side-tog{align-self:flex-end;background:transparent;border:1px solid rgba(255,255,255,.25);color:var(--head-sub);border-radius:8px;width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;margin-bottom:4px}
+.side-tog:hover{background:rgba(255,255,255,.1);color:#fff}
+.shell{transition:grid-template-columns .2s}
+.shell.mini{grid-template-columns:44px minmax(0,1fr)}
+.shell.mini .side{padding:12px 8px}
+.shell.mini .side>*:not(.side-tog){display:none}
+.shell.mini .side-tog{align-self:center}
+@media (max-width:900px){.side-tog{display:none}.shell.mini .side>*:not(.side-tog){display:block}.shell.mini{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1418,8 +1427,14 @@ function home(){return `<div class="wrap">
  <div class="areas" id="areas">${Object.entries(AREAS).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${a.r.filter(r=>!r[2]||ADMIN).map(r=>`<span>${r[1]}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
  </div>`}
 function shell(h,body){const id=areaOf(h),a=AREAS[id];const rs=a.r.filter(r=>!r[2]||ADMIN);const cur=rs.find(r=>r[0]===h)||rs[0];
- return `<div class="shell"><nav class="side" aria-label="Relatórios de ${a.n}"><a href="#home" class="back">← Portal</a><div class="grp">${a.n}</div>${rs.map(r=>`<a href="#${r[0]}" class="${r[0]===cur[0]?'on':''}">${r[1]}</a>`).join('')}</nav>
+ return `<div class="shell${MENU_MINI?' mini':''}"><nav class="side" aria-label="Relatórios de ${a.n}">${botaoMenu()}<a href="#home" class="back">← Portal</a><div class="grp">${a.n}</div>${rs.map(r=>`<a href="#${r[0]}" class="${r[0]===cur[0]?'on':''}">${r[1]}</a>`).join('')}</nav>
  <div class="main"><div class="page-head"><div class="in"><div class="crumb"><a href="#home">Portal</a> › <a href="#${id}">${a.n}</a> › ${cur[1]}</div><h1 class="title">${a.t} <em>${a.s}</em></h1></div></div><div class="content">${body}</div></div></div>`}
+
+/* ---------- menu lateral recolhível (lembrado neste navegador) ---------- */
+let MENU_MINI=false;try{MENU_MINI=localStorage.getItem('menuMini')==='1'}catch(_){}
+const botaoMenu=()=>`<button class="side-tog" type="button" aria-label="${MENU_MINI?'Mostrar menu':'Recolher menu'}" title="${MENU_MINI?'Mostrar menu':'Recolher menu'}">${MENU_MINI?'»':'«'}</button>`;
+document.addEventListener('click',e=>{const b=e.target.closest('.side-tog');if(!b)return;MENU_MINI=!MENU_MINI;try{localStorage.setItem('menuMini',MENU_MINI?'1':'0')}catch(_){}
+ const sh=b.closest('.shell');sh.classList.toggle('mini',MENU_MINI);b.outerHTML=botaoMenu();window.dispatchEvent(new Event('resize'))});
 
 /* ---------- roteamento ---------- */
 const app=document.getElementById('app');let pending=null;
