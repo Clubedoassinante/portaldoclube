@@ -324,6 +324,7 @@ details.card>summary{font-size:14px}
 @media (min-width:1000px){
  .shell.compacto{zoom:.8;min-height:calc((100vh - 56px) / .8)}
 }
+table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(--bad);font-weight:600}table.cmp.io tr.sel td{background:color-mix(in srgb,var(--laranja) 10%,transparent);font-weight:700}
 </style>
 </head>
 <body>
@@ -584,7 +585,7 @@ function renderVisao(kind){const box=document.getElementById('res');const P=peri
  const S=kind==='mes'?sm:sa;S.met=S.met||'pen';S.rng=S.rng||'24';const vs=B?` vs ${P.labB}`:'';
  const d=(x,y,k,inv)=>B?delta(x,y,k,inv)+vs:'sem comparação';const d2=(x,y,k,inv)=>B?delta(x,y,k,inv):'';
  const notes=[];if(B&&B.n!==n)notes.push(`O período de comparação tem ${B.n} ${B.n>1?'meses':'mês'} e este tem ${n}: compare as médias, não os totais.`);
- const hl=A.rows.map(r=>r.m);const sp=(k,c)=>kind==='mes'?spark(k,P.b,c):'';const media=n>1?' (média)':'';
+ const hl=A.rows.map(r=>r.m);const sp=()=>'';const media=n>1?' (média)':'';
  const ultimo=M[idx(P.b)];
  box.innerHTML=`${sintese(P,A,B)}
  ${notes.map(t=>`<div class="note">${t}</div>`).join('')}${ressalvas(A.rows.concat(B?B.rows:[]))}
@@ -592,23 +593,58 @@ function renderVisao(kind){const box=document.getElementById('res');const P=peri
   ${KPI('P1','penetracao',fmt(A.pen,2)+'%',d(A.pen,B?.pen,'pp'),sp('pen','#721a50'),'Penetração'+media)}${KPI('P2','vouchers',fmt(A.vou),d(A.vou,B?.vou),sp('vou','#ed6e21'),n>1?'Vouchers gerados (soma)':'Vouchers gerados')}${KPI('P3','frequencia',fmt(A.freq,2),d(A.freq,B?.freq),sp('freq','#69a392'),'Frequência de uso'+media)}${KPI('','media-dia',fmt(A.dia),d(A.dia,B?.dia),sp('dia','#54143f'))}</div>
  <div class="sec">
   ${KPI('','carteira-ativa',fmt(A.cart),d2(A.cart,B?.cart),'',n>1?'Carteira no fim':'Carteira ativa')}${KPI('','novos',fmt(A.novos),d2(A.novos,B?.novos))}${KPI('','cancelamentos',fmt(A.canc),d2(A.canc,B?.canc,'%',true))}${KPI('','saldo',sinal(A.saldo),d2(A.saldo,B?.saldo,'abs'))}${KPI('','usuarios-unicos',fmt(A.unicos),d2(A.unicos,B?.unicos),'',n>1?'Usuários únicos sem repetir':'Usuários únicos')}${KPI('','plano-familia',fmt(A.pf,1)+'%',d2(A.pf,B?.pf,'pp'),'',n>1?'Plano Família no fim':'Plano Família')}</div>
- <div class="grid2">
+ ${kind==='mes'?blocoMes(P,A,B):blocoAno(P,A,B,hl)}`;
+ if(kind==='ano'){renderQuemGerou(kind,P,hl);renderHist(kind,P,A);renderAtiv();document.querySelector('#det-coorte>div').innerHTML=coorteTabela(kind,P)}
+ const rec=document.getElementById('det-rec');rec.addEventListener('toggle',()=>{if(rec.open&&!rec.dataset.ok){rec.dataset.ok=1;renderRecorrencia(rec.querySelector('div'),P.b)}})}
+
+const ponte=(P,A,B)=>`<div class="card"><h3>O que mudou nos vouchers</h3><p class="sub">De ${P.labB} para ${P.lab}, em vouchers: parte por ter mais ou menos pessoas usando, parte por cada pessoa gerar mais ou menos.</p><div class="chart sm">${bridge([[[P.labB.length>10?'Antes':P.labB,''],B.vou,'total'],[['Pessoas',''],Math.round((A.ger-B.ger)*B.freq),'d'],[['Frequência',''],Math.round((A.freq-B.freq)*A.ger),'d'],[[P.lab.length>10?'Agora':P.lab,''],A.vou,'total']])}</div></div>`;
+const recDet=`<details class="card" id="det-rec"><summary>Recorrência: quem volta a usar</summary><div><p class="carregando">Carregando…</p></div></details>`;
+
+/* ---------- visão anual: evolução dentro do período ---------- */
+function blocoAno(P,A,B,hl){return `<div class="grid2">
   <div class="card" id="qg"></div>
-  ${B?`<div class="card"><h3>O que mudou nos vouchers</h3><p class="sub">De ${P.labB} para ${P.lab}, em vouchers: parte por ter mais ou menos pessoas usando, parte por cada pessoa gerar mais ou menos.</p><div class="chart sm">${bridge([[[P.labB.length>10?'Antes':P.labB,''],B.vou,'total'],[['Pessoas',''],Math.round((A.ger-B.ger)*B.freq),'d'],[['Frequência',''],Math.round((A.freq-B.freq)*A.ger),'d'],[[P.lab.length>10?'Agora':P.lab,''],A.vou,'total']])}</div></div>`
-     :`<div class="card"><h3>Entradas e saídas da carteira</h3><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart sm">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</div>`}
+  ${B?ponte(P,A,B):`<div class="card"><h3>Entradas e saídas da carteira</h3><p class="sub">Assinaturas por mês: novas, cancelamentos e saldo (novas − cancelamentos). Carteira: assinaturas ativas no fim do mês.</p>${ioTabela(P.a,P.b,hl)}</div>`}
  </div>
  <div class="card" id="hist"></div>
- ${kind==='ano'?`<div class="card" id="ativ"></div>`:''}
+ <div class="card" id="ativ"></div>
  <div class="mais">
-  ${B?`<details class="card"><summary>Entradas e saídas da carteira</summary><p class="sub">Assinaturas por mês: novas (acima de zero) e cancelamentos (abaixo); a linha é o saldo.</p><div class="chart">${ioChart(kind==='mes'?shift(P.b,-11):P.a,P.b,hl)}</div>${legend([['#69a392','Novos assinantes'],['#d15c22','Cancelamentos'],['#721a50','Saldo']])}</details>`:''}
+  ${B?`<details class="card"><summary>Entradas e saídas da carteira</summary><p class="sub">Assinaturas por mês: novas, cancelamentos e saldo (novas − cancelamentos). Carteira: assinaturas ativas no fim do mês.</p>${ioTabela(P.a,P.b,hl)}</details>`:''}
   <details class="card" id="det-coorte"><summary>Ativação por mês de venda</summary><div></div></details>
-  <details class="card" id="det-rec"><summary>Recorrência: quem volta a usar</summary><div><p class="carregando">Carregando…</p></div></details>
-  <details class="card" id="det-usu"><summary>Por que os números de usuários são diferentes</summary><div></div></details>
- </div>`;
- renderQuemGerou(kind,P,hl);renderHist(kind,P,A);if(kind==='ano')renderAtiv();
- document.querySelector('#det-coorte>div').innerHTML=coorteTabela(kind,P);
- document.querySelector('#det-usu>div').innerHTML=usuariosExplica(P,A,ultimo);
- const rec=document.getElementById('det-rec');rec.addEventListener('toggle',()=>{if(rec.open&&!rec.dataset.ok){rec.dataset.ok=1;renderRecorrencia(rec.querySelector('div'),P.b)}})}
+  ${recDet}
+ </div>`}
+
+/* ---------- visão mensal: só o mês (com a comparação escolhida) ---------- */
+function blocoMes(P,A,B){const r=M[idx(P.b)],c=P.cb?M[idx(P.cb)]:null;const cl=c?lab(c.m):'';
+ const vd=(a,b,inv,k)=>c&&a!=null&&b!=null?delta(a,b,k||'%',inv):'';
+ /* quem gerou voucher no mês */
+ const G=[['g_seguido','seguido','Recorrentes','também geraram no mês anterior','#721a50'],['g_voltou','voltou','Voltaram a usar','já tinham usado, ficaram sem gerar e voltaram','#a06a91'],['g_primeira','primeira-vez','Primeira vez','primeiro voucher desde jul/2023','#ed6e21']];
+ const tot=x=>x?G.reduce((t,g)=>t+(x[g[0]]||0),0):0;const tA=tot(r),tB=tot(c);
+ const qg=r.g_primeira==null?`<p class="hint">Sem histórico do mês anterior para separar os grupos neste mês.</p>`:`<table class="cmp grupos"><thead><tr><th>Grupo</th><th class="n">Pessoas</th><th>% de quem gerou</th>${c?`<th class="n">${cl}</th><th class="n">Variação</th>`:''}</tr></thead><tbody>
+  ${G.map(([k,t,n,d,cor])=>`<tr><td>${T(t,n)}<small>${d}</small></td><td class="n"><b>${fmt(r[k])}</b></td><td><div class="barcell"><span style="width:${(100*r[k]/tA).toFixed(1)}%;background:${cor}"></span><b>${fmt(100*r[k]/tA,1)}%</b></div></td>${c?`<td class="n">${c[k]!=null?fmt(c[k]):'—'}${c[k]!=null&&tB?`<small>${fmt(100*c[k]/tB,1)}%</small>`:''}</td><td class="n d">${vd(r[k],c[k])}</td>`:''}</tr>`).join('')}
+  <tr class="tot"><td>Pessoas que geraram voucher</td><td class="n">${fmt(tA)}</td><td></td>${c?`<td class="n">${tB?fmt(tB):'—'}</td><td class="n d">${tB?vd(tA,tB):''}</td>`:''}</tr></tbody></table>
+  <p class="hint">Pessoas, não vouchers. Pelas bases por pessoa; o indicador de usuários únicos usa os totais da plataforma e pode diferir um pouco.</p>`;
+ /* movimento da carteira no mês */
+ const L=[['novos','Novos assinantes','vendas no mês'],['cancelamentos','Cancelamentos','ativas no mês anterior que deixaram de estar',null,true],['saldo','Saldo','novos − cancelamentos','abs'],
+  ['entradas','Entraram na carteira: vendas recentes','vendidas no mês ou no anterior'],['entradas','Entraram na carteira: vendas antigas','vendidas há mais tempo, só agora na carteira'],['entradas','Voltaram a ficar ativas','já tinham estado na carteira'],['carteira-ativa','Carteira ativa no fim do mês','assinaturas']];
+ const K=['novos','canc','saldo','ent_vendas','ent_antigas','ent_voltaram','cart'];
+ const mov=`<table class="cmp mov"><thead><tr><th></th><th class="n">${lab(r.m)}</th>${c?`<th class="n">${cl}</th><th class="n">Diferença</th>`:''}</tr></thead><tbody>${L.map(([t,n,d,k,inv],j)=>{const a=r[K[j]],b=c?.[K[j]];
+  return `<tr${K[j]==='cart'?' class="tot"':''}><td>${T(t,n)}<small>${d}</small></td><td class="n"><b>${a!=null?(K[j]==='saldo'?sinal(a):fmt(a)):'—'}</b></td>${c?`<td class="n">${b!=null?(K[j]==='saldo'?sinal(b):fmt(b)):'—'}</td><td class="n">${a!=null&&b!=null?sinal(a-b):'—'}</td>`:''}</tr>`}).join('')}</tbody></table>`;
+ /* ativação de quem assinou */
+ const C={};(RAW.coortes||[]).forEach(([vi,n,...a])=>C[vi]={n,a});const vi=mesIdx(r.m),vc=c?mesIdx(c.m):null;
+ const at=(v,k)=>{const x=C[v];return x&&x.n?{p:100*x.a[k]/x.n,n:x.n,g:x.a[k]}:null};
+ const lin=[[`Vendidas em ${lab(r.m)}`,'geraram voucher no próprio mês',at(vi,0),c?at(vc,0):null],
+  [`Vendidas em ${lab(shift(r.m,-5))}`,`geraram voucher nos 6 primeiros meses (a janela fechou em ${lab(r.m)})`,vi>=5?at(vi-5,5):null,c&&vc>=5?at(vc-5,5):null]];
+ const ativ=!Object.keys(C).length?'<p class="hint">Ainda não calculado. Rode o arquivo 6_clube_numeros.sql no Supabase.</p>':`<table class="cmp mov"><thead><tr><th></th><th class="n">${lab(r.m)}</th>${c?`<th class="n">${cl}</th><th class="n">Diferença</th>`:''}</tr></thead><tbody>${lin.map(([t,d,a,b])=>`<tr><td>${t}<small>${d}</small></td><td class="n"><b>${a?fmt(a.p,1)+'%':'—'}</b>${a?`<small>${fmt(a.g)} de ${fmt(a.n)}</small>`:''}</td>${c?`<td class="n">${b?fmt(b.p,1)+'%':'—'}${b?`<small>${fmt(b.g)} de ${fmt(b.n)}</small>`:''}</td><td class="n">${a&&b?sinal(a.p-b.p,1)+' p.p.':'—'}</td>`:''}</tr>`).join('')}</tbody></table>
+  <p class="hint">Assinaturas que entraram na carteira em até 2 meses depois da venda (mesma regra da ativação por safra). ${T('ativacao-6m','Ver definição')}.</p>`;
+ return `<div class="grid2">
+  <div class="card"><h3>Quem gerou voucher em ${lab(r.m)}</h3><p class="sub">Todas as pessoas que geraram voucher no mês, divididas em três grupos.</p>${qg}</div>
+  ${B?ponte(P,A,B):`<div class="card"><h3>Movimento da carteira em ${lab(r.m)}</h3><p class="sub">Assinaturas que entraram e saíram no mês.</p>${mov}</div>`}
+ </div>
+ <div class="grid2">
+  ${B?`<div class="card"><h3>Movimento da carteira em ${lab(r.m)}</h3><p class="sub">Assinaturas que entraram e saíram no mês${c?`, comparado com ${cl}`:''}.</p>${mov}</div>`:''}
+  <div class="card"><h3>Ativação de quem assinou</h3><p class="sub">Parte das assinaturas novas que já gerou voucher.</p>${ativ}</div>
+ </div>
+ <div class="mais">${recDet}</div>`}
 
 /* ---------- ativação por safra: % ou número de pessoas ---------- */
 function renderAtiv(){const box=document.getElementById('ativ');if(!box)return;sa.at=sa.at||'pct';const pess=sa.at==='pes';
@@ -630,20 +666,23 @@ function renderQuemGerou(kind,P,hl){const S=kind==='mes'?sm:sa;S.qg=S.qg||'n';co
 
 /* ---------- evolução: métrica, alcance, média móvel e tabela ---------- */
 function renderHist(kind,P,A){const S=kind==='mes'?sm:sa;const hl=A.rows.map(r=>r.m);const box=document.getElementById('hist');const [nome,un,fv,cor]=METS[S.met];
- const e=idx(P.b),s=S.rng==='all'?FI:Math.max(FI,e-23);const fim=S.rng==='all'?M.length-1:e;const rows=M.slice(s,fim+1);
- const sel=M[e];const ok=rows.length>=2;
- const head=`<div class="row-head"><div><h3>${nome} mês a mês</h3><p class="sub">${un[0].toUpperCase()+un.slice(1)}, valor de cada mês. ${S.mm?'Linha forte: média móvel de 3 meses; tracejado: valor do mês. ':''}Faixa laranja: ${kind==='mes'?'mês escolhido':'período escolhido'}. ${lab(P.b)}: <b>${fv(sel[S.met])}</b>.</p></div>
+ if(!['12','ano','24','all'].includes(S.rng))S.rng='24';
+ const e=idx(P.b),ano=P.b.slice(0,4);let s,fim;
+ if(S.rng==='12'){s=Math.max(0,e-11);fim=e}else if(S.rng==='24'){s=Math.max(0,e-23);fim=e}
+ else if(S.rng==='ano'){const ix=M.map((r,k)=>r.m.startsWith(ano)?k:-1).filter(k=>k>=0);s=ix[0];fim=ix[ix.length-1]}else{s=0;fim=M.length-1}
+ const rows=M.slice(s,fim+1);const sel=M[e];const ok=rows.length>=2;
+ const rngs=[['12','12 meses'],['ano',`Dentro do ano (${ano})`],['24','24 meses'],['all',`Desde ${lab(M[0].m)}`]];
+ const head=`<div class="row-head"><div><h3>${nome} mês a mês</h3><p class="sub">${un[0].toUpperCase()+un.slice(1)}, valor de cada mês. Faixa laranja: ${kind==='mes'?'mês escolhido':'período escolhido'}. ${lab(P.b)}: <b>${fv(sel[S.met])}</b>.</p></div>
   <div class="chips">${Object.entries(METS).map(([k,[n]])=>`<button class="chip ${S.met===k?'on':''}" data-met="${k}" type="button">${n}</button>`).join('')}</div></div>
-  <div class="chips sub-chips"><button class="chip ${S.rng==='24'?'on':''}" data-rng="24" type="button">24 meses</button><button class="chip ${S.rng==='all'?'on':''}" data-rng="all" type="button">Desde ${lab(M[FI].m)}</button>
-  <button class="chip ${S.mm?'on':''}" data-mm type="button">Média móvel de 3 meses</button><button class="chip ${S.tab?'on':''}" data-tab type="button">${S.tab?'Ver gráfico':'Ver tabela'}</button></div>`;
+  <div class="chips sub-chips">${rngs.map(([k,n])=>`<button class="chip ${S.rng===k?'on':''}" data-rng="${k}" type="button">${n}</button>`).join('')}
+  <button class="chip ${S.tab?'on':''}" data-tab type="button">${S.tab?'Ver gráfico':'Ver tabela'}</button></div>`;
  let corpo;
- if(S.tab){const m3={};Object.keys(METS).forEach(k=>m3[k]=mm3(rows,k));
-  corpo=`<div class="tw"><table class="cmp hist"><thead><tr><th>Mês</th>${Object.entries(METS).map(([k,[n]])=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${rows.map((r,j)=>`<tr class="${hl.includes(r.m)?'sel':''}"><td>${lab(r.m)}${RESSALVA[r.m]?' ⚠':''}</td>${Object.entries(METS).map(([k,[, ,f]])=>`<td class="n">${r[k]!=null?f(r[k]):'—'}${S.mm&&m3[k][j]!=null?`<small>${f(m3[k][j])}</small>`:''}</td>`).join('')}</tr>`).reverse().join('')}</tbody></table></div>${S.mm?'<p class="hint">Número pequeno: média móvel de 3 meses (o mês e os 2 anteriores).</p>':''}`}
- else corpo=ok?`<div class="chart">${histChart(rows,S.met,fv,cor,hl,S.mm)}</div>${S.mm?legend([[cor,'Média móvel de 3 meses'],['#b9a5b0','Valor do mês']]):''}`:'<p class="hint">Ainda não há meses suficientes para o gráfico.</p>';
+ if(S.tab)corpo=`<div class="tw"><table class="cmp hist"><thead><tr><th>Mês</th>${Object.entries(METS).map(([k,[n]])=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr class="${hl.includes(r.m)?'sel':''}"><td>${lab(r.m)}${RESSALVA[r.m]?' ⚠':''}</td>${Object.entries(METS).map(([k,[, ,f]])=>`<td class="n">${r[k]!=null&&isFinite(r[k])?f(r[k]):'—'}</td>`).join('')}</tr>`).reverse().join('')}</tbody></table></div>`;
+ else corpo=ok?`<div class="chart">${histChart(rows,S.met,fv,cor,hl,false)}</div>`:'<p class="hint">Ainda não há meses suficientes para o gráfico.</p>';
  box.innerHTML=head+corpo;
  box.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{S.met=b.dataset.met;renderHist(kind,P,A)});
  box.querySelectorAll('[data-rng]').forEach(b=>b.onclick=()=>{S.rng=b.dataset.rng;renderHist(kind,P,A)});
- box.querySelector('[data-mm]').onclick=()=>{S.mm=!S.mm;renderHist(kind,P,A)};box.querySelector('[data-tab]').onclick=()=>{S.tab=!S.tab;renderHist(kind,P,A)}}
+ box.querySelector('[data-tab]').onclick=()=>{S.tab=!S.tab;renderHist(kind,P,A)}}
 function histChart(rows,key,fv,color,hl,comMM){const W=760,H=240,L=62,R=30,T0=18,B=34;const v=rows.map(r=>r[key]);const m3=mm3(rows,key);
  const all=v.concat(comMM?m3:[]).filter(x=>x!=null&&isFinite(x));let mn=Math.min(...all),mx=Math.max(...all);const pad=(mx-mn)*.15||1;mn-=pad;mx+=pad;
  const x=j=>L+j*(W-L-R)/Math.max(rows.length-1,1),y=t=>T0+(mx-t)/(mx-mn)*(H-T0-B);
@@ -658,6 +697,11 @@ function histChart(rows,key,fv,color,hl,comMM){const W=760,H=240,L=62,R=30,T0=18
  const tag=vl!=null?`<text x="${Math.min(x(js),W-R-4)}" y="${y(vl)-12}" text-anchor="${x(js)>W-80?'end':'middle'}" font-size="12.5" font-weight="700" fill="var(--ink)">${fv(vl)}</text>`:'';
  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução mês a mês">${band}${g}${comMM?`<path d="${path(v)}" fill="none" stroke="#b9a5b0" stroke-width="1.4" stroke-dasharray="4 4"/><path d="${path(m3)}" fill="none" stroke="${color}" stroke-width="2.8"/>`:`<path d="${path(v)}" fill="none" stroke="${color}" stroke-width="2.4"/>`}${pts}${tag}${lbl}</svg>`}
 
+/* ---------- entradas e saídas (tabela) ---------- */
+function ioTabela(a,b,hl){const rows=M.slice(Math.max(FI,idx(a)),idx(b)+1).filter(r=>r.canc!=null);if(!rows.length)return '<p class="hint">Sem meses com entradas e saídas.</p>';
+ const t=k=>rows.reduce((x,r)=>x+(r[k]||0),0);const cs=v=>`<span class="${v>0?'up':v<0?'down':''}">${sinal(v)}</span>`;
+ return `<div class="tw"><table class="cmp io"><thead><tr><th>Mês</th><th class="n">${T('novos','Novos assinantes')}</th><th class="n">${T('cancelamentos')}</th><th class="n">${T('saldo')}</th><th class="n">${T('carteira-ativa','Carteira no fim')}</th></tr></thead><tbody>${rows.map(r=>`<tr class="${hl.includes(r.m)?'sel':''}"><td>${lab(r.m)}${RESSALVA[r.m]?' ⚠':''}</td><td class="n">${fmt(r.novos)}</td><td class="n">${fmt(r.canc)}</td><td class="n">${cs(r.saldo)}</td><td class="n">${fmt(r.cart)}</td></tr>`).join('')}
+ <tr class="tot"><td>Total (${rows.length} ${rows.length>1?'meses':'mês'})</td><td class="n">${fmt(t('novos'))}</td><td class="n">${fmt(t('canc'))}</td><td class="n">${cs(t('novos')-t('canc'))}</td><td class="n">${fmt(rows[rows.length-1].cart)}</td></tr></tbody></table></div><p class="hint">A carteira também muda com assinaturas que voltam a ficar ativas e vendas antigas que só entram depois. Por isso a variação da carteira não é igual ao saldo.</p>`}
 /* ---------- entradas e saídas ---------- */
 function ioChart(a,b,hl){const rows=M.slice(Math.max(FI,idx(a)),idx(b)+1).filter(r=>r.canc!=null);if(!rows.length)return '<p class="hint">Sem meses com entradas e saídas.</p>';
  const W=480,H=230,L=48,R=8,T0=14,B=30;const mx=Math.max(...rows.map(r=>Math.max(r.novos,r.canc,Math.abs(r.saldo))))*1.1||1;
@@ -753,7 +797,7 @@ function renderPerfil(){const box=document.getElementById('res');const P=PERFIL[
  <div class="tw"><table class="cmp prof"><thead><tr><th>${DIMS[sp.d]}</th><th class="n">Na carteira</th><th class="n">% da carteira</th><th class="n">Geraram voucher</th><th class="n">% dos que geraram</th><th>${T('penetracao','Penetração do segmento')}</th></tr></thead><tbody>${cats.map(r=>`<tr${r.cart<BASE_MIN?' class="peq"':''}><td>${esc(r.k)}${r.cart<BASE_MIN?' <small>base pequena</small>':''}</td><td class="n">${fmt(r.cart)}</td><td class="n">${fmt(100*r.cart/tot,1)}%</td><td class="n">${fmt(r.ger)}</td><td class="n">${totg?fmt(100*r.ger/totg,1):'0'}%</td><td><div class="barcell"><span style="width:${(r.pen/mx*100).toFixed(1)}%;${r.pen<penT?'background:#d9a98f':''}"></span><b>${fmt(r.pen,1)}%</b></div></td></tr>`).join('')}
  <tr class="tot"><td>Total na carteira</td><td class="n">${fmt(tot)}</td><td class="n">100%</td><td class="n">${fmt(totg)}</td><td class="n">100%</td><td><b>${fmt(penT,1)}%</b></td></tr></tbody></table></div>
  <p class="hint">Segmentos com menos de ${fmt(BASE_MIN)} pessoas na carteira aparecem como "base pequena" e não entram no destaque de maior e menor uso. Barra mais clara: abaixo da média da carteira.</p>
- <p class="hint">Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(c.pen,2)}%) usa todas as ${fmt(c.ger)} pessoas que geraram voucher, inclusive ${fmt(c.fora)} fora da carteira, que não têm perfil. <a href="#clube" onclick="sm.m='${sp.m}'">Ver a explicação na visão mensal</a>.</p></div>`;
+ <p class="hint">Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(c.pen,2)}%) usa todas as ${fmt(c.ger)} pessoas que geraram voucher, inclusive ${fmt(c.fora)} fora da carteira, que não têm perfil.</p></div>`;
  box.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{sp.o=b.dataset.o;renderPerfil()})}
 
 function bindClube(h){const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
