@@ -325,6 +325,11 @@ details.card>summary{font-size:14px}
  .shell.compacto{zoom:.8;min-height:calc((100vh - 56px) / .8)}
 }
 table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(--bad);font-weight:600}table.cmp.io tr.sel td{background:color-mix(in srgb,var(--laranja) 10%,transparent);font-weight:700}
+
+.jx-insights{grid-column:span 12!important}.jx-insights .jx-ins{columns:1}
+.jx-rkpage .jx-mesbox{grid-column:span 12!important}
+.jx-rkpage .jx-mes{grid-template-columns:1fr 1fr .8fr;gap:14px;padding:12px}
+.jx-rkpage+.jx-abas{margin-top:12px}
 </style>
 </head>
 <body>
@@ -827,7 +832,7 @@ const AREAS={
  clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos e perfil de quem usa.',c:'var(--vinho)',st:['ok','Pronto'],
   r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-enviar','Enviar mês',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
-  r:[['semanal','Semana'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
+  r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: nunca gerou, parou de gerar e quem voltou a usar.',c:'var(--laranja)',st:['wip','Em construção'],
   r:[['inativos','Visão geral'],['inativos-nunca','Nunca gerou'],['inativos-parou','Parou de gerar'],['inativos-voltou','Voltou a usar']]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Ranking, concentração, novos parceiros e quem usa cada um.',c:'var(--verde)',st:['wip','Em construção'],
@@ -1208,18 +1213,18 @@ function jxBarras(cats,series,o={}){const W=o.w||520,H=o.h||230,Lm=o.eixo?44:8,R
 /* ---------- página: Semana (o painel do relatório) ---------- */
 function semOpts(sel){return [...SEM.dados.semanas].reverse().map(s=>`<option value="${s.i}" ${s.i===sel?'selected':''}>${semLab(s)}${s.so_total?' · só totais':''}</option>`).join('')}
 function semVazio(){return `<p class="answer">Ainda não há semanas no portal.</p>${ADMIN?'<p><a class="btn" href="#semanal-enviar">Enviar semana</a></p>':'<p class="hint">Peça a um administrador para enviar a semana.</p>'}`}
-function semanaPagina(){const d=SEM.dados;if(!d.semanas.length)return shell('semanal',semVazio());
- return shell('semanal',`<div class="bar"><label class="fld"><span>${T('semana','Semana')}</span><select id="ws">${semOpts(SEM.sel)}</select></label><span class="sp"></span><button class="btn" id="wx" type="button">Baixar planilha</button></div><div id="wres"><p class="carregando">Carregando…</p></div>`)}
+function semanaPagina(h){const d=SEM.dados;if(!d.semanas.length)return shell(h,semVazio());
+ return shell(h,`<div class="bar"><label class="fld"><span>${T('semana','Semana')}</span><select id="ws">${semOpts(SEM.sel)}</select></label><span class="sp"></span><button class="btn" id="wx" type="button">Baixar planilha</button></div><div id="wres"><p class="carregando">Carregando…</p></div>`)}
 async function bindSemana(){const ws=document.getElementById('ws');if(!ws)return;
  ws.onchange=()=>{SEM.sel=ws.value;SEM.editando=false;renderSemana()};
  document.getElementById('wx').onclick=async()=>{const b=document.getElementById('wx');b.disabled=true;b.textContent='Gerando…';try{await exportarSemana()}catch(e){alert('Não foi possível gerar a planilha: '+(e.message||e))}b.disabled=false;b.textContent='Baixar planilha'};renderSemana()}
 async function renderSemana(){const box=document.getElementById('wres');if(!box)return;const s=semPorI(SEM.sel);const L=SEM.dados.semanas;
  const precisa=L.slice(Math.max(0,s.k-6),s.k+1).filter(x=>!x.so_total).map(x=>x.i);
  try{await semItens(precisa)}catch(e){box.innerHTML=`<div class="note">Não foi possível carregar a semana: ${esc(e.message)}</div>`;return}
- if(SEM.sel!==s.i)return;const D=painel(s);
+ if(SEM.sel!==s.i)return;const D=painel(s);const rk=(location.hash||'').slice(1)==='semanal-rankings';
  box.innerHTML=`${s.so_total?`<div class="note">Semana da ${T('contagem-antiga','contagem antiga')}: só os totais; os rankings começam na primeira semana enviada pelo portal.</div>`:''}
- ${D.mtd?.antiga?`<div class="note">O bloco de ${D.mesCurto.toLowerCase()} veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
- <div class="jx">${painelHtml(D)}</div>${s.so_total?'':`<div class="card tablecard jx-abas"><div class="chips" role="tablist">${RANKS.map(([k,nome])=>`<button class="chip ${SEM.aba===k?'on':''}" data-aba="${k}" type="button">${nome}</button>`).join('')}</div><div id="waba">${abaHtml(s,SEM.aba)}</div></div>`}`;
+ ${rk&&D.mtd?.antiga?`<div class="note">O bloco de ${D.mesCurto.toLowerCase()} veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
+ <div class="jx${rk?' jx-rkpage':''}">${painelHtml(D,rk?'rank':'graf')}</div>${!rk?'':s.so_total?'<p class="hint">Semana da contagem antiga: sem as listas de parceiros, promoções, eventos, Laçador, Online e Premium.</p>':`<div class="card tablecard jx-abas"><div class="chips" role="tablist">${RANKS.map(([k,nome])=>`<button class="chip ${SEM.aba===k?'on':''}" data-aba="${k}" type="button">${nome}</button>`).join('')}</div><div id="waba">${abaHtml(s,SEM.aba)}</div></div>`}`;
  box.querySelectorAll('[data-aba]').forEach(b=>b.onclick=()=>{SEM.aba=b.dataset.aba;box.querySelectorAll('[data-aba]').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('waba').innerHTML=abaHtml(s,SEM.aba)});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
  on('wi-ed',()=>{SEM.editando=true;renderSemana()});on('wi-x',()=>{SEM.editando=false;renderSemana()});
@@ -1228,22 +1233,23 @@ async function renderSemana(){const box=document.getElementById('wres');if(!box)
   const {error}=await sb.rpc('salvar_insights',{p_inicio:s.i,p_texto:v});if(error){m.textContent='Não salvou: '+error.message;return}
   s.insights=v||null;SEM.editando=false;renderSemana()})}
 SEM.aba='parceiros';
-function painelHtml(D){const s=D.s,m=D.mtd;const n=(v,d=0)=>v==null?'':fmt(v,d);const pc=v=>v==null?'':fmt(100*v,1)+'%';
+function painelHtml(D,parte){const s=D.s,m=D.mtd;const n=(v,d=0)=>v==null?'':fmt(v,d);const pc=v=>v==null?'':fmt(100*v,1)+'%';
  const ins=SEM.editando?`<textarea id="wi-tx" rows="9">${esc((s.insights||rascunho(s)))}</textarea><p class="hint">Uma frase por linha (até 7). Use **texto** para negrito e [[texto]] para negrito em verde.</p><div class="acoes"><button class="btn" id="wi-ok" type="button">Salvar insights</button><button class="chip" id="wi-auto" type="button">Gerar rascunho de novo</button><button class="chip" id="wi-x" type="button">Cancelar</button><span class="hint" id="wi-msg"></span></div>`
   :`<ul class="jx-ins">${D.txt.map(l=>`<li>${richHtml(l)}</li>`).join('')||'<li class="hint">Sem insights nesta semana.</li>'}</ul>${ADMIN&&!s.so_total?`<div class="jx-ed">${D.auto?'<span class="hint">Rascunho automático.</span>':''}<button class="chip" id="wi-ed" type="button">Editar insights</button></div>`:''}`;
  const top=m?D.tp.map((p,j)=>`<tr class="b"><td>${j+1}. ${esc(p[0]===CLUBE_MARCA?'Ações do Clube':p[0])}</td><td class="n">${n(p[1])}</td></tr><tr class="g"><td>% do total do mês</td><td class="n">${pc(p[1]/m.usos)}</td></tr>`).join(''):'';
  const ev=m?m.eventos.slice(0,5).map((e,j)=>`<tr class="b"><td>${j+1}. ${esc(e[1])}</td><td class="n">${n(e[2])}</td></tr><tr class="g"><td colspan="2">${esc(e[0])}</td></tr>`).join(''):'';
  const box=(h,cls,body,x)=>`<section class="jx-box ${x||''}"><h4 class="jx-h ${cls||''}">${h}</h4>${body}</section>`;
  const y=D.y;const cw=D.cur;
- return `
- ${box(esc(D.titulo),'pr',ins,'jx-insights')}
- ${box(`${y} - ACOMPANHAMENTO SEMANAL`,'',jxLeg([[JC.roxo,'Total de Usos',1],[JC.lar,'Usuários Únicos',1],[JC.azul,`Usos ${y-1}`,1],[JC.pes,`Usuários ${y-1}`,1]])+jxLinhas(cw.map(w=>w.lab),[{n:`Usos ${y-1}`,c:JC.azul,v:cw.map(w=>w.pu)},{n:`Usuários ${y-1}`,c:JC.pes,v:cw.map(w=>w.pn)},{n:'Total de Usos',c:JC.roxo,v:cw.map(w=>w.usos)},{n:'Usuários Únicos',c:JC.lar,v:cw.map(w=>w.unicos)}]),'jx-c1')}
+ if(parte==='rank')return `
  ${box(D.mesNome,'pr',m?`<div class="jx-mes"><table class="jx-t"><tr class="hp"><th>TOP 5 - PARCEIROS</th><th class="n">${pc(D.share)}</th></tr>${top}</table>
    <table class="jx-t"><tr class="hp"><th colspan="2" class="c">TOP 5 - EVENTOS</th></tr>${ev}</table>
    <div><table class="jx-t"><tr class="hp"><th>Média p/ usuário</th><th class="n">${n(m.usos/m.unicos,2)}</th></tr><tr class="b"><td>Total do mês</td><td class="n">${n(m.usos)}</td></tr><tr class="b"><td>Usuários únicos</td><td class="n">${n(m.unicos)}</td></tr></table>
    <table class="jx-t"><tr class="hk"><th colspan="2" class="c">NA SEMANA</th></tr><tr class="ht"><th>Média p/ usuário</th><th class="n">${n(s.upu,2)}</th></tr><tr><td>Usos da semana</td><td class="n">${n(s.usos)}</td></tr><tr><td>Usuários únicos</td><td class="n">${n(s.unicos)}</td></tr></table>
    <table class="jx-t"><tr class="hk"><th colspan="2" class="c">MÉDIA DIÁRIA</th></tr><tr class="hp"><th>${D.mesCurto}</th><th class="n">${n(D.mediaDia)}</th></tr></table></div></div>`
-   :`<p class="hint" style="padding:12px">Sem a base do mês para esta semana. ${ADMIN?'Envie em Enviar semana, junto com a Base da semana.':''}</p><table class="jx-t" style="max-width:260px;margin:0 12px 12px"><tr class="hk"><th colspan="2" class="c">NA SEMANA</th></tr><tr class="ht"><th>Média p/ usuário</th><th class="n">${n(s.upu,2)}</th></tr><tr><td>Usos da semana</td><td class="n">${n(s.usos)}</td></tr><tr><td>Usuários únicos</td><td class="n">${n(s.unicos)}</td></tr></table>`,'jx-mesbox')}
+   :`<p class="hint" style="padding:12px">Sem a base do mês para esta semana. ${ADMIN?'Envie em Enviar semana, junto com a Base da semana.':''}</p><table class="jx-t" style="max-width:260px;margin:0 12px 12px"><tr class="hk"><th colspan="2" class="c">NA SEMANA</th></tr><tr class="ht"><th>Média p/ usuário</th><th class="n">${n(s.upu,2)}</th></tr><tr><td>Usos da semana</td><td class="n">${n(s.usos)}</td></tr><tr><td>Usuários únicos</td><td class="n">${n(s.unicos)}</td></tr></table>`,'jx-mesbox')}`;
+ return `
+ ${box(esc(D.titulo),'pr',ins,'jx-insights')}
+ ${box(`${y} - ACOMPANHAMENTO SEMANAL`,'',jxLeg([[JC.roxo,'Total de Usos',1],[JC.lar,'Usuários Únicos',1],[JC.azul,`Usos ${y-1}`,1],[JC.pes,`Usuários ${y-1}`,1]])+jxLinhas(cw.map(w=>w.lab),[{n:`Usos ${y-1}`,c:JC.azul,v:cw.map(w=>w.pu)},{n:`Usuários ${y-1}`,c:JC.pes,v:cw.map(w=>w.pn)},{n:'Total de Usos',c:JC.roxo,v:cw.map(w=>w.usos)},{n:'Usuários Únicos',c:JC.lar,v:cw.map(w=>w.unicos)}]),'jx-c1')}
  ${box(`${y-1}${D.desde}`,'or',jxLeg([[JC.roxo,'Total de Usos',1],[JC.lar,'Usuários Únicos',1]])+jxLinhas(D.prevW.map(w=>w.lab),[{n:'Total de Usos',c:JC.roxo,v:D.prevW.map(w=>w.usos)},{n:'Usuários Únicos',c:JC.lar,v:D.prevW.map(w=>w.unicos)}]),'jx-c4')}
  ${box('PENETRAÇÃO DE BASE MENSAL','',jxBarras(D.pen.map(p=>p.l),[{n:'Penetração',c:JC.pen,v:D.pen.map(p=>p.v)}],{ln:1,f:v=>fmt(100*v,1)+'%',cat:false,fs:8.5,w:320,h:240}),'jx-c2')}
  ${box('EVOLUÇÃO DAS AÇÕES DE CORTESIA','',`<p class="jx-st">Usos totais de promoções</p>`+jxBarras(D.cort.map(p=>p.l),[{n:'Usos totais de promoções',c:JC.lar,v:D.cort.map(p=>p.v)}],{rot:1,w:320,h:220,fs:9}),'jx-c3')}
@@ -1477,7 +1483,7 @@ async function rotaSemanal(h){if(h==='semanal-enviar'&&!ADMIN){location.hash='se
  app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');
  try{await semCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar o relatório semanal: ${esc(e.message||e)}</div>`);return}
  if((location.hash||'#home').slice(1)!==h)return;
- if(h==='semanal'){app.innerHTML=semanaPagina();bindSemana()}
+ if(h==='semanal'||h==='semanal-rankings'){app.innerHTML=semanaPagina(h);bindSemana()}
  else if(h==='semanal-evolucao'){app.innerHTML=evolucaoPagina();renderEvolucao()}
  else if(h==='semanal-enviar'){app.innerHTML=enviarPagina();bindEnviar()}}
 
