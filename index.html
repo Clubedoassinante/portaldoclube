@@ -1203,7 +1203,7 @@ async function renderSemana(){const box=document.getElementById('wres');if(!box)
  try{await semItens(precisa)}catch(e){box.innerHTML=`<div class="note">Não foi possível carregar a semana: ${esc(e.message)}</div>`;return}
  if(SEM.sel!==s.i)return;const D=painel(s);
  box.innerHTML=`${s.so_total?`<div class="note">Semana da ${T('contagem-antiga','contagem antiga')}: só os totais; os rankings começam na primeira semana enviada pelo portal.</div>`:''}
- ${D.mtd?.antiga?`<div class="note">O bloco de ${D.mesCurto.toLowerCase()} veio do relatório antigo (contava todas as linhas). Ele é atualizado quando a base do mês for enviada junto com a semana.</div>`:''}
+ ${D.mtd?.antiga?`<div class="note">O bloco de ${D.mesCurto.toLowerCase()} veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
  <div class="jx">${painelHtml(D)}</div>${s.so_total?'':`<div class="card tablecard jx-abas"><div class="chips" role="tablist">${RANKS.map(([k,nome])=>`<button class="chip ${SEM.aba===k?'on':''}" data-aba="${k}" type="button">${nome}</button>`).join('')}</div><div id="waba">${abaHtml(s,SEM.aba)}</div></div>`}`;
  box.querySelectorAll('[data-aba]').forEach(b=>b.onclick=()=>{SEM.aba=b.dataset.aba;box.querySelectorAll('[data-aba]').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('waba').innerHTML=abaHtml(s,SEM.aba)});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
