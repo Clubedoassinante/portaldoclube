@@ -474,7 +474,7 @@ function prepararDados(raw){
  sm={m:LAST,cmp:'yoy',met:'pen'};
  sa={y:YEARS[YEARS.length-1],cmp:YEARS.includes(String(+YEARS[YEARS.length-1]-1))?String(+YEARS[YEARS.length-1]-1):YEARS[0],met:'pen'};
  sc={a1:clampM(shift(LAST,-8)),b1:LAST,a2:clampM(shift(LAST,-20)),b2:clampM(shift(LAST,-12))};
- sp={m:LAST,d:'produto',o:'pen'};
+ sp={m:LAST,a:LAST,d:'produto',o:'pen'};
 }
 const idx=m=>M.findIndex(s=>s.m===m);
 function shift(m,k){let[y,mm]=m.split('-').map(Number);mm+=k;while(mm<1){mm+=12;y--}while(mm>12){mm-=12;y++}return y+'-'+String(mm).padStart(2,'0')}
@@ -780,31 +780,46 @@ const DIMT={produto:'produto',modalidade:'modalidade',geracao:'geracoes',tempo:'
 const ORD={geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido']};
 const BASE_MIN=500;
 function ordSafra(a,b){const k=s=>s==='Safras anteriores'?'0':s==='Sem data de venda'?'9':s.replace(/(\d)º sem\/(\d{4})/,'$2-$1');return k(a).localeCompare(k(b))}
-function perfil(){return shell('clube-perfil',`<div class="bar"><label class="fld"><span>Mês</span><select id="pm">${monthOpts(sp.m,0)}</select></label><div class="fld"><span>Ver por</span><div class="chips">${Object.entries(DIMS).map(([k,n])=>`<button class="chip ${sp.d===k?'on':''}" data-d="${k}">${n}</button>`).join('')}</div></div></div><div id="res"></div>`)}
-function renderPerfil(){const box=document.getElementById('res');const P=PERFIL[sp.m]||{};const c=M[idx(sp.m)];
- if(!P[sp.d]){box.innerHTML=`<p class="answer">${DIMS[sp.d]} não existe na carteira de ${lab(sp.m)}${sp.d==='modalidade'?' (só a partir de jan/2026)':''}. Escolha outro mês.</p>`;return}
+function perfilMeses(){const ia=idx(sp.a),ib=idx(sp.m);return M.slice(Math.min(ia,ib),Math.max(ia,ib)+1).map(r=>r.m)}
+const PER_RAP=[['mes','Só o mês'],['ano','Ano até o mês'],['12','Últimos 12 meses'],['tudo','Desde jul/2023']];
+function perfilRapido(k){const ib=idx(sp.m),y=sp.m.slice(0,4);
+ if(k==='mes')return sp.m;if(k==='ano')return (M.find(r=>r.m.startsWith(y))||M[ib]).m;if(k==='12')return M[Math.max(0,ib-11)].m;return M[0].m}
+function perfil(){if(!sp.a)sp.a=sp.m;const sel=(id,v)=>`<select id="${id}">${monthOpts(v,0)}</select>`;
+ return shell('clube-perfil',`<div class="bar"><div class="fld"><span>Período</span><div class="pair">${sel('pa',sp.a)}<em>até</em>${sel('pm',sp.m)}</div></div><div class="fld"><span>Atalhos</span><div class="chips" id="prap"></div></div></div><div class="bar" style="margin-top:-6px"><div class="fld"><span>Ver por</span><div class="chips">${Object.entries(DIMS).map(([k,n])=>`<button class="chip ${sp.d===k?'on':''}" data-d="${k}">${n}</button>`).join('')}</div></div></div><div id="res"></div>`)}
+function renderPerfil(){const box=document.getElementById('res');if(idx(sp.a)>idx(sp.m))[sp.a,sp.m]=[sp.m,sp.a];
+ const ra=document.getElementById('prap');if(ra){ra.innerHTML=PER_RAP.map(([k,n])=>`<button class="chip ${perfilRapido(k)===sp.a?'on':''}" data-r="${k}" type="button">${n}</button>`).join('');
+  ra.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{sp.a=perfilRapido(b.dataset.r);document.getElementById('pa').value=sp.a;document.getElementById('pm').value=sp.m;renderPerfil()})}
+ const todos=perfilMeses(),ms=todos.filter(m=>PERFIL[m]&&PERFIL[m][sp.d]);const n=ms.length,um=todos.length===1;
+ const per=um?lab(sp.m):`${lab(todos[0])} a ${lab(todos[todos.length-1])}`;
+ if(!n){box.innerHTML=`<p class="answer">${DIMS[sp.d]} não existe na carteira de ${per}${sp.d==='modalidade'?' (só a partir de jan/2026)':''}. Escolha outro período.</p>`;return}
  if(sp.o==='ord'&&!ORD[sp.d]&&sp.d!=='safra')sp.o='pen';
- let cats=Object.entries(P[sp.d]).map(([k,[cart,ger]])=>({k,cart,ger,pen:cart?100*ger/cart:0})).filter(r=>r.cart>0);
+ const soma={};ms.forEach(m=>Object.entries(PERFIL[m][sp.d]).forEach(([k,[c,g]])=>{const x=soma[k]||(soma[k]=[0,0]);x[0]+=c;x[1]+=g}));
+ let cats=Object.entries(soma).map(([k,[c,g]])=>({k,cart:c/n,ger:g/n,pen:c?100*g/c:0})).filter(r=>r.cart>0);
  if(sp.o==='pen')cats.sort((a,b)=>b.pen-a.pen);else if(sp.o==='cart')cats.sort((a,b)=>b.cart-a.cart);else if(sp.d==='safra')cats.sort((a,b)=>ordSafra(a.k,b.k));else if(ORD[sp.d])cats.sort((a,b)=>ORD[sp.d].indexOf(a.k)-ORD[sp.d].indexOf(b.k));
  const tot=cats.reduce((t,r)=>t+r.cart,0),totg=cats.reduce((t,r)=>t+r.ger,0);const penT=100*totg/tot;const mx=Math.max(...cats.map(r=>r.pen));
  const big=cats.filter(r=>r.cart>=BASE_MIN);const best=[...big].sort((a,b)=>b.pen-a.pen)[0],worst=[...big].sort((a,b)=>a.pen-b.pen)[0];
  const oport=[...big].filter(r=>r.pen<penT).sort((a,b)=>(b.cart-b.ger)-(a.cart-a.ger))[0];
- const resumo=big.length>=2?`Em <b>${lab(sp.m)}</b>, por ${T(DIMT[sp.d],DIMS[sp.d].toLowerCase())}: maior uso em <b>${esc(best.k)}</b> (${fmt(best.pen,1)}%) e menor em <b>${esc(worst.k)}</b> (${fmt(worst.pen,1)}%), contra ${fmt(penT,1)}% de quem está na carteira.${oport?` Maior grupo que ainda não usa: <b>${esc(oport.k)}</b>, com ${fmt(oport.cart-oport.ger)} pessoas na carteira sem voucher no mês.`:''}`
-  :`Em <b>${lab(sp.m)}</b>, ${DIMS[sp.d].toLowerCase()} não tem segmentos com base suficiente para destacar.`;
+ const pm=n>1?' por mês':'';
+ const resumo=big.length>=2?`Em <b>${per}</b>, por ${T(DIMT[sp.d],DIMS[sp.d].toLowerCase())}: maior uso em <b>${esc(best.k)}</b> (${fmt(best.pen,1)}%) e menor em <b>${esc(worst.k)}</b> (${fmt(worst.pen,1)}%), contra ${fmt(penT,1)}% de quem está na carteira.${oport?` Maior grupo que ainda não usa: <b>${esc(oport.k)}</b>, com ${fmt(oport.cart-oport.ger)} pessoas${pm} na carteira sem voucher${n>1?'':' no mês'}.`:''}`
+  :`Em <b>${per}</b>, ${DIMS[sp.d].toLowerCase()} não tem segmentos com base suficiente para destacar.`;
  const ordens=[['pen','Maior penetração'],['cart','Maior carteira']].concat(ORD[sp.d]||sp.d==='safra'?[['ord','Ordem natural']]:[]);
- box.innerHTML=`<p class="answer">${resumo}</p>
- <div class="card tablecard"><div class="row-head"><h3>${DIMS[sp.d]}</h3><div class="chips">${ordens.map(([k,n])=>`<button class="chip ${sp.o===k?'on':''}" data-o="${k}" type="button">${n}</button>`).join('')}</div></div>
- <div class="tw"><table class="cmp prof"><thead><tr><th>${DIMS[sp.d]}</th><th class="n">Na carteira</th><th class="n">% da carteira</th><th class="n">Geraram voucher</th><th class="n">% dos que geraram</th><th>${T('penetracao','Penetração do segmento')}</th></tr></thead><tbody>${cats.map(r=>`<tr${r.cart<BASE_MIN?' class="peq"':''}><td>${esc(r.k)}${r.cart<BASE_MIN?' <small>base pequena</small>':''}</td><td class="n">${fmt(r.cart)}</td><td class="n">${fmt(100*r.cart/tot,1)}%</td><td class="n">${fmt(r.ger)}</td><td class="n">${totg?fmt(100*r.ger/totg,1):'0'}%</td><td><div class="barcell"><span style="width:${(r.pen/mx*100).toFixed(1)}%;${r.pen<penT?'background:#d9a98f':''}"></span><b>${fmt(r.pen,1)}%</b></div></td></tr>`).join('')}
+ const rows=ms.map(m=>M[idx(m)]).filter(Boolean);const av=k=>rows.reduce((t,r)=>t+(r[k]||0),0)/rows.length;
+ const falt=todos.length-n;
+ const notaPer=n>1?`<div class="note">Período de ${todos.length} meses: os números de pessoas são a <b>média por mês</b> (quem está na carteira e quem gerou voucher em cada mês), e a penetração é a média mensal do segmento. Uma mesma pessoa conta em cada mês em que esteve na carteira; por isso não dá para somar os meses.${falt?` ${falt} ${falt===1?'mês do período não tem':'meses do período não têm'} ${DIMS[sp.d].toLowerCase()} na carteira e ${falt===1?'ficou':'ficaram'} de fora${sp.d==='modalidade'?' (modalidade só existe a partir de jan/2026)':''}.`:''}</div>`:'';
+ box.innerHTML=`<p class="answer">${resumo}</p>${notaPer}
+ <div class="card tablecard"><div class="row-head"><h3>${DIMS[sp.d]}${n>1?' <small>média por mês</small>':''}</h3><div class="chips">${ordens.map(([k,nn])=>`<button class="chip ${sp.o===k?'on':''}" data-o="${k}" type="button">${nn}</button>`).join('')}</div></div>
+ <div class="tw"><table class="cmp prof"><thead><tr><th>${DIMS[sp.d]}</th><th class="n">Na carteira${n>1?' (média)':''}</th><th class="n">% da carteira</th><th class="n">Geraram voucher${n>1?' (média)':''}</th><th class="n">% dos que geraram</th><th>${T('penetracao','Penetração do segmento')}</th></tr></thead><tbody>${cats.map(r=>`<tr${r.cart<BASE_MIN?' class="peq"':''}><td>${esc(r.k)}${r.cart<BASE_MIN?' <small>base pequena</small>':''}</td><td class="n">${fmt(r.cart)}</td><td class="n">${fmt(100*r.cart/tot,1)}%</td><td class="n">${fmt(r.ger)}</td><td class="n">${totg?fmt(100*r.ger/totg,1):'0'}%</td><td><div class="barcell"><span style="width:${(r.pen/mx*100).toFixed(1)}%;${r.pen<penT?'background:#d9a98f':''}"></span><b>${fmt(r.pen,1)}%</b></div></td></tr>`).join('')}
  <tr class="tot"><td>Total na carteira</td><td class="n">${fmt(tot)}</td><td class="n">100%</td><td class="n">${fmt(totg)}</td><td class="n">100%</td><td><b>${fmt(penT,1)}%</b></td></tr></tbody></table></div>
- <p class="hint">Segmentos com menos de ${fmt(BASE_MIN)} pessoas na carteira aparecem como "base pequena" e não entram no destaque de maior e menor uso. Barra mais clara: abaixo da média da carteira.</p>
- <p class="hint">Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(c.pen,2)}%) usa todas as ${fmt(c.ger)} pessoas que geraram voucher, inclusive ${fmt(c.fora)} fora da carteira, que não têm perfil.</p></div>`;
+ <p class="hint">Segmentos com menos de ${fmt(BASE_MIN)} pessoas na carteira${pm} aparecem como "base pequena" e não entram no destaque de maior e menor uso. Barra mais clara: abaixo da média da carteira.</p>
+ <p class="hint">${n>1?`Esta tabela conta só quem está na carteira ativa de cada mês (em média ${fmt(totg)} pessoas por mês geraram voucher). A penetração do período (média de ${fmt(av('pen'),2)}% ao mês) usa todas as pessoas que geraram voucher, inclusive, em média, ${fmt(av('fora'))} por mês fora da carteira, que não têm perfil.`
+  :`Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(rows[0].pen,2)}%) usa todas as ${fmt(rows[0].ger)} pessoas que geraram voucher, inclusive ${fmt(rows[0].fora)} fora da carteira, que não têm perfil.`}</p></div>`;
  box.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{sp.o=b.dataset.o;renderPerfil()})}
 
 function bindClube(h){const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
  if(h==='clube'){on('mm',v=>{sm.m=v;renderVisao('mes')});on('mcmp',v=>{sm.cmp=v;renderVisao('mes')});renderVisao('mes')}
  if(h==='clube-ano'){on('ay',v=>{sa.y=v;sa.cmp=YEARS.includes(String(+v-1))?String(+v-1):String(+v+1);const c=document.getElementById('acmp');c.innerHTML=YEARS.filter(y=>y!==sa.y).map(y=>`<option value="${y}" ${y===sa.cmp?'selected':''}>${y}${y===String(+sa.y-1)?' (ano anterior)':''}</option>`).join('');renderVisao('ano')});on('acmp',v=>{sa.cmp=v;renderVisao('ano')});renderVisao('ano')}
  if(h==='clube-comparar'){['a1','b1','a2','b2'].forEach(k=>on(k,v=>{sc[k]=v;renderComp()}));renderComp()}
- if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
+ if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});on('pa',v=>{sp.a=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
 const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-comparar':comparar,'clube-perfil':perfil};
 
 /* ---------- áreas e relatórios ---------- */
