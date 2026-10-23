@@ -361,6 +361,11 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .pa-fc ul{margin:4px 0 0;padding-left:18px}.pa-fc li{margin:2px 0}
 .pa-dl{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;margin:0}.pa-dl dt{color:var(--muted);font-size:12.5px}.pa-dl dd{margin:0}
 .pa-promos{list-style:none;padding:0;margin:0;max-height:420px;overflow:auto}.pa-promos li{padding:8px 0;border-bottom:1px solid var(--line)}.pa-promos p{margin:4px 0;font-size:13px;color:var(--muted)}
+.pa-stack{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.pa-grupos .td-k{align-items:flex-start}.pa-grupos .pa-sub{color:#404040;font-weight:600}.pa-grupos .pa-def{margin-top:4px;line-height:1.35}
+.pa-leit p{margin:4px 0;font-size:14px}
+.pa-catgrp{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}.pa-catgrp h4{margin:0 0 6px;font-size:15px}.pa-catgrp h4 small{font-weight:400;color:var(--muted)}
+.pa-sau td{vertical-align:top}.pa-sau th:last-child{width:52%}.pa-pq{font-size:13px;line-height:1.45;white-space:normal}
 </style>
 </head>
 <body>
@@ -1813,11 +1818,11 @@ function paVisao(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v
   <div class="tw"><table class="cmp pa-t"><thead><tr><th>Categoria</th><th>Vouchers</th><th class="n">% do total</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th><th class="n">Parceiros com uso</th><th>Maior parceiro</th></tr></thead><tbody>
   ${porCat.map(c=>`<tr><td><a href="#parceiros-categorias" data-cat="${esc(c.k)}">${esc(c.k)}</a></td><td><div class="barcell"><span style="width:${(c.v/mxC*100).toFixed(1)}%"></span><b>${fmt(c.v)}</b></div></td><td class="n">${fmt(c.v/tot*100,1)}%</td>${dTd(c.dA)}${dTd(c.dL)}<td class="n">${fmt(c.n)}</td><td>${linkF(c.top)}</td></tr>`).join('')}
   </tbody></table></div></div>
- <div class="grid2">
+ <div class="pa-stack">
   <div class="card"><h3>Por ${T('tipo-parceiro','tipo de benefício')}</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Tipo</th><th class="n">Vouchers</th><th class="n">%</th><th class="n">vs anterior</th><th class="n">Parceiros</th></tr></thead><tbody>
    ${porTipo.map(c=>`<tr><td>${esc(c.k)}</td><td class="n">${fmt(c.v)}</td><td class="n">${fmt(c.v/tot*100,1)}%</td>${dTd(c.dA)}<td class="n">${fmt(c.n)}</td></tr>`).join('')}</tbody></table></div></div>
-  <div class="card"><h3>Os 10 maiores parceiros</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Parceiro</th><th class="n">Vouchers</th><th class="n">% acumulado</th><th class="n">vs anterior</th></tr></thead><tbody>
-   ${ord.slice(0,10).map((r,j)=>`<tr><td>${j+1}. ${linkF(r.m)}</td><td class="n">${fmt(r.v)}</td><td class="n">${fmt(ord.slice(0,j+1).reduce((t,x)=>t+x.v,0)/tot*100,1)}%</td>${dTd(r.dA)}</tr>`).join('')}</tbody></table></div></div>
+  <div class="card"><h3>Os 20 maiores parceiros</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Parceiro</th><th>Categoria</th><th class="n">Vouchers</th><th class="n">% do total</th><th class="n">% acumulado</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th></tr></thead><tbody>
+   ${ord.slice(0,20).map((r,j)=>`<tr><td>${j+1}. ${linkF(r.m)}</td><td>${esc(r.cat)}</td><td class="n">${fmt(r.v)}</td><td class="n">${fmt(r.v/tot*100,1)}%</td><td class="n">${fmt(ord.slice(0,j+1).reduce((t,x)=>t+x.v,0)/tot*100,1)}%</td>${dTd(r.dA)}${dTd(r.dL)}</tr>`).join('')}</tbody></table></div></div>
  </div>
  <p class="hint">${notaPeriodo(P)} Fonte: vouchers por marca de cada mês (Clube em números) e a lista de parceiros do cadastro. Proxy Media, Hubconn, SponsorB e Integrada reúnem lojas de várias categorias e ficam em "Lojas online (vários)"; as produtoras de shows e eventos ficam em Agenda cultural.</p>`)}
 function agrupaPor(L,f,P){const m=new Map();L.forEach(r=>{const k=f(r);const g=m.get(k)||{k,v:0,va:0,vl:0,n:0,top:null,tv:-1};g.v+=r.v;g.va+=r.vant||0;g.vl+=r.vly||0;if(r.v>0)g.n++;if(r.v>g.tv){g.tv=r.v;g.top=r.m}m.set(k,g)});
@@ -1837,7 +1842,56 @@ function paRanking(){const P=periodos();const L=linhas();const all=filtra(L.filt
  <p class="hint">${notaPeriodo(P)} Pessoas: quem gerou voucher do parceiro no mês${P.n>1?' (média por mês, porque a mesma pessoa pode usar em vários meses)':''}.</p>`)}
 
 /* ---------- página: Saúde dos parceiros ---------- */
-const GRUPOS=[['risco','Em risco','Grandes e caindo: olhar primeiro.','baixo'],['ancora','Âncoras','Grandes e estáveis ou crescendo.','ok'],['promissor','Promissores','Menores e crescendo rápido.','pr'],['novo','Novos','Primeiro voucher nos últimos 3 meses do período.',''],['parado','Pararam','Tinham uso no período anterior e zeraram.','lim'],['cadsem','Cadastrados sem uso','Ativos no cadastro, sem nenhum voucher no período.','lim']];
+const GRUPOS=[
+ ['risco','Em risco','baixo','Parceiros grandes (os que, juntos, somam 80% dos vouchers do período) que caíram 15% ou mais em relação ao período anterior.','Olhar primeiro: uma queda aqui mexe no total do Clube. Checar se a oferta mudou, acabou ou perdeu destaque na comunicação.'],
+ ['ancora','Âncoras','ok','Parceiros grandes que ficaram estáveis ou cresceram. São eles que sustentam o volume do Clube.','Proteger: manter a oferta e o destaque, renovar contrato com antecedência e evitar depender só deles.'],
+ ['promissor','Promissores','pr','Parceiros fora dos grandes, com 20 vouchers ou mais no período e crescimento de 30% ou mais.','Acelerar: dar mais destaque na News e nas redes enquanto a procura está subindo.'],
+ ['novo','Novos','','Parceiros cujo primeiro voucher (desde jul/2023) foi nos últimos 3 meses do período.','Acompanhar a estreia: comunicar nas primeiras semanas e ver se o uso se sustenta depois do lançamento.'],
+ ['parado','Pararam','lim','Parceiros que tiveram voucher no período anterior e nenhum no período escolhido.','Entender o motivo: oferta encerrada (esperado) ou ativa e sem uso (problema de comunicação ou de resgate).'],
+ ['cadsem','Cadastrados sem uso','lim','Parceiros ativos na lista de parceiros sem nenhum voucher nos últimos 6 meses.','Revisar a oferta: rever desconto e modo de uso, divulgar ou tirar do ar o que não tem procura.']];
+function serieMarca(m){return PA.d.uso.get(m)||{}}
+function mesesCaindo(m,ate){const u=serieMarca(m);let n=0,cur=ate;while(true){const a=u[cur]?.v||0,b=u[mAdd(cur,-1)]?.v||0;if(b>0&&a<b){n++;cur=mAdd(cur,-1)}else break}return n}
+function ultimoUso(m){return Object.keys(serieMarca(m)).filter(k=>serieMarca(m)[k].v>0).sort().pop()}
+function porque(g,r,P,ctx){const pct=v=>fmt(v,1)+'%';const sh=ctx.tot?r.v/ctx.tot*100:0;const pos=ctx.pos.get(r.m);
+ const ly=r.vly!=null&&r.vly>0?` No mesmo período do ano anterior foram ${fmt(r.vly)} (${sinalP(varp(r.v,r.vly))}).`:'';
+ if(g==='risco'){const n=mesesCaindo(r.m,P.b);const sazo=r.vly!=null&&r.vly>0&&r.v>=r.vly;
+  return `Caiu de ${fmt(r.vant)} para ${fmt(r.v)} vouchers (${sinalP(r.dA)}). É o ${pos}º maior parceiro, com ${pct(sh)} dos vouchers, e sozinho tirou ${fmt(r.vant-r.v)} vouchers do total.${n>=2?` Vem caindo há ${n} meses seguidos.`:''}${ly}${sazo?' Como está acima do ano anterior, a queda pode ser sazonal.':r.vly?' Está abaixo também do ano anterior: não parece só sazonalidade.':''}`}
+ if(g==='ancora'){const u=serieMarca(r.m);const ult6=mesesEntre(mAdd(P.b,-5),P.b).filter(m=>(u[m]?.v||0)>0).length;
+  return `${pos}º maior parceiro, com ${fmt(r.v)} vouchers (${pct(sh)} do total)${r.dA!=null?`, ${sinalP(r.dA)} vs período anterior`:''}.${ly} Teve uso em ${ult6} dos últimos 6 meses.`}
+ if(g==='promissor'){const falta=ctx.lim-r.v;
+  return `Subiu de ${fmt(r.vant)} para ${fmt(r.v)} vouchers (${sinalP(r.dA)}).${ly} ${falta>0?`Faltam ${fmt(falta)} vouchers para entrar no grupo dos grandes (a partir de ${fmt(ctx.lim)} no período).`:''}`}
+ if(g==='novo'){const naCat=ctx.L.filter(x=>x.cat===r.cat&&x.v>0).sort((a,b)=>b.v-a.v);const pc=naCat.findIndex(x=>x.m===r.m)+1;
+  return `Primeiro voucher em ${lab(r.prim)}. Já soma ${fmt(r.v)} vouchers e está em ${pc}º lugar em ${r.cat}, entre ${naCat.length} parceiros.`}
+ if(g==='parado'){const ul=ultimoUso(r.m);const st=r.status;
+  return `Tinha ${fmt(r.vant)} ${r.vant===1?'voucher':'vouchers'} no período anterior; último uso em ${ul?lab(ul):'—'}. ${r.tipo==='Eventos e shows'?'Produtora sem evento com voucher no período: costuma ser intervalo entre agendas. Vale perguntar se há eventos previstos para divulgar.':st==='Ativo'?'No cadastro está ativo: vale checar se a oferta ainda funciona e se está sendo divulgada.':st==='Encerrado ou pausado'?'No cadastro está encerrado ou pausado: a parada é esperada.':'Não está na lista de parceiros: confirmar se a parceria segue ativa.'}`}
+ if(g==='cadsem'){const ul=r.semDados?null:ultimoUso(r.m);const garg=(r.rows||[]).map(x=>x.gargalos).filter(Boolean)[0];
+  return `${ul?`Último voucher em ${lab(ul)}.`:'Nenhum voucher desde jul/2023.'} Modo de uso: ${r.modo||'—'}${r.localTxt?` · ${r.localTxt}`:''}.${garg?` Gargalo apontado no cadastro: ${garg}.`:''}`}
+ return ''}
+function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifica(L,P);const g=GRUPOS.find(x=>x[0]===PA.grupo)||GRUPOS[0];const lst=G[g[0]];
+ const com=L.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);const tot=com.reduce((t,r)=>t+r.v,0);const pos=new Map(com.map((r,j)=>[r.m,j+1]));
+ const lim=Math.min(...com.filter(r=>grande.has(r.m)).map(r=>r.v));const ctx={tot,pos,lim,L};
+ const totA=L.reduce((t,r)=>t+(r.vant||0),0);const dTot=tot-totA;
+ const soma=k=>G[k].reduce((t,r)=>t+(r.v||0),0),dif=k=>G[k].reduce((t,r)=>t+((r.v||0)-(r.vant||0)),0);
+ const sub={risco:`${fmt(soma('risco'))} vouchers · ${sinalN(dif('risco'))} vs anterior`,ancora:`${fmt(soma('ancora'))} vouchers · ${fmt(tot?soma('ancora')/tot*100:0,0)}% do total`,promissor:`${sinalN(dif('promissor'))} vouchers vs anterior`,novo:`${fmt(soma('novo'))} vouchers no período`,parado:`perderam ${fmt(-dif('parado'))} vouchers`,cadsem:'sem voucher em 6 meses'};
+ const leitura={risco:G.risco.length?`Os ${G.risco.length} parceiros em risco perderam juntos ${fmt(-dif('risco'))} vouchers${dTot<0?`, o equivalente a ${fmt(Math.min(100,-dif('risco')/-dTot*100),0)}% da queda total do Clube no período (${sinalN(dTot)})`:''}.`:'Nenhum parceiro grande caiu 15% ou mais.',
+  ancora:`${G.ancora.length} parceiros sustentam ${fmt(tot?soma('ancora')/tot*100:0,0)}% dos vouchers do período.`,
+  promissor:G.promissor.length?`${G.promissor.length} parceiros menores cresceram 30% ou mais e somaram ${sinalN(dif('promissor'))} vouchers.`:'Nenhum parceiro menor cresceu 30% ou mais.',
+  novo:G.novo.length?`${G.novo.length} parceiros estrearam nos últimos 3 meses do período e somam ${fmt(soma('novo'))} vouchers.`:'Nenhum parceiro estreou nos últimos 3 meses do período.',
+  parado:G.parado.length?`${G.parado.length} parceiros zeraram; ${G.parado.filter(r=>r.status==='Ativo').length} deles seguem ativos no cadastro, que são os casos para investigar.`:'Nenhum parceiro zerou.',
+  cadsem:`${G.cadsem.length} parceiros ativos no cadastro estão sem voucher há 6 meses ou mais.`};
+ const cats=new Map();lst.forEach(r=>{const k=r.cat||'—';const c=cats.get(k)||[];c.push(r);cats.set(k,c)});
+ const ordCats=[...cats].sort((a,b)=>g[0]==='cadsem'?b[1].length-a[1].length:Math.abs(b[1].reduce((t,r)=>t+(r.v-(r.vant||0)),0))-Math.abs(a[1].reduce((t,r)=>t+(r.v-(r.vant||0)),0))||b[1].length-a[1].length);
+ const num=g[0]!=='cadsem';
+ const tabela=([cat,rs])=>{const dv=rs.reduce((t,r)=>t+(r.v-(r.vant||0)),0);
+  return `<div class="pa-catgrp"><h4>${esc(cat)} <small>${rs.length} ${rs.length===1?'parceiro':'parceiros'}${num?` · ${sinalN(dv)} vouchers vs anterior`:''}</small></h4>
+  <div class="tw"><table class="cmp pa-t pa-sau"><thead><tr><th>Parceiro</th>${num?'<th class="n">Vouchers</th><th class="n">Anterior</th><th class="n">vs anterior</th>':''}<th>Por que está aqui</th></tr></thead><tbody>
+  ${rs.map(r=>`<tr><td>${r.semDados?esc(r.m):linkF(r.m)}</td>${num?`<td class="n"><b>${fmt(r.v)}</b></td><td class="n">${fmt(r.vant)}</td>${dTd(r.dA)}`:''}<td class="pa-pq">${porque(g[0],r,P,ctx)}</td></tr>`).join('')}</tbody></table></div></div>`};
+ return shell('parceiros-saude',`${paBar()}
+ <div class="pa-grupos">${GRUPOS.map(([k,n,c,def])=>`<button class="td-k ${c} ${PA.grupo===k?'on':''}" data-gr="${k}" type="button"><span>${n}</span><b>${fmt(G[k].length)}</b><small class="pa-sub">${sub[k]}</small><small class="pa-def">${def}</small></button>`).join('')}</div>
+ <div class="card pa-leit"><h3>${g[1]} <small>${fmt(lst.length)}</small></h3><p><b>Leitura:</b> ${leitura[g[0]]}</p><p><b>O que fazer:</b> ${g[4]}</p></div>
+ ${ordCats.map(tabela).join('')||'<div class="card"><p class="hint">Nenhum parceiro neste grupo.</p></div>'}
+ <p class="hint">${notaPeriodo(P)} Grandes: os parceiros que, juntos, somam 80% dos vouchers do período (neste período, a partir de ${fmt(lim)} vouchers). Os grupos são exclusivos: cada parceiro aparece em um só, nesta ordem de prioridade: novo, em risco ou âncora, promissor.</p>`)}
+
 function classifica(L,P){const com=L.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);const tot=com.reduce((t,r)=>t+r.v,0);let ac=0;const grande=new Set();com.forEach(r=>{if(ac<tot*.8){grande.add(r.m)}ac+=r.v});
  const ini3=mAdd(P.b,-2);const G={risco:[],ancora:[],promissor:[],novo:[],parado:[],cadsem:[]};
  L.forEach(r=>{if(r.v===0){if(r.vant>0)G.parado.push(r);else if(r.status==='Ativo'&&!Object.keys(PA.d.uso.get(r.m)||{}).some(k=>k>=mAdd(P.b,-5)&&PA.d.uso.get(r.m)[k].v>0))G.cadsem.push(r);return}
@@ -1847,28 +1901,6 @@ function classifica(L,P){const com=L.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);const
  const vis=new Set([...PA.d.info.keys()]);PA.d.cad.filter(c=>c.status==='Ativo').forEach(c=>{const tem=[...PA.d.info.values()].some(i=>i.rows.includes(c));if(!tem&&!G.cadsem.some(x=>x.m===baseNome(c.parceiro)))G.cadsem.push({m:baseNome(c.parceiro),cat:catsDe(c.categoria)[0]||'—',local:grupoLocal(c.local),v:0,vant:0,semDados:true,modo:c.modo})});
  G.cadsem=[...new Map(G.cadsem.map(x=>[x.m,x])).values()];
  G.risco.sort((a,b)=>(a.v-a.vant)-(b.v-b.vant));G.ancora.sort((a,b)=>b.v-a.v);G.promissor.sort((a,b)=>b.dA-a.dA);G.novo.sort((a,b)=>b.v-a.v);G.parado.sort((a,b)=>b.vant-a.vant);G.cadsem.sort((a,b)=>a.cat.localeCompare(b.cat,'pt-BR')||a.m.localeCompare(b.m,'pt-BR'));return {G,grande}}
-function quadChart(L,grande){const pts=L.filter(r=>r.v>0&&r.dA!=null);if(pts.length<3)return '';const W=1000,H=360,Lm=50,R=130,T0=16,B=36;
- const xs=pts.map(r=>Math.log10(r.v));const x0=Math.min(...xs),x1=Math.max(...xs);const yc=v=>Math.max(-100,Math.min(150,v));
- const x=v=>Lm+(Math.log10(v)-x0)/((x1-x0)||1)*(W-Lm-R),y=v=>T0+(1-(yc(v)+100)/250)*(H-T0-B);
- const lim=Math.min(...pts.filter(r=>grande.has(r.m)).map(r=>r.v));let g='';
- [-100,-50,0,50,100,150].forEach(v=>{g+=`<line x1="${Lm}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${v===0?'#b9a9b2':'var(--line)'}"/><text x="${Lm-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v>0?'+':''}${v}%</text>`});
- [10,100,1000,10000].filter(v=>Math.log10(v)>=x0&&Math.log10(v)<=x1).forEach(v=>g+=`<text x="${x(v)}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--muted)">${fmt(v)} vouchers</text>`);
- if(isFinite(lim))g+=`<line x1="${x(lim)}" x2="${x(lim)}" y1="${T0}" y2="${H-B}" stroke="#b9a9b2" stroke-dasharray="4 4"/><text x="${x(lim)+6}" y="${T0+12}" font-size="11" fill="var(--muted)">grandes →</text>`;
- pts.forEach(r=>{const c=grande.has(r.m)?(r.dA<=-15?'#c0392b':'#2e7d4f'):(r.dA>=30&&r.v>=20?'#C65911':'#b9a9b2');const big=grande.has(r.m);
-  g+=`<circle cx="${x(r.v).toFixed(1)}" cy="${y(r.dA).toFixed(1)}" r="${big?5.5:3.5}" fill="${c}" fill-opacity=".8"><title>${esc(r.m)}: ${fmt(r.v)} vouchers, ${sinalP(r.dA)} vs anterior</title></circle>`;
-  if(big&&(Math.abs(r.dA)>=15||r.v>=lim*3))g+=`<text x="${x(r.v)+7}" y="${y(r.dA)+4}" font-size="10.5" fill="#404040">${esc(r.m.length>22?r.m.slice(0,21)+'…':r.m)}</text>`});
- return `<svg viewBox="0 0 ${W} ${H}" class="td-svg" role="img" aria-label="Parceiros por tamanho e variação">${g}</svg>${legend([['#c0392b','Em risco'],['#2e7d4f','Âncoras'],['#C65911','Promissores'],['#b9a9b2','Demais']])}`}
-function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifica(L,P);const g=GRUPOS.find(x=>x[0]===PA.grupo)||GRUPOS[0];const lst=G[g[0]];
- const col=g[0]==='cadsem'?`<th>Parceiro</th><th>Categoria</th><th>Local</th><th>Modo de uso</th>`:`<th>Parceiro</th><th>Categoria</th><th class="n">Vouchers</th><th class="n">Anterior</th><th class="n">Diferença</th><th class="n">vs anterior</th>`;
- const lin=r=>g[0]==='cadsem'?`<tr><td>${r.semDados?esc(r.m):linkF(r.m)}</td><td>${esc(r.cat)}</td><td>${esc(r.local)}</td><td>${esc(r.modo||'—')}</td></tr>`
-  :`<tr><td>${linkF(r.m)}</td><td>${esc(r.cat)}</td><td class="n"><b>${fmt(r.v)}</b></td><td class="n">${fmt(r.vant)}</td><td class="n">${r.vant!=null?sinalN(r.v-r.vant):'—'}</td>${dTd(r.dA)}</tr>`;
- return shell('parceiros-saude',`${paBar()}
- <div class="pa-grupos">${GRUPOS.map(([k,n,d,c])=>`<button class="td-k ${c} ${PA.grupo===k?'on':''}" data-gr="${k}" type="button"><span>${n}</span><b>${fmt(G[k].length)}</b><small>${d}</small></button>`).join('')}</div>
- <div class="card"><h3>Tamanho × variação</h3><p class="sub">Cada ponto é um parceiro com uso nos dois períodos. Para a direita, mais vouchers; para cima, crescimento vs período anterior. "Grandes" são os parceiros que, juntos, somam 80% dos vouchers do período.</p>${quadChart(L,grande)||'<p class="hint">Escolha um período que tenha o período anterior carregado.</p>'}</div>
- <div class="card tablecard"><h3>${g[1]} <small>${fmt(lst.length)}</small></h3><p class="sub">${g[2]}</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr>${col}</tr></thead><tbody>${lst.map(lin).join('')||`<tr><td colspan="6" class="hint">Nenhum parceiro neste grupo.</td></tr>`}</tbody></table></div></div>
- <p class="hint">${notaPeriodo(P)} ${T('saude-parceiro','Como classificamos')}: em risco = grande e caindo 15% ou mais; promissor = fora dos grandes, com 20 vouchers ou mais e crescendo 30% ou mais; cadastrados sem uso = ativos na lista de parceiros e sem voucher nos últimos 6 meses.</p>`)}
-
 /* ---------- página: Categorias ---------- */
 function paCategorias(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v>0||r.vant>0);const cats=agrupaPor(com,r=>r.cat,P);
  if(!PA.cat||!cats.some(c=>c.k===PA.cat))PA.cat=cats[0]?.k||'';const C=cats.find(c=>c.k===PA.cat);const tot=cats.reduce((t,c)=>t+c.v,0);
