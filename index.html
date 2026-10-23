@@ -366,6 +366,18 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .pa-leit p{margin:4px 0;font-size:14px}
 .pa-catgrp{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}.pa-catgrp h4{margin:0 0 6px;font-size:15px}.pa-catgrp h4 small{font-weight:400;color:var(--muted)}
 .pa-sau td{vertical-align:top}.pa-sau th:last-child{width:52%}.pa-pq{font-size:13px;line-height:1.45;white-space:normal}
+
+/* Inativos */
+.ina-cards{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.ina-hips{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px;margin-bottom:12px}
+.ina-h{border-left:6px solid #b9a9b2;margin:0}.ina-h p{margin:6px 0;font-size:13.5px;line-height:1.5}.ina-h h3{font-size:15px}
+.ina-v{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:#eee;white-space:nowrap}
+.ina-ok{border-left-color:#2e7d4f}.ina-ok .ina-v{background:#e5f3ea;color:#2e7d4f}
+.ina-lim{border-left-color:#d79a1c}.ina-lim .ina-v{background:#fbf1dc;color:#a8740c}
+.ina-x{border-left-color:#9aa0a6}.ina-x .ina-v{background:#eef0f1;color:#5f6368}
+.ina-sd .ina-v{background:#f3e7ee;color:#721a50}
+.ina-t td.down{color:#C65911;font-weight:700}.ina-t td.up{color:#2e7d4f}
+@media (max-width:760px){.ina-hips{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -878,8 +890,8 @@ const AREAS={
   r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-enviar','Enviar mês',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
- inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: nunca gerou, parou de gerar e quem voltou a usar.',c:'var(--laranja)',st:['wip','Em construção'],
-  r:[['inativos','Visão geral'],['inativos-nunca','Nunca gerou'],['inativos-parou','Parou de gerar'],['inativos-voltou','Voltou a usar']]},
+ inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
+  r:[['inativos','Visão geral'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar']]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp e push: envios, cliques e vouchers gerados.',c:'var(--vinho-esc)',st:['dep','Aguarda dados'],
@@ -972,13 +984,22 @@ function tempoCasa(v,ano,mes){if(!v)return 'Sem data de venda';const m=(ano-v[0]
  return m<=6?'Onboarding (0 a 6 meses)':m<=24?'Consolidação (7 meses a 2 anos)':m<72?'Maturidade (3 a 5 anos)':m<120?'Lealdade (6 a 9 anos)':'Legado (10 anos ou mais)'}
 function safra(v,ano,mes){if(!v)return 'Sem data de venda';if((ano*12+mes)-(v[0]*12+v[1])>36)return 'Safras anteriores';return `${v[1]<=6?'1º':'2º'} sem/${v[0]}`}
 
+/* cidade (autodeclarada) agrupada em regiões; vai para o banco só a cidade, sem endereço */
+function nomeCidade(v){const t=String(v??'').replace(/\s+/g,' ').trim();if(!t||/^(#?N\/?A|NULL|-)$/i.test(t))return null;
+ return t.toLowerCase().replace(/(^|[\s-])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase()).replace(/\b(Do|Da|Dos|Das|De)\b/g,x=>x.toLowerCase())}
+const RMPA=['porto alegre','canoas','esteio','gravatai','cachoeirinha','viamao','sao leopoldo','novo hamburgo','guaiba','alvorada','sapucaia do sul','eldorado do sul','nova santa rita','sapiranga','campo bom','estancia velha','portao','montenegro','taquara','parobe','charqueadas','triunfo','glorinha','ivoti','dois irmaos','nova hartz','araricá','capela de santana','sao jeronimo','santo antonio da patrulha','arroio dos ratos','igrejinha','rolante'];
+const SERRA_C=['caxias do sul','gramado','canela','bento goncalves','farroupilha','nova petropolis','garibaldi','carlos barbosa','flores da cunha','vacaria','sao francisco de paula','cambara do sul','veranopolis','nova prata','antonio prado','sao marcos','picada cafe'];
+const LITORAL=['capao da canoa','tramandai','xangri-la','torres','osorio','imbe','cidreira','arroio do sal','balneario pinhal','terra de areia'];
+function regiaoCidade(c){if(!c)return 'Não informada';const t=semAcento(c).toLowerCase().trim();
+ if(t==='porto alegre')return 'Porto Alegre';if(RMPA.includes(t))return 'Região Metropolitana';if(SERRA_C.includes(t))return 'Serra';if(LITORAL.includes(t))return 'Litoral Norte';return 'Interior e outros'}
+
 async function lerCarteira(file,mes){
  const [ano,mm]=mes.split('-').map(Number);
  let wb=XLSX.read(await file.arrayBuffer(),{type:'array',dense:true});
  let linhas=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null,blankrows:false});wb=null;
  const h=(linhas[0]||[]).map(x=>normU(x));const col=f=>h.findIndex(f);
  const iS=col(x=>x.startsWith('SITUA')),iSig=col(x=>x==='SIGLA PRODUTO'),iMod=col(x=>x==='MODALIDADE'),iC=col(x=>x==='CDASS'||x==='CODASS'),
-  iCpf=col(x=>x==='CPF'),iV=col(x=>x.includes('VENDA')),iI=col(x=>x==='IDADE');
+  iCpf=col(x=>x==='CPF'),iV=col(x=>x.includes('VENDA')),iI=col(x=>x==='IDADE'),iCid=col(x=>x==='CIDADE'),iEm=col(x=>/^E-?MAIL/.test(x));
  let iF=col(x=>x.includes('FAMIL'));if(iF<0&&!h[h.length-1])iF=h.length-1;
  const falta=[['SITUAÇÃO',iS],['CDASS',iC],['CPF',iCpf]].filter(x=>x[1]<0).map(x=>x[0]);
  if(falta.length)throw new Error(`${file.name} não parece uma carteira do Clube (faltam as colunas ${falta.join(', ')}).`);
@@ -991,7 +1012,8 @@ async function lerCarteira(file,mes){
   if(ativo){const fam=FAMILIA[normU(iF>=0?L[iF]:null)]||'Indefinido';
    row.pf_ativo=fam==='Ativo';row.produto=PRODUTO[normU(iSig>=0?L[iSig]:null)]||'Outros';
    row.modalidade=iMod>=0?(modalidade2(L[iMod])||'Não informado'):null;
-   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm)}
+   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm);
+   if(iCid>=0){const cid=nomeCidade(L[iCid]);row.cidade=cid;row.regiao=regiaoCidade(cid)}if(iEm>=0)row.email=/\S+@\S+\.\S+/.test(String(L[iEm]??''))}
   out.push(row)}
  linhas=null;return out}
 
@@ -1084,12 +1106,14 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    const vrows=[...agg].map(([kk,p])=>{const i=kk.indexOf('\t');return {mes:m+'-01',cpf_h:+kk.slice(0,i),marca:kk.slice(i+1),vouchers:p}});
    await rpc('limpar_carga');
    await enviar('staging_carteira',cart,(a,b)=>etapa(`${nome}: enviando a carteira (${fmt(a)} de ${fmt(b)})…`,base+passo*(.2+.55*a/b)));
+   await rpc('salvar_perfil_pessoas',{p_mes:m+'-01'});
    await enviar('staging_vouchers',vrows,(a,b)=>etapa(`${nome}: enviando os vouchers (${fmt(a)} de ${fmt(b)})…`,base+passo*(.75+.15*a/b)));
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
    logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.`,'ok')}
  }catch(e){logar(`Parou com erro: ${esc(e.message||e)}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
- try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');await carregarDados(true);
+ try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
+   try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
    logar(`Pronto: ${CG.feito} ${CG.feito===1?'mês carregado':'meses carregados'} em ${Math.round((performance.now()-t0)/1000)} s. <a href="#clube">Ver o Clube em números →</a>`,'ok')}}
  catch(e){logar(`Os meses foram salvos, mas a atualização final falhou: ${esc(e.message||e)}. Carregue qualquer mês de novo para refazer.`,'erro')}
  CG.rodando=false;removeEventListener('beforeunload',avisoSaida);desenharMeses();desenharLog();atualizarSituacao()}
@@ -2015,6 +2039,180 @@ async function rotaParceiros(h){if(h==='parceiros-cadastro'&&!ADMIN){location.ha
  if(!PA.d.meses.length){app.innerHTML=shell(h,semDados());return}
  paRender(h)}
 
+/* =====================================================================
+   Inativos — quem tem o Clube e não usa: quem são, hipóteses do porquê
+   e o que os diferencia de quem usa. Fonte: carteiras e vouchers enviados
+   em Clube em números (histórico desde jul/2023).
+   ===================================================================== */
+const INA={d:null,dim:'tempo',parc:null};
+const EST=[['mes','Usou no mês','#721a50','Gerou voucher no mês.'],['recente','Ativo recente','#a06a91','Último voucher 1 ou 2 meses antes.'],['esfriando','Esfriando','#ed9b6e','Último voucher de 3 a 5 meses antes.'],['parou','Parou de gerar','#C65911','Já gerou, mas está há 6 meses ou mais sem gerar.'],['nunca','Nunca gerou','#b9a9b2','Nenhum voucher desde jul/2023 (início do histórico).']];
+const DIMS_I={tempo:'Tempo de casa',produto:'Produto',modalidade:'Modalidade',geracao:'Geração',regiao:'Região',familia:'Plano Família',email:'E-mail no cadastro',assinaturas:'Assinaturas',safra:'Safra'};
+const ORD_I={tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido'],regiao:['Porto Alegre','Região Metropolitana','Serra','Litoral Norte','Interior e outros','Não informada']};
+const pc1=v=>v==null||!isFinite(v)?'—':fmt(v,1)+'%';
+const usa=x=>(x.mes||0)+(x.recente||0), inat=x=>(x.parou||0)+(x.nunca||0);
+
+async function inaCarregar(forcar){if(INA.d&&!forcar)return;const {data,error}=await sb.rpc('dados_inativos');if(error)throw error;INA.d=data}
+const ultS=()=>INA.d.serie[INA.d.serie.length-1];
+const sAnt=n=>INA.d.serie[INA.d.serie.length-1-n]||null;
+function semPerfil(){return INA.d.perfil?'':`<div class="note">Produto, modalidade, idade, região, e-mail e Plano Família de cada pessoa aparecem depois que a carteira de ${lab(INA.d.mes)} for enviada de novo em <b>Clube em números › Enviar mês</b> (é só reenviar esse mês, com o arquivo de vouchers dele). Por enquanto, esta página usa só o tempo de casa.</div>`}
+const kc=(lbl,val,sub,c,def)=>`<div class="td-k ${c||''}"><span>${lbl}</span><b>${val}</b><small>${sub||''}</small>${def?`<small class="pa-def">${def}</small>`:''}</div>`;
+
+/* ---------- gráficos simples ---------- */
+function barrasEmpilhadas(serie){const W=1000,H=260,Lm=40,R=10,T0=12,B=30;const n=serie.length;const bw=(W-Lm-R)/n;let g='';
+ [0,25,50,75,100].forEach(v=>{const y=T0+(1-v/100)*(H-T0-B);g+=`<line x1="${Lm}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${Lm-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}%</text>`});
+ serie.forEach((s,j)=>{let acc=0;EST.forEach(([k,,c])=>{const v=(s[k]||0)/s.cart*100;const y=T0+(1-(acc+v)/100)*(H-T0-B);g+=`<rect x="${Lm+j*bw+2}" y="${y}" width="${bw-4}" height="${v/100*(H-T0-B)}" fill="${c}"><title>${lab(s.m)} · ${EST.find(e=>e[0]===k)[1]}: ${fmt(s[k])} (${pc1(v)})</title></rect>`;acc+=v});
+  if(j%3===0||j===n-1)g+=`<text x="${Lm+j*bw+bw/2}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${lab(s.m)}</text>`});
+ return `<svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>${legend(EST.map(([,n,c])=>[c,n]))}`}
+function barras(cats,vals,o={}){const W=o.w||1000,H=o.h||230,Lm=46,R=10,T0=16,B=30;const mx=Math.max(...vals,1)*1.12;const bw=(W-Lm-R)/cats.length;let g='';
+ for(let k=0;k<=3;k++){const v=mx*k/3;const y=T0+(1-v/mx)*(H-T0-B);g+=`<line x1="${Lm}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${Lm-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${o.f?o.f(v):fmt(v)}</text>`}
+ cats.forEach((c,j)=>{const v=vals[j]||0;const h=v/mx*(H-T0-B);const cor=typeof o.c==='function'?o.c(j):(o.c||'#721a50');g+=`<rect x="${Lm+j*bw+2}" y="${H-B-h}" width="${Math.max(bw-4,1)}" height="${h}" fill="${cor}"><title>${esc(c)}: ${o.f?o.f(v):fmt(v)}</title></rect>`;
+  if(o.lbl!==false&&cats.length<=26)g+=`<text x="${Lm+j*bw+bw/2}" y="${H-B-h-4}" text-anchor="middle" font-size="10" font-weight="700" fill="#404040">${o.f?o.f(v):fmt(v)}</text>`;
+  if(cats.length<=26||j%3===0)g+=`<text x="${Lm+j*bw+bw/2}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${esc(c)}</text>`});
+ return `<svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>`}
+
+/* ---------- página: Visão geral ---------- */
+function inaVisao(){const s=ultS(),a=sAnt(1),y=sAnt(12);const D=INA.d;
+ const tot=s.cart,ina=s.parou+s.nunca;const usaram=s.mes+s.recente;
+ const card=([k,n,c,def])=>kc(n,fmt(s[k]),`${pc1(s[k]/tot*100)} da carteira${a?` · ${sinalN(s[k]-a[k])} vs mês anterior`:''}${y?` · ${sinalP((s[k]/tot-y[k]/y.cart)*100).replace('%',' p.p.')} vs ${lab(y.m)}`:''}`,'',def);
+ const dim=D.dims.tempo||{};const onb=dim['Onboarding (0 a 6 meses)'];
+ const pr=D.primeira||[];const p0=pr.find(x=>x[0]===0),p3=pr.find(x=>x[0]===3);const rt=D.retorno||[];const r1=rt.find(x=>x[0]===1),r6=rt.find(x=>x[0]===6),r12=rt.find(x=>x[0]===12);
+ const lei=[`Em ${lab(s.m)}, <b>${fmt(ina)} pessoas (${pc1(ina/tot*100)} da carteira)</b> estão inativas: ${fmt(s.nunca)} nunca geraram voucher desde jul/2023 e ${fmt(s.parou)} pararam há 6 meses ou mais. Outras ${fmt(s.esfriando)} estão esfriando (3 a 5 meses sem gerar).`];
+ if(p0&&p3)lei.push(`A chance de gerar o primeiro voucher é de <b>${pc1(p0[2]/p0[1]*100)} no mês em que a pessoa entra</b> e cai para ${pc1(p3[2]/p3[1]*100)} no 4º mês: quem não usa logo no começo dificilmente começa depois.`);
+ if(r1&&r6&&r12)lei.push(`Quem fica 1 mês sem gerar tem ${pc1(r1[2]/r1[1]*100)} de chance de voltar no mês seguinte; com 6 meses, ${pc1(r6[2]/r6[1]*100)}; com 12 meses, ${pc1(r12[2]/r12[1]*100)}.`);
+ if(onb)lei.push(`Hoje há <b>${fmt(onb.nunca)} pessoas com até 6 meses de casa que ainda não geraram voucher</b>: é o grupo com mais chance de ativar.`);
+ return shell('inativos',`${semPerfil()}<ul class="pa-dest">${lei.map(x=>`<li>${x}</li>`).join('')}</ul>
+ <div class="pa-grupos ina-cards">${EST.map(card).join('')}</div>
+ <div class="card"><h3>Como a carteira se divide, mês a mês</h3><p class="sub">Cada barra é a carteira do mês (pessoas), dividida pelo tempo desde o último voucher.</p>${barrasEmpilhadas(D.serie)}</div>
+ <div class="card"><h3>Entradas e saídas do uso no mês</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Mês</th><th class="n">Carteira</th><th class="n">Usaram no mês</th><th class="n">Primeiro voucher</th><th class="n">Voltaram (6+ meses parados)</th><th class="n">Nunca geraram</th><th class="n">Pararam (6+ meses)</th></tr></thead><tbody>
+ ${D.serie.slice(-12).reverse().map(x=>`<tr><td>${lab(x.m)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.mes)}</td><td class="n">${fmt(x.estreou)}</td><td class="n">${fmt(x.voltou)}</td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td></tr>`).join('')}</tbody></table></div></div>
+ <p class="hint">Pessoas = titulares distintos da carteira ativa do mês. "Nunca gerou" conta a partir de jul/2023, início do histórico do portal: quem usou só antes disso aparece como nunca.</p>`)}
+
+/* ---------- página: Quem são (vs quem usa) ---------- */
+function linhasDim(dk){const dim=INA.d.dims[dk]||{};let L=Object.entries(dim).map(([k,x])=>({k,...x,usa:usa(x),ina:inat(x)})).filter(x=>x.cart>0);
+ if(ORD_I[dk])L.sort((a,b)=>(ORD_I[dk].indexOf(a.k)+99*(ORD_I[dk].indexOf(a.k)<0))-(ORD_I[dk].indexOf(b.k)+99*(ORD_I[dk].indexOf(b.k)<0)));else L.sort((a,b)=>b.cart-a.cart);return L}
+function totDim(L){const t={cart:0,usa:0,ina:0,nunca:0,parou:0};L.forEach(x=>{for(const k in t)t[k]+=x[k]||0});return t}
+function inaPerfil(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);if(!dims.includes(INA.dim))INA.dim=dims[0];
+ const L=linhasDim(INA.dim);const T=totDim(L);const mI=T.ina/T.cart,mU=T.usa/T.cart;
+ const big=L.filter(x=>x.cart>=1000);const sobre=[...big].sort((a,b)=>(b.ina/b.cart)-(a.ina/a.cart))[0],sob=[...big].sort((a,b)=>(a.ina/a.cart)-(b.ina/b.cart))[0];
+ // retrato: em todas as dimensões, os segmentos mais sobrerrepresentados entre inativos
+ const ret=[];dims.forEach(dk=>{const Ld=linhasDim(dk);const Td=totDim(Ld);Ld.filter(x=>x.cart>=1000&&x.ina>0).forEach(x=>ret.push({dk,k:x.k,idx:(x.ina/Td.ina)/(x.cart/Td.cart),shI:x.ina/Td.ina*100,shU:Td.usa?x.usa/Td.usa*100:0}))});
+ const topR=ret.filter(x=>x.idx>=1.1).sort((a,b)=>b.idx-a.idx).slice(0,6);
+ return shell('inativos-perfil',`${semPerfil()}
+ <div class="card"><h3>Retrato de quem não usa</h3><p class="sub">Grupos que aparecem bem mais entre os inativos (nunca geraram ou pararam há 6+ meses) do que na carteira como um todo.</p>
+ ${topR.length?`<div class="tw"><table class="cmp pa-t"><thead><tr><th>Grupo</th><th class="n">% dos inativos</th><th class="n">% de quem usa</th><th class="n">Peso entre inativos</th></tr></thead><tbody>${topR.map(x=>`<tr><td>${esc(DIMS_I[x.dk])}: <b>${esc(x.k)}</b></td><td class="n">${pc1(x.shI)}</td><td class="n">${pc1(x.shU)}</td><td class="n"><b>${fmt(x.idx,2)}×</b></td></tr>`).join('')}</tbody></table></div><p class="hint">Peso 1,30× = o grupo aparece 30% mais entre os inativos do que na carteira.</p>`:'<p class="hint">Nenhum grupo se destaca.</p>'}</div>
+ <div class="bar"><div class="fld"><span>Comparar por</span><div class="chips">${dims.map(k=>`<button class="chip ${INA.dim===k?'on':''}" data-idim="${k}" type="button">${DIMS_I[k]}</button>`).join('')}</div></div></div>
+ <p class="answer">${sobre&&sob&&sobre!==sob?`Por ${DIMS_I[INA.dim].toLowerCase()}: <b>${esc(sobre.k)}</b> tem ${pc1(sobre.ina/sobre.cart*100)} de inativos, contra ${pc1(sob.ina/sob.cart*100)} em <b>${esc(sob.k)}</b> (média da carteira: ${pc1(mI*100)}).`:''}</p>
+ <div class="card tablecard"><div class="tw"><table class="cmp pa-t ina-t"><thead><tr><th>${DIMS_I[INA.dim]}</th><th class="n">Na carteira</th><th class="n">Usam (últimos 3 meses)</th><th class="n">Esfriando</th><th class="n">Pararam</th><th class="n">Nunca geraram</th><th>% de inativos</th><th class="n">Peso entre inativos</th></tr></thead><tbody>
+ ${L.map(x=>{const pi=x.ina/x.cart;const idx=(x.ina/T.ina)/(x.cart/T.cart);return `<tr${x.cart<1000?' class="peq"':''}><td>${esc(x.k)}${x.cart<1000?' <small>base pequena</small>':''}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.usa)} <small>${pc1(x.usa/x.cart*100)}</small></td><td class="n">${fmt(x.esfriando)}</td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td><div class="barcell"><span style="width:${(pi*100).toFixed(1)}%;${pi>mI*1.05?'background:#C65911':''}"></span><b>${pc1(pi*100)}</b></div></td><td class="n ${idx>=1.1?'down':idx<=.9?'up':''}">${fmt(idx,2)}×</td></tr>`}).join('')}
+ <tr class="tot"><td>Total</td><td class="n">${fmt(T.cart)}</td><td class="n">${fmt(T.usa)} <small>${pc1(mU*100)}</small></td><td class="n">—</td><td class="n">${fmt(T.parou)}</td><td class="n">${fmt(T.nunca)}</td><td><b>${pc1(mI*100)}</b></td><td class="n">1,00×</td></tr></tbody></table></div></div>
+ <p class="hint">Carteira de ${lab(D.mes)}. Inativos = nunca geraram (desde jul/2023) + pararam há 6 meses ou mais. Barra laranja: acima da média da carteira.</p>`)}
+
+/* ---------- página: Hipóteses ---------- */
+function taxa(dk,cats){const dim=INA.d.dims[dk];if(!dim)return null;const xs=cats.map(c=>dim[c]).filter(Boolean);if(!xs.length)return null;const c=xs.reduce((t,x)=>t+x.cart,0),i=xs.reduce((t,x)=>t+inat(x),0),n=xs.reduce((t,x)=>t+(x.nunca||0),0);return {cart:c,ina:i,nunca:n,pi:i/c,pn:n/c}}
+function veredito(r){if(r==null)return ['sd','Sem dados ainda'];if(r>=1.15)return ['ok','Os dados confirmam'];if(r>=1.05)return ['lim','Confirmam em parte'];return ['x','Os dados não confirmam']}
+function inaHipoteses(){const D=INA.d;const dims=D.dims;const all=k=>dims[k]?Object.keys(dims[k]):[];const H=[];
+ const pr=D.primeira||[],rt=D.retorno||[];const P=t=>{const x=pr.find(y=>y[0]===t);return x?x[2]/x[1]:null},R=n=>{const x=rt.find(y=>y[0]===n);return x?x[2]/x[1]:null};
+ const cum=k=>{const tot=pr.reduce((t,x)=>t+x[2],0);return tot?pr.filter(x=>x[0]<=k).reduce((t,x)=>t+x[2],0)/tot:null};
+ // H1 janela de ativação
+ {const p0=P(0),p3=P(3),c0=cum(0);const r=p0&&p3?p0/p3/3:null;
+  H.push({t:'Quem não usa no começo dificilmente começa depois',v:veredito(r==null?null:r>=1?1.2:1),
+   e:p0?`Chance de gerar o primeiro voucher no mês de entrada: <b>${pc1(p0*100)}</b>. No 2º mês: ${pc1(P(1)*100)}. No 4º: ${pc1(p3*100)}. No 12º: ${pc1(P(11)*100)}. ${c0!=null?`${pc1(c0*100)} das estreias acontecem no próprio mês de entrada.`:''}`:'',
+   l:'O primeiro mês é a janela de ativação. Depois dele, a chance de estrear cai rápido e fica baixa.',
+   a:'Concentrar esforço de CRM nos primeiros 30 dias (boas-vindas com um benefício de uso imediato, lembrete na 2ª e na 4ª semana) e tratar quem passou do 3º mês sem usar como reativação.'})}
+ // H2 tempo parado
+ {const r1=R(1),r6=R(6),r12=R(12);H.push({t:'Quanto mais tempo parado, menor a chance de voltar',v:veredito(r1&&r6?(r1/r6>=2?1.2:r1/r6>=1.3?1.1:1):null),
+   e:r1?`Chance de voltar no mês seguinte: <b>${pc1(r1*100)}</b> após 1 mês sem gerar, ${pc1(R(3)*100)} após 3, ${pc1(r6*100)} após 6 e ${pc1(r12*100)} após 12 meses.`:'',
+   l:'O hábito se perde rápido: quem esfria por 3 a 5 meses ainda volta com mais facilidade do que quem já parou há meio ano.',
+   a:'Acionar quem está esfriando (3 a 5 meses sem gerar) antes de virar parado, lembrando o último tipo de benefício usado e mostrando novidades.'})}
+ // H3 assinantes antigos
+ {const a=taxa('tempo',['Legado (10 anos ou mais)']),b=taxa('tempo',all('tempo'));const r=a&&b?a.pi/b.pi:null;
+  H.push({t:'Assinantes muito antigos não incorporaram o Clube',v:veredito(r),e:a?`Assinantes com 10 anos ou mais de casa: <b>${pc1(a.pi*100)}</b> inativos (${fmt(a.cart)} pessoas), contra ${pc1(b.pi*100)} na carteira.`:'',
+   l:'O Clube chegou depois da assinatura: para quem assina há muito tempo, o benefício não faz parte do que foi comprado.',a:'Campanha específica para a base Legado, com linguagem de "novidade da sua assinatura" e canais que essa base usa (impresso, e-mail).'})}
+ // H4 produto impresso
+ {const a=taxa('produto',['Impresso']),b=taxa('produto',all('produto'));const r=a&&b?a.pi/b.pi:null;
+  H.push({t:'Quem assina só o impresso não chega ao Clube',v:veredito(r),e:a?`Assinantes do impresso: <b>${pc1(a.pi*100)}</b> inativos (${fmt(a.cart)} pessoas), contra ${pc1(b.pi*100)} na carteira.`:'',
+   l:'O Clube é digital (site e app); quem só recebe o jornal tem menos contato com ele.',a:'Usar o próprio jornal (anúncio, encarte, QR code para o benefício) e mala direta. E-mail e push têm alcance menor nesse público.'})}
+ // H5 idade
+ {const a=taxa('geracao',['Baby Boomers','Pré-Boomer','86+']),b=taxa('geracao',['Gen Z','Millennials']),c=taxa('geracao',all('geracao'));const r=a&&c?a.pi/c.pi:null;
+  H.push({t:'Pessoas mais velhas usam menos',v:veredito(r),e:a?`60 anos ou mais: <b>${pc1(a.pi*100)}</b> inativos (${fmt(a.cart)} pessoas). Até 45 anos: ${pc1(b?b.pi*100:null)}. Carteira: ${pc1(c.pi*100)}.`:'',
+   l:'Gerar voucher no site ou no app pode ser uma barreira para parte do público mais velho, e os benefícios mais comunicados podem conversar menos com ele.',a:'Destacar benefícios com uso simples e presencial (farmácia, saúde, gastronomia) e testar um passo a passo de como gerar o voucher.'})}
+ // H6 e-mail
+ {const a=taxa('email',['Sem e-mail']),b=taxa('email',all('email'));const r=a&&b?a.pi/b.pi:null;
+  H.push({t:'Quem não tem e-mail no cadastro não recebe a comunicação',v:veredito(r),e:a?`Sem e-mail cadastrado: <b>${pc1(a.pi*100)}</b> inativos (${fmt(a.cart)} pessoas), contra ${pc1(b.pi*100)} na carteira.`:'',
+   l:'A News e os e-mails pontuais são o principal canal do Clube; sem e-mail, a pessoa não fica sabendo.',a:'Campanha de atualização cadastral (no app, no jornal e no atendimento) e canais alternativos (WhatsApp, SMS, impresso).'})}
+ // H7 região
+ {const a=taxa('regiao',['Interior e outros','Litoral Norte']),p=taxa('regiao',['Porto Alegre']),b=taxa('regiao',all('regiao'));const r=a&&b?a.pi/b.pi:null;
+  const pc=INA.parc;H.push({t:'Fora de Porto Alegre há menos parceiros para usar',v:veredito(r),e:a?`Interior e litoral: <b>${pc1(a.pi*100)}</b> inativos (${fmt(a.cart)} pessoas). Porto Alegre: ${pc1(p?p.pi*100:null)}. Carteira: ${pc1(b.pi*100)}.${pc?` Parceiros ativos no cadastro: ${fmt(pc.poa)} em Porto Alegre e região, ${fmt(pc.serra)} na Serra, ${fmt(pc.int)} no interior e ${fmt(pc.onl)} online.`:''}`:'',
+   l:'Boa parte dos parceiros presenciais está em Porto Alegre e na Serra; fora dali, sobram os benefícios online.',a:'Comunicar benefícios online e de uso nacional para o interior e buscar parceiros nas cidades com mais assinantes.'})}
+ // H8 Plano Família
+ {const a=taxa('familia',['Tem espaço','Não tem direito']),f=taxa('familia',['Ativo']),b=taxa('familia',all('familia'));const r=a&&f?a.pi/f.pi:null;
+  H.push({t:'Quem não ativou dependentes usa menos',v:veredito(r),e:a&&f?`Com Plano Família ativo: <b>${pc1(f.pi*100)}</b> inativos. Com vaga livre ou sem direito: ${pc1(a.pi*100)} (${fmt(a.cart)} pessoas). Carteira: ${pc1(b.pi*100)}.`:'',
+   l:'Com mais gente da casa usando, o Clube vira hábito da família e é lembrado mais vezes.',a:'Jornada de convite de dependentes para quem tem vaga livre, mostrando benefícios para filhos e casal (cinema, eventos, pet).'})}
+ // H9 uma assinatura
+ {const a=taxa('assinaturas',['1 assinatura']),m=taxa('assinaturas',['2 ou mais assinaturas']);const r=a&&m?a.pi/m.pi:null;
+  H.push({t:'Quem tem mais de uma assinatura é mais engajado',v:veredito(r),e:a&&m?`Com 1 assinatura: <b>${pc1(a.pi*100)}</b> inativos. Com 2 ou mais: ${pc1(m.pi*100)}.`:'',
+   l:'Mais vínculos com GZH costumam vir com mais contato com o Clube.',a:'Usar o Clube como argumento de upgrade e de bundle (Petlove, Kids) para quem tem só uma assinatura.'})}
+ const ord={ok:0,lim:1,x:2,sd:3};H.sort((a,b)=>ord[a.v[0]]-ord[b.v[0]]);
+ return shell('inativos-hipoteses',`${semPerfil()}<p class="answer">Por que tanta gente tem o Clube e não usa? Cada hipótese abaixo é testada com os dados da carteira de ${lab(D.mes)} e do histórico desde jul/2023.</p>
+ <div class="ina-hips">${H.map(h=>`<div class="card ina-h ina-${h.v[0]}"><div class="row-head"><h3>${h.t}</h3><span class="ina-v">${h.v[1]}</span></div>${h.e?`<p><b>O que os dados mostram:</b> ${h.e}</p><p><b>Leitura:</b> ${h.l}</p><p><b>O que fazer:</b> ${h.a}</p>`:`<p class="hint">Precisa do perfil por pessoa: reenvie a carteira de ${lab(D.mes)} em Clube em números › Enviar mês.</p>`}</div>`).join('')}</div>
+ <p class="hint">Inativos = nunca geraram (desde jul/2023) + pararam há 6 meses ou mais. "Confirmam": o grupo tem pelo menos 15% mais inativos que a referência; "em parte": de 5% a 15% mais. Correlação não prova causa: as hipóteses indicam onde testar ações.</p>`)}
+
+/* ---------- página: Nunca gerou ---------- */
+function inaNunca(){const D=INA.d;const s=ultS();const pr=D.primeira||[];const L=linhasDim('tempo');const T=totDim(L);
+ const ts=pr.filter(x=>x[0]<=24);const tot=pr.reduce((t,x)=>t+x[2],0);const c0=tot?pr[0][2]/tot:null;const c2=tot?pr.filter(x=>x[0]<=2).reduce((t,x)=>t+x[2],0)/tot:null;
+ const onb=(D.dims.tempo||{})['Onboarding (0 a 6 meses)'];
+ return shell('inativos-nunca',`${semPerfil()}<div class="td-kpis">
+  ${kc('Nunca geraram voucher',fmt(s.nunca),`${pc1(s.nunca/s.cart*100)} da carteira de ${lab(s.m)}`,'baixo')}
+  ${kc('Com até 6 meses de casa',fmt(onb?onb.nunca:null),'ainda na janela de ativação','pr')}
+  ${kc('Estreias no mês de entrada',pc1(c0*100),`${pc1(c2*100)} até o 3º mês`)}
+  ${kc('Primeiro voucher no mês',fmt(s.estreou),`em ${lab(s.m)}`,'ok')}</div>
+ <div class="card"><h3>Chance de gerar o primeiro voucher, por mês de casa</h3><p class="sub">Entre quem ainda não tinha gerado, quantos geraram o primeiro voucher em cada mês desde a entrada na carteira (pessoas que entraram a partir de ago/2023).</p>
+ ${barras(ts.map(x=>x[0]===25?'25+':x[0]===0?'Entrada':x[0]+'º'),ts.map(x=>x[2]/x[1]*100),{f:v=>fmt(v,1)+'%',c:j=>j===0?'#721a50':'#a06a91'})}
+ <p class="hint">"Entrada" = mês em que a assinatura apareceu pela primeira vez na carteira; "1º" = mês seguinte, e assim por diante.</p></div>
+ <div class="card tablecard"><h3>Quem nunca gerou, por tempo de casa</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Tempo de casa</th><th class="n">Na carteira</th><th class="n">Nunca geraram</th><th class="n">% do grupo</th><th class="n">% de todos que nunca geraram</th></tr></thead><tbody>
+ ${L.map(x=>`<tr><td>${esc(x.k)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.nunca)}</td><td class="n">${pc1(x.nunca/x.cart*100)}</td><td class="n">${pc1(x.nunca/T.nunca*100)}</td></tr>`).join('')}</tbody></table></div>
+ <p class="hint">Para quem tem mais de 3 anos de casa, "nunca gerou" quer dizer nenhum voucher desde jul/2023 (início do histórico).</p></div>`)}
+
+/* ---------- página: Pararam de gerar ---------- */
+function inaParou(){const D=INA.d;const s=ultS();const rt=(D.retorno||[]).filter(x=>x[0]<=24);const sem=D.sem||[];
+ const lim=rt.find(x=>x[2]/x[1]<.05);
+ return shell('inativos-parou',`${semPerfil()}<div class="td-kpis">
+  ${kc('Esfriando',fmt(s.esfriando),'3 a 5 meses sem gerar: ainda dá para recuperar','lim')}
+  ${kc('Pararam',fmt(s.parou),'6 meses ou mais sem gerar','baixo')}
+  ${kc('Voltaram no mês',fmt(s.voltou),`depois de 6+ meses parados, em ${lab(s.m)}`,'ok')}
+  ${kc('Ponto de não retorno',lim?`${lim[0]} meses`:'—',lim?'a partir daqui, menos de 5% voltam no mês seguinte':'')}</div>
+ <div class="card"><h3>Chance de voltar no mês seguinte, por meses sem gerar</h3><p class="sub">Entre quem seguia na carteira, quantos geraram voucher no mês seguinte, de acordo com quantos meses estavam sem gerar.</p>
+ ${barras(rt.map(x=>x[0]+(x[0]===1?' mês':'')),rt.map(x=>x[2]/x[1]*100),{f:v=>fmt(v,1)+'%',c:j=>rt[j][0]<=2?'#a06a91':rt[j][0]<=5?'#ed9b6e':'#C65911'})}
+ ${legend([['#a06a91','Ativo recente (1 a 2 meses)'],['#ed9b6e','Esfriando (3 a 5)'],['#C65911','Parou (6 ou mais)']])}</div>
+ <div class="card"><h3>Há quanto tempo estão sem gerar</h3><p class="sub">Pessoas da carteira de ${lab(D.mes)} que já geraram voucher e não geraram no mês, por meses desde o último voucher.</p>
+ ${barras(sem.map(x=>x[0]>=37?'37+':String(x[0])),sem.map(x=>x[1]),{c:j=>sem[j][0]<=2?'#a06a91':sem[j][0]<=5?'#ed9b6e':'#C65911',lbl:false})}</div>
+ <p class="hint">Últimos 25 meses do histórico. Meses sem gerar contados a partir do último voucher.</p>`)}
+
+/* ---------- página: Voltaram a usar ---------- */
+function inaVoltou(){const D=INA.d;const S=D.serie.filter(x=>x.cart);const s=ultS();
+ const med=k=>S.slice(-12).reduce((t,x)=>t+x[k],0)/Math.min(12,S.length);
+ return shell('inativos-voltou',`<div class="td-kpis">
+  ${kc('Primeiro voucher no mês',fmt(s.estreou),`média de 12 meses: ${fmt(med('estreou'))}`,'pr')}
+  ${kc('Voltaram após 6+ meses',fmt(s.voltou),`média de 12 meses: ${fmt(med('voltou'))}`,'ok')}
+  ${kc('% de quem usou no mês',pc1((s.estreou+s.voltou)/s.mes*100),'estrearam ou voltaram')}</div>
+ <div class="card"><h3>Estreias e retornos por mês</h3>${barras(S.map(x=>lab(x.m)),S.map(x=>x.estreou),{c:'#721a50',lbl:false})}<p class="sub">Primeiro voucher (desde jul/2023)</p>
+ ${barras(S.map(x=>lab(x.m)),S.map(x=>x.voltou),{c:'#C65911',lbl:false})}<p class="sub">Voltaram depois de 6 meses ou mais sem gerar</p></div>
+ <div class="card"><h3>Mês a mês</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Mês</th><th class="n">Usaram</th><th class="n">Primeiro voucher</th><th class="n">Voltaram (6+ meses)</th><th class="n">% novos ou de volta</th></tr></thead><tbody>
+ ${S.slice().reverse().map(x=>`<tr><td>${lab(x.m)}</td><td class="n">${fmt(x.mes)}</td><td class="n">${fmt(x.estreou)}</td><td class="n">${fmt(x.voltou)}</td><td class="n">${pc1((x.estreou+x.voltou)/x.mes*100)}</td></tr>`).join('')}</tbody></table></div></div>
+ <p class="hint">Use esta página para medir campanhas de ativação e reativação: uma ação que funciona aparece como pico de estreias ou de retornos no mês. Os parceiros pelos quais as pessoas voltam aparecem quando cruzarmos vouchers por pessoa e marca (próxima etapa).</p>`)}
+
+/* ---------- roteamento ---------- */
+const INA_PAGES={inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
+async function inaParceiros(){if(INA.parc)return;try{await paCarregar();const at=PA.d.cad.filter(c=>c.status==='Ativo');const by=new Map();at.forEach(c=>{const g=grupoLocal(c.local);const k=baseNome(c.parceiro);if(!by.has(k))by.set(k,new Set());by.get(k).add(g)});
+ const n=f=>[...by.values()].filter(f).length;INA.parc={poa:n(s=>s.has('Porto Alegre e região')||s.has('Várias cidades')),serra:n(s=>s.has('Serra')||s.has('Várias cidades')),int:n(s=>s.has('Interior do RS')||s.has('Várias cidades')),onl:n(s=>s.has('Online'))}}catch(e){}}
+function inaRender(h){app.innerHTML=INA_PAGES[h]();document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
+async function rotaInativos(h){if(!INA_PAGES[h]){location.hash='inativos';return}
+ if(!INA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');try{await inaCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os inativos: ${esc(e.message||e)}</div>`);return}}
+ if(h==='inativos-hipoteses')await inaParceiros();
+ if((location.hash||'#home').slice(1)!==h)return;
+ if(!INA.d){app.innerHTML=shell(h,`<p class="answer">O resumo dos inativos ainda não foi calculado.</p><p class="hint">Rode o arquivo 11_inativos.sql no Supabase ou carregue um mês em Clube em números › Enviar mês.</p>`);return}
+ inaRender(h)}
+
 
 /* ---------- telas gerais ---------- */
 function semDados(){return `<p class="answer">Ainda não há meses carregados no portal.</p>${ADMIN?`<p><a class="btn" href="#clube-enviar">Enviar dados do mês</a></p>`:'<p class="hint">Peça a um administrador para carregar os arquivos.</p>'}`}
@@ -2043,6 +2241,7 @@ function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
  else if(area==='semanal')rotaSemanal(h);
  else if(area==='parceiros')rotaParceiros(h);
+ else if(area==='inativos')rotaInativos(h);
  else if(CLUBE_PAGES[h]){if(M.length){app.innerHTML=CLUBE_PAGES[h]();bindClube(h)}else app.innerHTML=shell(h,semDados())}
  else if(area==='glossario')app.innerHTML=glossario(h);
  else if(area)app.innerHTML=planned(h);
@@ -2077,7 +2276,7 @@ async function carregarDados(silencioso){
  const {data,error}=await sb.rpc('dados_portal');
  if(error)throw error;
  prepararDados(data);
- if(typeof PA!=='undefined')PA.d=null; // parceiros recarregam com os meses novos
+ if(typeof PA!=='undefined')PA.d=null;if(typeof INA!=='undefined')INA.d=null; // parceiros recarregam com os meses novos
  const at=document.getElementById('atualizado');
  at.textContent=M.length?`Dados até ${lab(LAST)}`:'Sem dados';
 }
