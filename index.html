@@ -378,6 +378,7 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .ina-sd .ina-v{background:#f3e7ee;color:#721a50}
 .ina-t td.down{color:#C65911;font-weight:700}.ina-t td.up{color:#2e7d4f}
 @media (max-width:760px){.ina-hips{grid-template-columns:1fr}}
+.ina-sec{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
 </style>
 </head>
 <body>
@@ -500,15 +501,55 @@ const GL=[
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
   ['premium','Benefícios Premium','Promoções exclusivas para sócios Premium: a descrição do benefício fala em sócios premium.',''],
   ['contagem-antiga','Contagem antiga','Semanas de antes do primeiro envio pelo portal. Vieram do relatório antigo, que contava todas as linhas, inclusive a conta de testes e as farmácias; por isso podem ficar um pouco acima.','Essas semanas têm só os totais, sem os rankings.'],
+  ['status-mes','Status do mês','Se, no ritmo das últimas 2 semanas, o mês tende a superar, ficar no limite ou ficar abaixo do mês anterior e do mesmo mês do ano anterior.','"No limite" = a diferença está dentro da margem de erro da projeção.'],
+  ['projecao-fechamento','Projeção de fechamento','Usos do mês até a data (base do mês) mais o ritmo diário das últimas 2 semanas multiplicado pelos dias que faltam.','Para usuários únicos, a projeção usa quanto esse número costuma crescer a partir do mesmo dia do mês, porque quem já usou não conta de novo.'],
+  ['margem-erro','Margem de erro','Erro médio que a projeção teve quando foi feita no mesmo ponto do mês em meses que já fecharam.','Margem de ±7% quer dizer que, em média, o mês fechou 7% acima ou abaixo do projetado.'],
+  ['ritmo-atual','Ritmo atual','Média de usos por dia nas últimas 2 semanas enviadas.',''],
+  ['aceleracao','Aceleração necessária','Quanto a média diária precisa subir, em relação ao ritmo atual, para superar a referência até o fim do mês.','Quando é negativa, aparece como folga: o ritmo atual já basta.'],
+  ['bloco-mes','Bloco do mês','Números do mês até a data no painel semanal: total de usos, usuários únicos, Top 5 parceiros e eventos e média diária. Vêm da base do mês enviada junto com a semana.','Nas semanas importadas dos relatórios antigos, vêm do relatório original, que contava todas as linhas.'],
   ['ritmo-necessario','Ritmo para superar','Quantos usos por dia faltam, nos dias que restam do mês, para passar o mês anterior e o mesmo mês do ano anterior, comparado com o ritmo das últimas 2 semanas.','Aceleração de +20% quer dizer que é preciso fazer, por dia, 20% a mais que o ritmo atual.'],
   ['tendencia-semanas','Próximas semanas','Projeção de usos das 3 semanas seguintes: combina a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior (feriados, férias, datas fortes).','O uso semanal oscila muito com eventos e ações; a página mostra o erro médio que essa projeção teve nas semanas anteriores. É uma referência de tendência, não uma meta.'],
   ['fca','FCA','Fato, causa e ação. Fato: o que os números mostram. Causa: o que explica (parceiros, promoções e categorias que mais mudaram). Ação: o que fazer a partir disso.','O portal gera fato e causa a partir dos números; as ações são sugestões para o time revisar, editar e assinar com um responsável.'],
+ ]],
+ ['Parceiros',[
   ['tipo-parceiro','Tipo de benefício','Separa os parceiros pela forma como o benefício chega ao assinante: parceiros diretos, eventos e shows (produtoras), ações do Clube, Laçador de Ofertas e agregadores online (Proxy Media, Hubconn, SponsorB, Integrada).','Os agregadores reúnem lojas de várias categorias numa marca só.'],
   ['categoria-site','Categoria','A mesma categoria do site do Clube, vinda da lista de parceiros (a primeira, quando há mais de uma). Shows e eventos das produtoras ficam em Agenda cultural.','Marca sem cadastro aparece como "Sem cadastro" até alguém ligar ao parceiro ou informar a categoria em Parceiros › Cadastro.'],
   ['concentracao','Concentração','Quanto dos vouchers do período está nos 5 (e nos 10) maiores parceiros.','Quanto maior, mais o resultado depende de poucos parceiros.'],
   ['parceiro-novo','Parceiro novo','Parceiro cujo primeiro voucher (desde jul/2023) caiu dentro do período escolhido.',''],
   ['parceiro-parado','Parou de gerar','Parceiro com voucher no período anterior de mesmo tamanho e nenhum no período escolhido.','Pode ser oferta encerrada, pausada ou sem comunicação.'],
   ['saude-parceiro','Saúde do parceiro','Classificação pelo tamanho e pela variação vs período anterior. Grandes: os que juntos somam 80% dos vouchers. Em risco: grande e caindo 15% ou mais. Âncora: grande e estável ou crescendo. Promissor: menor, com 20 vouchers ou mais e crescendo 30% ou mais. Novo: primeiro voucher nos últimos 3 meses.',''],
+  ['parceiros-com-uso','Parceiros com uso','Marcas que tiveram pelo menos um voucher no período.',''],
+  ['cadastrados-sem-uso','Cadastrados sem uso','Parceiros ativos na lista de parceiros sem nenhum voucher no período (na página Saúde, nos últimos 6 meses).','Pode ser oferta pouco atrativa, difícil de usar ou sem divulgação.'],
+  ['parceiros-grandes','Parceiros grandes','Os parceiros que, juntos, somam 80% dos vouchers do período.','Usado para separar âncoras e parceiros em risco dos demais.'],
+  ['em-risco','Em risco','Parceiro grande que caiu 15% ou mais em vouchers em relação ao período anterior.',''],
+  ['ancora','Âncora','Parceiro grande estável ou crescendo: sustenta o volume do Clube.',''],
+  ['promissor','Promissor','Parceiro fora dos grandes, com 20 vouchers ou mais e crescimento de 30% ou mais vs período anterior.',''],
+  ['agenda-cultural','Agenda cultural','Categoria dos shows e eventos das produtoras (Opinião, Opus, PUCRS, Little John e outras).','Produtora nova é reconhecida pelo nome ou pela lista de produtoras do Relatório semanal.'],
+  ['lojas-online-varios','Lojas online (vários)','Agregadores que reúnem lojas de várias categorias numa marca só: Proxy Media, Hubconn, SponsorB e Integrada.','Nos dados mensais eles aparecem como uma marca só, por isso não entram numa categoria do site.'],
+  ['sem-cadastro','Sem cadastro','Marca com voucher que não foi encontrada na lista de parceiros pelo nome.','Ligue ao parceiro do cadastro ou informe a categoria em Parceiros › Cadastro.'],
+  ['pessoas-mes','Pessoas por mês','Quem gerou voucher do parceiro no mês. Em períodos de mais de um mês, é a média por mês, porque a mesma pessoa pode usar em vários meses.',''],
+  ['vouchers-pessoa','Vouchers por pessoa','Vouchers do parceiro divididos pelas pessoas que geraram, mês a mês.',''],
+  ['periodo-anterior','Período anterior','Período de mesmo tamanho logo antes do escolhido. Ex.: para jul a set, é abr a jun.',''],
+ ]],
+ ['Inativos',[
+  ['usou-no-mes','Usou no mês','Pessoa da carteira que gerou voucher no mês.',''],
+  ['ativo-recente','Ativo recente','Não gerou no mês, mas gerou 1 ou 2 meses antes.',''],
+  ['esfriando','Esfriando','Último voucher de 3 a 5 meses antes. Ainda volta com mais facilidade do que quem parou.',''],
+  ['parou-de-gerar','Parou de gerar','Já gerou voucher, mas está há 6 meses ou mais sem gerar.',''],
+  ['nunca-gerou','Nunca gerou','Nenhum voucher desde jul/2023, início do histórico do portal.','Quem usou só antes de jul/2023 aparece aqui.'],
+  ['inativos','Inativos','Nunca geraram (desde jul/2023) + pararam de gerar há 6 meses ou mais.',''],
+  ['primeiro-voucher','Primeiro voucher','Pessoa que gerou voucher pela primeira vez no histórico (desde jul/2023).',''],
+  ['voltou-a-usar','Voltou a usar','Gerou voucher depois de 6 meses ou mais sem gerar.',''],
+  ['chance-primeiro','Chance de gerar o primeiro voucher','Entre quem ainda não tinha gerado, quantos geraram o primeiro voucher em cada mês de casa (mês de entrada, 1º mês seguinte etc.).','Calculada com quem entrou na carteira a partir de ago/2023.'],
+  ['comecaram-1-mes','Começaram a usar logo no 1º mês','De quem já gerou o primeiro voucher, a parte que gerou no mesmo mês em que entrou na carteira.',''],
+  ['chance-voltar','Chance de voltar','Entre quem seguia na carteira, quantos geraram voucher no mês seguinte, de acordo com quantos meses estavam sem gerar.',''],
+  ['ponto-nao-retorno','Ponto de não retorno','A partir de quantos meses sem gerar menos de 5% das pessoas voltam no mês seguinte.',''],
+  ['peso-inativos','Peso entre inativos','Quanto um grupo aparece mais (ou menos) entre os inativos do que na carteira. 1,30× = 30% a mais.','Acima de 1,10× o grupo está sobrerrepresentado entre quem não usa.'],
+  ['situacao-carteira','Situação da carteira','Foto do último mês do período: como as pessoas da carteira se dividem pelo tempo desde o último voucher.',''],
+  ['movimento-periodo','Movimento no período','Soma dos meses do período: quantas pessoas geraram o primeiro voucher e quantas voltaram a usar.',''],
+  ['hipotese','Selo das hipóteses','"Os dados confirmam": o grupo tem pelo menos 15% mais inativos que a referência. "Confirmam em parte": de 5% a 15% a mais. "Não confirmam": menos de 5%.','Correlação não prova causa: as hipóteses indicam onde testar ações.'],
+  ['regiao','Região','Cidade autodeclarada no cadastro, agrupada em Porto Alegre, Região Metropolitana, Serra, Litoral Norte e Interior e outros.',''],
+  ['email-cadastro','E-mail no cadastro','Se a carteira traz um e-mail válido para a pessoa.','Sem e-mail, a pessoa não recebe a News nem os e-mails pontuais.'],
  ]],
  ['Regras',[
   ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora de todos os números, porque são gerados automaticamente.','Panvel continua contando.'],
@@ -1303,7 +1344,7 @@ async function renderSemana(){const box=document.getElementById('wres');if(!box)
  if((location.hash||'').slice(1)==='semanal-tendencia'){renderTendencia(box,s);return}
  const D=painel(s);const rk=(location.hash||'').slice(1)==='semanal-rankings';
  box.innerHTML=`${s.so_total?`<div class="note">Semana da ${T('contagem-antiga','contagem antiga')}: só os totais; os rankings começam na primeira semana enviada pelo portal.</div>`:''}
- ${rk&&D.mtd?.antiga?`<div class="note">O bloco de ${D.mesCurto.toLowerCase()} veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
+ ${rk&&D.mtd?.antiga?`<div class="note">O ${T('bloco-mes','bloco do mês')} (${D.mesCurto.toLowerCase()}) veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
  <div class="jx${rk?' jx-rkpage':''}">${painelHtml(D,rk?'rank':'graf')}</div>${!rk?'':s.so_total?'<p class="hint">Semana da contagem antiga: sem as listas de parceiros, promoções, eventos, Laçador, Online e Premium.</p>':`<div class="card tablecard jx-abas"><div class="chips" role="tablist">${RANKS.map(([k,nome])=>`<button class="chip ${SEM.aba===k?'on':''}" data-aba="${k}" type="button">${nome}</button>`).join('')}</div><div id="waba">${abaHtml(s,SEM.aba)}</div></div>`}`;
  box.querySelectorAll('[data-aba]').forEach(b=>b.onclick=()=>{SEM.aba=b.dataset.aba;box.querySelectorAll('[data-aba]').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('waba').innerHTML=abaHtml(s,SEM.aba)});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
@@ -1696,7 +1737,7 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
  const k=(lbl,val,sub,c)=>`<div class="td-k ${c||''}"><span>${lbl}</span><b>${val}</b><small>${sub||''}</small></div>`;
  const kp=P.semMtd?'':[
   k(`Usos no mês até ${pad2(P.dm)}/${pad2(P.mi)}`,fmt(P.U),`${fmt(P.ritmoMes)} por dia`),
-  k(P.fechado?'Resultado do mês':'Projeção de fechamento',fmt(P.projU),P.fechado?'mês fechado':`faltam ${P.rest} dias${P.margem?` · margem ±${fmt(P.margem.m,0)}%`:''}`,'pr'),
+  k(P.fechado?'Resultado do mês':T('projecao-fechamento','Projeção de fechamento'),fmt(P.projU),P.fechado?'mês fechado':`faltam ${P.rest} dias${P.margem?` · ${T('margem-erro','margem')} ±${fmt(P.margem.m,0)}%`:''}`,'pr'),
   ...r.map(x=>k(`${P.fechado?'Resultado':'Projeção'} vs ${x.lab}`,`${fmt(x.pctU,1)}%`,`${sinalN(x.gapU)} usos`,x.st)),
   k(P.fechado?'Usuários únicos do mês':'Usuários únicos projetados',fmt(P.projN),r.filter(x=>x.pctN!=null).map(x=>`${sinalP(x.pctN-100)} vs ${x.lab}`).join(' · '))].join('');
  const ritmo=P.semMtd||P.fechado?'':`<div class="card td-card"><h3>${T('ritmo-necessario','Ritmo para superar')}</h3>
@@ -1705,8 +1746,8 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
   <tr><td>Usos que faltam</td>${r.map(x=>`<td class="n">${x.faltam?fmt(x.faltam):'<span class="up">já superou</span>'}</td>`).join('')}</tr>
   <tr><td>Dias restantes</td>${r.map(()=>`<td class="n">${P.rest}</td>`).join('')}</tr>
   <tr><td>Média necessária por dia</td>${r.map(x=>`<td class="n"><b>${x.faltam?fmt(x.nec):'—'}</b></td>`).join('')}</tr>
-  <tr><td>Ritmo atual por dia (últimas 2 semanas)</td>${r.map(()=>`<td class="n">${fmt(P.ritmo)}</td>`).join('')}</tr>
-  <tr><td>Aceleração necessária sobre o ritmo atual</td>${r.map(x=>`<td class="n ${x.faltam&&x.acel>0?'down':'up'}">${!x.faltam?'—':x.acel>0?sinalP(x.acel):`folga de ${fmt(-x.acel,1)}%`}</td>`).join('')}</tr>
+  <tr><td>${T('ritmo-atual','Ritmo atual por dia (últimas 2 semanas)')}</td>${r.map(()=>`<td class="n">${fmt(P.ritmo)}</td>`).join('')}</tr>
+  <tr><td>${T('aceleracao','Aceleração necessária sobre o ritmo atual')}</td>${r.map(x=>`<td class="n ${x.faltam&&x.acel>0?'down':'up'}">${!x.faltam?'—':x.acel>0?sinalP(x.acel):`folga de ${fmt(-x.acel,1)}%`}</td>`).join('')}</tr>
   <tr><td>Usuários únicos: referência</td>${r.map(x=>`<td class="n">${fmt(x.usuarios)}</td>`).join('')}</tr>
   <tr><td>Usuários únicos: projeção</td>${r.map(x=>`<td class="n ${x.gapN>=0?'up':'down'}">${fmt(P.projN)} (${sinalN(x.gapN)})</td>`).join('')}</tr>
   </tbody></table></div></div>`;
@@ -1721,7 +1762,7 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
   ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button" title="Remover linha">×</button></td></tr>`
    :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')||'<tr><td colspan="3" class="hint">Sem dados suficientes para o FCA desta semana.</td></tr>'}</tbody></table></div></div>`;
  const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: números do mês da plataforma (Enviar semana › Números do mês).${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
- box.innerHTML=`<div class="td-status td-${cls}"><span>Status de ${P.mesLab}</span><p>${status}</p></div>
+ box.innerHTML=`<div class="td-status td-${cls}"><span>${T('status-mes','Status')} de ${P.mesLab}</span><p>${status}</p></div>
  ${kp?`<div class="td-kpis">${kp}</div>`:''}
  <div class="td-grid">${ritmo}${tend}</div>${fca}${metodo}`;
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
@@ -1831,21 +1872,21 @@ function paVisao(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v
  return shell('parceiros',`${paBar()}
  <ul class="pa-dest">${dest.map(x=>`<li>${x}</li>`).join('')}</ul>
  <div class="td-kpis">
-  ${k('Vouchers gerados',fmt(tot),`${okA?`${sinalP(varp(tot,totA))} vs anterior`:''}${okL?` · ${sinalP(varp(tot,totL))} vs ano anterior`:''}`)}
-  ${k('Parceiros com uso',fmt(com.length),okA?`${sinalN(com.length-comA)} vs anterior`:'')}
+  ${k(T('vouchers','Vouchers gerados'),fmt(tot),`${okA?`${sinalP(varp(tot,totA))} vs anterior`:''}${okL?` · ${sinalP(varp(tot,totL))} vs ano anterior`:''}`)}
+  ${k(T('parceiros-com-uso','Parceiros com uso'),fmt(com.length),okA?`${sinalN(com.length-comA)} vs anterior`:'')}
   ${k(T('parceiro-novo','Parceiros novos'),fmt(novos.length),novos.length?`${fmt(novos.reduce((t,r)=>t+r.v,0))} vouchers`:'primeiro uso no período')}
   ${k(T('parceiro-parado','Pararam de gerar'),fmt(pararam.length),okA?`tinham ${fmt(pararam.reduce((t,r)=>t+r.vant,0))} vouchers antes`:'','baixo')}
   ${k(T('concentracao','Concentração'),`${fmt(top(5),1)}%`,`top 5 · top 10: ${fmt(top(10),1)}%`)}
-  ${k('Cadastrados sem uso',fmt(cadSem.size),'parceiros ativos no cadastro, 0 vouchers','lim')}
+  ${k(T('cadastrados-sem-uso','Cadastrados sem uso'),fmt(cadSem.size),'parceiros ativos no cadastro, 0 vouchers','lim')}
  </div>
  <div class="card"><h3>Vouchers por ${T('categoria-site','categoria')}</h3>
   <div class="tw"><table class="cmp pa-t"><thead><tr><th>Categoria</th><th>Vouchers</th><th class="n">% do total</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th><th class="n">Parceiros com uso</th><th>Maior parceiro</th></tr></thead><tbody>
-  ${porCat.map(c=>`<tr><td><a href="#parceiros-categorias" data-cat="${esc(c.k)}">${esc(c.k)}</a></td><td><div class="barcell"><span style="width:${(c.v/mxC*100).toFixed(1)}%"></span><b>${fmt(c.v)}</b></div></td><td class="n">${fmt(c.v/tot*100,1)}%</td>${dTd(c.dA)}${dTd(c.dL)}<td class="n">${fmt(c.n)}</td><td>${linkF(c.top)}</td></tr>`).join('')}
+  ${porCat.map(c=>`<tr><td><a href="#parceiros-categorias" data-cat="${esc(c.k)}">${catH(c.k)}</a></td><td><div class="barcell"><span style="width:${(c.v/mxC*100).toFixed(1)}%"></span><b>${fmt(c.v)}</b></div></td><td class="n">${fmt(c.v/tot*100,1)}%</td>${dTd(c.dA)}${dTd(c.dL)}<td class="n">${fmt(c.n)}</td><td>${linkF(c.top)}</td></tr>`).join('')}
   </tbody></table></div></div>
  <div class="pa-stack">
   <div class="card"><h3>Por ${T('tipo-parceiro','tipo de benefício')}</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Tipo</th><th class="n">Vouchers</th><th class="n">%</th><th class="n">vs anterior</th><th class="n">Parceiros</th></tr></thead><tbody>
    ${porTipo.map(c=>`<tr><td>${esc(c.k)}</td><td class="n">${fmt(c.v)}</td><td class="n">${fmt(c.v/tot*100,1)}%</td>${dTd(c.dA)}<td class="n">${fmt(c.n)}</td></tr>`).join('')}</tbody></table></div></div>
-  <div class="card"><h3>Os 20 maiores parceiros</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Parceiro</th><th>Categoria</th><th class="n">Vouchers</th><th class="n">% do total</th><th class="n">% acumulado</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th></tr></thead><tbody>
+  <div class="card"><h3>Os 20 maiores parceiros</h3><p class="sub">Comparações com o ${T('periodo-anterior','período anterior')} e com o mesmo período do ano anterior.</p><div class="tw"><table class="cmp pa-t"><thead><tr><th>Parceiro</th><th>Categoria</th><th class="n">Vouchers</th><th class="n">% do total</th><th class="n">% acumulado</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th></tr></thead><tbody>
    ${ord.slice(0,20).map((r,j)=>`<tr><td>${j+1}. ${linkF(r.m)}</td><td>${esc(r.cat)}</td><td class="n">${fmt(r.v)}</td><td class="n">${fmt(r.v/tot*100,1)}%</td><td class="n">${fmt(ord.slice(0,j+1).reduce((t,x)=>t+x.v,0)/tot*100,1)}%</td>${dTd(r.dA)}${dTd(r.dL)}</tr>`).join('')}</tbody></table></div></div>
  </div>
  <p class="hint">${notaPeriodo(P)} Fonte: vouchers por marca de cada mês (Clube em números) e a lista de parceiros do cadastro. Proxy Media, Hubconn, SponsorB e Integrada reúnem lojas de várias categorias e ficam em "Lojas online (vários)"; as produtoras de shows e eventos ficam em Agenda cultural.</p>`)}
@@ -1860,8 +1901,8 @@ function paRanking(){const P=periodos();const L=linhas();const all=filtra(L.filt
  return shell('parceiros-ranking',`${paBar()}
  <div class="bar">${selF('pa-tipo',PA.tipo,TIPOS,'Tipo')}${selF('pa-cat',PA.cat,cats,'Categoria')}${selF('pa-loc',PA.loc,locs,'Local')}<label class="fld"><span>Buscar</span><input id="pa-q" type="search" value="${esc(PA.q)}" placeholder="Nome do parceiro"></label></div>
  <div class="card tablecard"><div class="row-head"><h3>${fmt(R.length)} parceiros · ${fmt(tot)} vouchers</h3><div class="chips">${ords.map(([k,n])=>`<button class="chip ${PA.ord===k?'on':''}" data-ord="${k}" type="button">${n}</button>`).join('')}</div></div>
- <div class="tw"><table class="cmp pa-t pa-rank"><thead><tr><th>#</th><th>Parceiro</th><th>Categoria</th><th>Local</th><th class="n">Vouchers</th><th class="n">% do filtro</th><th class="n">Anterior</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th><th class="n">${P.n>1?'Pessoas por mês':'Pessoas'}</th><th class="n">Vouchers por pessoa</th></tr></thead><tbody>
- ${R.slice(0,300).map((r,j)=>`<tr${r.status==='Encerrado ou pausado'?' class="peq"':''}><td class="n">${j+1}</td><td>${linkF(r.m)}${r.premium?' <small class="pa-tag">Premium</small>':''}${r.status==='Encerrado ou pausado'?' <small>encerrado</small>':''}${!r.cad&&r.tipo==='Parceiros diretos'&&!r.ajuste?' <small class="pa-tag x">sem cadastro</small>':''}</td><td>${esc(r.cat)}${r.sub?`<small> · ${esc(r.sub)}</small>`:''}</td><td>${esc(r.local)}</td><td class="n"><b>${fmt(r.v)}</b></td><td class="n">${tot?fmt(r.v/tot*100,1):'0'}%</td><td class="n">${fmt(r.vant)}</td>${dTd(r.dA)}${dTd(r.dL)}<td class="n">${fmt(r.pm)}</td><td class="n">${r.p?fmt(r.v/r.p,2):'—'}</td></tr>`).join('')||'<tr><td colspan="11" class="hint">Nenhum parceiro com esse filtro.</td></tr>'}
+ <div class="tw"><table class="cmp pa-t pa-rank"><thead><tr><th>#</th><th>Parceiro</th><th>Categoria</th><th>Local</th><th class="n">Vouchers</th><th class="n">% do filtro</th><th class="n">Anterior</th><th class="n">vs anterior</th><th class="n">vs ano anterior</th><th class="n">${T('pessoas-mes',P.n>1?'Pessoas por mês':'Pessoas')}</th><th class="n">${T('vouchers-pessoa','Vouchers por pessoa')}</th></tr></thead><tbody>
+ ${R.slice(0,300).map((r,j)=>`<tr${r.status==='Encerrado ou pausado'?' class="peq"':''}><td class="n">${j+1}</td><td>${linkF(r.m)}${r.premium?' <small class="pa-tag">Premium</small>':''}${r.status==='Encerrado ou pausado'?' <small>encerrado</small>':''}${!r.cad&&r.tipo==='Parceiros diretos'&&!r.ajuste?' <small class="pa-tag x">sem cadastro</small>':''}</td><td>${catH(r.cat)}${r.sub?`<small> · ${esc(r.sub)}</small>`:''}</td><td>${esc(r.local)}</td><td class="n"><b>${fmt(r.v)}</b></td><td class="n">${tot?fmt(r.v/tot*100,1):'0'}%</td><td class="n">${fmt(r.vant)}</td>${dTd(r.dA)}${dTd(r.dL)}<td class="n">${fmt(r.pm)}</td><td class="n">${r.p?fmt(r.v/r.p,2):'—'}</td></tr>`).join('')||'<tr><td colspan="11" class="hint">Nenhum parceiro com esse filtro.</td></tr>'}
  </tbody></table></div>${R.length>300?'<p class="hint">Mostrando os 300 primeiros.</p>':''}</div>
  <p class="hint">${notaPeriodo(P)} Pessoas: quem gerou voucher do parceiro no mês${P.n>1?' (média por mês, porque a mesma pessoa pode usar em vários meses)':''}.</p>`)}
 
@@ -1891,6 +1932,9 @@ function porque(g,r,P,ctx){const pct=v=>fmt(v,1)+'%';const sh=ctx.tot?r.v/ctx.to
  if(g==='cadsem'){const ul=r.semDados?null:ultimoUso(r.m);const garg=(r.rows||[]).map(x=>x.gargalos).filter(Boolean)[0];
   return `${ul?`Último voucher em ${lab(ul)}.`:'Nenhum voucher desde jul/2023.'} Modo de uso: ${r.modo||'—'}${r.localTxt?` · ${r.localTxt}`:''}.${garg?` Gargalo apontado no cadastro: ${garg}.`:''}`}
  return ''}
+const GTERM={risco:'em-risco',ancora:'ancora',promissor:'promissor',novo:'parceiro-novo',parado:'parceiro-parado',cadsem:'cadastrados-sem-uso'};
+const CATT={'Agenda cultural':'agenda-cultural','Lojas online (vários)':'lojas-online-varios','Sem cadastro':'sem-cadastro'};
+const catH=c=>CATT[c]?T(CATT[c],esc(c)):esc(c);
 function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifica(L,P);const g=GRUPOS.find(x=>x[0]===PA.grupo)||GRUPOS[0];const lst=G[g[0]];
  const com=L.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);const tot=com.reduce((t,r)=>t+r.v,0);const pos=new Map(com.map((r,j)=>[r.m,j+1]));
  const lim=Math.min(...com.filter(r=>grande.has(r.m)).map(r=>r.v));const ctx={tot,pos,lim,L};
@@ -1911,7 +1955,7 @@ function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifi
   <div class="tw"><table class="cmp pa-t pa-sau"><thead><tr><th>Parceiro</th>${num?'<th class="n">Vouchers</th><th class="n">Anterior</th><th class="n">vs anterior</th>':''}<th>Por que está aqui</th></tr></thead><tbody>
   ${rs.map(r=>`<tr><td>${r.semDados?esc(r.m):linkF(r.m)}</td>${num?`<td class="n"><b>${fmt(r.v)}</b></td><td class="n">${fmt(r.vant)}</td>${dTd(r.dA)}`:''}<td class="pa-pq">${porque(g[0],r,P,ctx)}</td></tr>`).join('')}</tbody></table></div></div>`};
  return shell('parceiros-saude',`${paBar()}
- <div class="pa-grupos">${GRUPOS.map(([k,n,c,def])=>`<button class="td-k ${c} ${PA.grupo===k?'on':''}" data-gr="${k}" type="button"><span>${n}</span><b>${fmt(G[k].length)}</b><small class="pa-sub">${sub[k]}</small><small class="pa-def">${def}</small></button>`).join('')}</div>
+ <div class="pa-grupos">${GRUPOS.map(([k,n,c,def])=>`<button class="td-k ${c} ${PA.grupo===k?'on':''}" data-gr="${k}" type="button"><span>${T(GTERM[k],n)}</span><b>${fmt(G[k].length)}</b><small class="pa-sub">${sub[k]}</small><small class="pa-def">${def}</small></button>`).join('')}</div>
  <div class="card pa-leit"><h3>${g[1]} <small>${fmt(lst.length)}</small></h3><p><b>Leitura:</b> ${leitura[g[0]]}</p><p><b>O que fazer:</b> ${g[4]}</p></div>
  ${ordCats.map(tabela).join('')||'<div class="card"><p class="hint">Nenhum parceiro neste grupo.</p></div>'}
  <p class="hint">${notaPeriodo(P)} Grandes: os parceiros que, juntos, somam 80% dos vouchers do período (neste período, a partir de ${fmt(lim)} vouchers). Os grupos são exclusivos: cada parceiro aparece em um só, nesta ordem de prioridade: novo, em risco ou âncora, promissor.</p>`)}
@@ -2045,6 +2089,9 @@ async function rotaParceiros(h){if(h==='parceiros-cadastro'&&!ADMIN){location.ha
    em Clube em números (histórico desde jul/2023).
    ===================================================================== */
 const INA={d:null,dim:'tempo',parc:null};
+const ETERM={mes:'usou-no-mes',recente:'ativo-recente',esfriando:'esfriando',parou:'parou-de-gerar',nunca:'nunca-gerou'};
+const DTERM={tempo:'tempo-casa',produto:'produto',modalidade:'modalidade',geracao:'geracoes',regiao:'regiao',familia:'plano-familia',email:'email-cadastro',safra:'safra'};
+const dimT=k=>DTERM[k]?T(DTERM[k],DIMS_I[k]):DIMS_I[k];
 const EST=[['mes','Usou no mês','#721a50','Gerou voucher no mês.'],['recente','Ativo recente','#a06a91','Último voucher 1 ou 2 meses antes.'],['esfriando','Esfriando','#ed9b6e','Último voucher de 3 a 5 meses antes.'],['parou','Parou de gerar','#C65911','Já gerou, mas está há 6 meses ou mais sem gerar.'],['nunca','Nunca gerou','#b9a9b2','Nenhum voucher desde jul/2023 (início do histórico).']];
 const DIMS_I={tempo:'Tempo de casa',produto:'Produto',modalidade:'Modalidade',geracao:'Geração',regiao:'Região',familia:'Plano Família',email:'E-mail no cadastro',assinaturas:'Assinaturas',safra:'Safra'};
 const ORD_I={tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido'],regiao:['Porto Alegre','Região Metropolitana','Serra','Litoral Norte','Interior e outros','Não informada']};
@@ -2058,9 +2105,9 @@ function semPerfil(){return INA.d.perfil?'':`<div class="note">Produto, modalida
 const kc=(lbl,val,sub,c,def)=>`<div class="td-k ${c||''}"><span>${lbl}</span><b>${val}</b><small>${sub||''}</small>${def?`<small class="pa-def">${def}</small>`:''}</div>`;
 
 /* ---------- gráficos simples ---------- */
-function barrasEmpilhadas(serie){const W=1000,H=260,Lm=40,R=10,T0=12,B=30;const n=serie.length;const bw=(W-Lm-R)/n;let g='';
+function barrasEmpilhadas(serie,a,b){const W=1000,H=260,Lm=40,R=10,T0=12,B=30;const n=serie.length;const bw=(W-Lm-R)/n;let g='';
  [0,25,50,75,100].forEach(v=>{const y=T0+(1-v/100)*(H-T0-B);g+=`<line x1="${Lm}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${Lm-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}%</text>`});
- serie.forEach((s,j)=>{let acc=0;EST.forEach(([k,,c])=>{const v=(s[k]||0)/s.cart*100;const y=T0+(1-(acc+v)/100)*(H-T0-B);g+=`<rect x="${Lm+j*bw+2}" y="${y}" width="${bw-4}" height="${v/100*(H-T0-B)}" fill="${c}"><title>${lab(s.m)} · ${EST.find(e=>e[0]===k)[1]}: ${fmt(s[k])} (${pc1(v)})</title></rect>`;acc+=v});
+ serie.forEach((s,j)=>{let acc=0;EST.forEach(([k,,c])=>{const v=(s[k]||0)/s.cart*100;const y=T0+(1-(acc+v)/100)*(H-T0-B);g+=`<rect x="${Lm+j*bw+2}" y="${y}" width="${bw-4}" height="${v/100*(H-T0-B)}" fill="${c}" opacity="${a&&(s.m<a||s.m>b)?.35:1}"><title>${lab(s.m)} · ${EST.find(e=>e[0]===k)[1]}: ${fmt(s[k])} (${pc1(v)})</title></rect>`;acc+=v});
   if(j%3===0||j===n-1)g+=`<text x="${Lm+j*bw+bw/2}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${lab(s.m)}</text>`});
  return `<svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>${legend(EST.map(([,n,c])=>[c,n]))}`}
 function barras(cats,vals,o={}){const W=o.w||1000,H=o.h||230,Lm=46,R=10,T0=16,B=30;const mx=Math.max(...vals,1)*1.12;const bw=(W-Lm-R)/cats.length;let g='';
@@ -2070,41 +2117,58 @@ function barras(cats,vals,o={}){const W=o.w||1000,H=o.h||230,Lm=46,R=10,T0=16,B=
   if(cats.length<=26||j%3===0)g+=`<text x="${Lm+j*bw+bw/2}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${esc(c)}</text>`});
  return `<svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>`}
 
-/* ---------- página: Visão geral ---------- */
-function inaVisao(){const s=ultS(),a=sAnt(1),y=sAnt(12);const D=INA.d;
- const tot=s.cart,ina=s.parou+s.nunca;const usaram=s.mes+s.recente;
- const card=([k,n,c,def])=>kc(n,fmt(s[k]),`${pc1(s[k]/tot*100)} da carteira${a?` · ${sinalN(s[k]-a[k])} vs mês anterior`:''}${y?` · ${sinalP((s[k]/tot-y[k]/y.cart)*100).replace('%',' p.p.')} vs ${lab(y.m)}`:''}`,'',def);
+/* ---------- página: Visão geral (com filtro de período) ---------- */
+const INA_RAP=[['mes','Só o mês'],['ano','Ano até o mês'],['3','Últimos 3 meses'],['12','Últimos 12 meses']];
+function inaMeses(){return INA.d.serie.map(x=>x.m)}
+function inaRap(k){const M=inaMeses(),b=INA.b;if(k==='mes')return b;if(k==='ano'){const j=b.slice(0,4)+'-01';return j<M[0]?M[0]:j}const x=mAdd(b,-(+k-1));return x<M[0]?M[0]:x}
+function inaBar(){const M=[...inaMeses()].reverse();const o=v=>M.map(m=>`<option value="${m}" ${m===v?'selected':''}>${lab(m)}</option>`).join('');
+ return `<div class="bar"><div class="fld"><span>Período</span><div class="pair"><select id="ia-a">${o(INA.a)}</select><em>até</em><select id="ia-b">${o(INA.b)}</select></div></div><div class="fld"><span>Atalhos</span><div class="chips">${INA_RAP.map(([k,n])=>`<button class="chip ${inaRap(k)===INA.a?'on':''}" data-ir="${k}" type="button">${n}</button>`).join('')}</div></div></div>`}
+const sDe=m=>INA.d.serie.find(x=>x.m===m)||null;
+function somaS(a,b,k){return INA.d.serie.filter(x=>x.m>=a&&x.m<=b).reduce((t,x)=>t+(x[k]||0),0)}
+function inaVisao(){const D=INA.d;const M=inaMeses();if(!INA.b||!M.includes(INA.b))INA.b=M[M.length-1];if(!INA.a||!M.includes(INA.a)||INA.a>INA.b)INA.a=INA.b;
+ const a=INA.a,b=INA.b,n=mesesEntre(a,b).length,um=a===b;const per=um?lab(b):`${lab(a)} a ${lab(b)}`;
+ const s=sDe(b),pa=sDe(mAdd(a,-1)),ly=sDe(mAdd(b,-12));const antB=mAdd(a,-1),antA=mAdd(a,-n);const temAnt=M.includes(antA),temLy=M.includes(mAdd(a,-12));
+ const tot=s.cart,ina=s.parou+s.nunca;
+ const card=([k,nome,c,def])=>kc(T(ETERM[k],nome),fmt(s[k]),`${pc1(s[k]/tot*100)} da carteira em ${lab(b)}${pa?` · ${sinalN(s[k]-pa[k])} vs ${lab(pa.m)}`:''}${ly?` · ${sinalP((s[k]/tot-ly[k]/ly.cart)*100).replace('%',' p.p.')} vs ${lab(ly.m)}`:''}`,'',def);
+ const fl=k=>somaS(a,b,k),flA=k=>temAnt?somaS(antA,antB,k):null,flL=k=>temLy?somaS(mAdd(a,-12),mAdd(b,-12),k):null;
+ const fcard=(nome,k,def,c)=>kc(nome,fmt(fl(k)),`${n>1?`soma de ${n} meses`:per}${flA(k)!=null?` · ${sinalP(varp(fl(k),flA(k)))} vs período anterior`:''}${flL(k)!=null?` · ${sinalP(varp(fl(k),flL(k)))} vs ano anterior`:''}`,c,def);
  const dim=D.dims.tempo||{};const onb=dim['Onboarding (0 a 6 meses)'];
  const pr=D.primeira||[];const p0=pr.find(x=>x[0]===0),p3=pr.find(x=>x[0]===3);const rt=D.retorno||[];const r1=rt.find(x=>x[0]===1),r6=rt.find(x=>x[0]===6),r12=rt.find(x=>x[0]===12);
- const lei=[`Em ${lab(s.m)}, <b>${fmt(ina)} pessoas (${pc1(ina/tot*100)} da carteira)</b> estão inativas: ${fmt(s.nunca)} nunca geraram voucher desde jul/2023 e ${fmt(s.parou)} pararam há 6 meses ou mais. Outras ${fmt(s.esfriando)} estão esfriando (3 a 5 meses sem gerar).`];
+ const lei=[`Em ${lab(b)}, <b>${fmt(ina)} pessoas (${pc1(ina/tot*100)} da carteira)</b> estavam inativas: ${fmt(s.nunca)} nunca geraram voucher desde jul/2023 e ${fmt(s.parou)} estavam há 6 meses ou mais sem gerar. Outras ${fmt(s.esfriando)} estavam esfriando (3 a 5 meses sem gerar).`];
+ if(pa&&!um)lei.push(`No período, os inativos foram de ${fmt(pa.parou+pa.nunca)} (${pc1((pa.parou+pa.nunca)/pa.cart*100)}) para ${fmt(ina)} (${pc1(ina/tot*100)}). ${fmt(fl('estreou'))} pessoas geraram o primeiro voucher e ${fmt(fl('voltou'))} voltaram depois de 6 meses ou mais parados.`);
  if(p0&&p3)lei.push(`A chance de gerar o primeiro voucher é de <b>${pc1(p0[2]/p0[1]*100)} no mês em que a pessoa entra</b> e cai para ${pc1(p3[2]/p3[1]*100)} no 4º mês: quem não usa logo no começo dificilmente começa depois.`);
  if(r1&&r6&&r12)lei.push(`Quem fica 1 mês sem gerar tem ${pc1(r1[2]/r1[1]*100)} de chance de voltar no mês seguinte; com 6 meses, ${pc1(r6[2]/r6[1]*100)}; com 12 meses, ${pc1(r12[2]/r12[1]*100)}.`);
- if(onb)lei.push(`Hoje há <b>${fmt(onb.nunca)} pessoas com até 6 meses de casa que ainda não geraram voucher</b>: é o grupo com mais chance de ativar.`);
- return shell('inativos',`${semPerfil()}<ul class="pa-dest">${lei.map(x=>`<li>${x}</li>`).join('')}</ul>
+ if(onb&&b===M[M.length-1])lei.push(`Hoje há <b>${fmt(onb.nunca)} pessoas com até 6 meses de casa que ainda não geraram voucher</b>: é o grupo com mais chance de ativar.`);
+ const linhas=D.serie.filter(x=>x.m>=a&&x.m<=b).reverse();
+ return shell('inativos',`${inaBar()}${semPerfil()}<ul class="pa-dest">${lei.map(x=>`<li>${x}</li>`).join('')}</ul>
+ <h3 class="ina-sec">${T('situacao-carteira','Situação da carteira')} em ${lab(b)}</h3>
  <div class="pa-grupos ina-cards">${EST.map(card).join('')}</div>
- <div class="card"><h3>Como a carteira se divide, mês a mês</h3><p class="sub">Cada barra é a carteira do mês (pessoas), dividida pelo tempo desde o último voucher.</p>${barrasEmpilhadas(D.serie)}</div>
- <div class="card"><h3>Entradas e saídas do uso no mês</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Mês</th><th class="n">Carteira</th><th class="n">Usaram no mês</th><th class="n">Primeiro voucher</th><th class="n">Voltaram (6+ meses parados)</th><th class="n">Nunca geraram</th><th class="n">Pararam (6+ meses)</th></tr></thead><tbody>
- ${D.serie.slice(-12).reverse().map(x=>`<tr><td>${lab(x.m)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.mes)}</td><td class="n">${fmt(x.estreou)}</td><td class="n">${fmt(x.voltou)}</td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td></tr>`).join('')}</tbody></table></div></div>
- <p class="hint">Pessoas = titulares distintos da carteira ativa do mês. "Nunca gerou" conta a partir de jul/2023, início do histórico do portal: quem usou só antes disso aparece como nunca.</p>`)}
+ <h3 class="ina-sec">${T('movimento-periodo','Movimento')} ${um?'no mês':'no período'}</h3>
+ <div class="pa-grupos ina-cards">${fcard(T('primeiro-voucher','Primeiro voucher'),'estreou','Pessoas que geraram o primeiro voucher (desde jul/2023).','pr')}${fcard(T('voltou-a-usar','Voltaram a usar'),'voltou','Geraram voucher depois de 6 meses ou mais sem gerar.','ok')}</div>
+ <div class="card"><h3>Como a carteira se divide, mês a mês</h3><p class="sub">Cada barra é a carteira do mês (pessoas), dividida pelo tempo desde o último voucher. Em destaque, os meses do período escolhido.</p>${barrasEmpilhadas(D.serie,a,b)}</div>
+ <div class="card"><h3>Mês a mês ${um?'':`· ${per}`}</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Mês</th><th class="n">Carteira</th><th class="n">Usaram no mês</th><th class="n">Primeiro voucher</th><th class="n">Voltaram (6+ meses parados)</th><th class="n">Nunca geraram</th><th class="n">Pararam (6+ meses)</th></tr></thead><tbody>
+ ${linhas.map(x=>`<tr><td>${lab(x.m)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.mes)}</td><td class="n">${fmt(x.estreou)}</td><td class="n">${fmt(x.voltou)}</td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td></tr>`).join('')}
+ ${linhas.length>1?`<tr class="tot"><td>Período</td><td class="n">—</td><td class="n">—</td><td class="n">${fmt(fl('estreou'))}</td><td class="n">${fmt(fl('voltou'))}</td><td class="n">—</td><td class="n">—</td></tr>`:''}</tbody></table></div></div>
+ <p class="hint">Situação da carteira = foto do último mês do período (comparada com o mês anterior ao período e com o mesmo mês do ano anterior). Movimento = soma dos meses do período (comparada com o período anterior de mesmo tamanho e com o mesmo período do ano anterior). Pessoas = titulares distintos da carteira ativa. "Nunca gerou" conta a partir de jul/2023, início do histórico. O painel guarda os últimos 25 meses.</p>`)}
 
 /* ---------- página: Quem são (vs quem usa) ---------- */
 function linhasDim(dk){const dim=INA.d.dims[dk]||{};let L=Object.entries(dim).map(([k,x])=>({k,...x,usa:usa(x),ina:inat(x)})).filter(x=>x.cart>0);
  if(ORD_I[dk])L.sort((a,b)=>(ORD_I[dk].indexOf(a.k)+99*(ORD_I[dk].indexOf(a.k)<0))-(ORD_I[dk].indexOf(b.k)+99*(ORD_I[dk].indexOf(b.k)<0)));else L.sort((a,b)=>b.cart-a.cart);return L}
 function totDim(L){const t={cart:0,usa:0,ina:0,nunca:0,parou:0};L.forEach(x=>{for(const k in t)t[k]+=x[k]||0});return t}
 function inaPerfil(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);if(!dims.includes(INA.dim))INA.dim=dims[0];
- const L=linhasDim(INA.dim);const T=totDim(L);const mI=T.ina/T.cart,mU=T.usa/T.cart;
+ const L=linhasDim(INA.dim);const TT=totDim(L);const mI=TT.ina/TT.cart,mU=TT.usa/TT.cart;
  const big=L.filter(x=>x.cart>=1000);const sobre=[...big].sort((a,b)=>(b.ina/b.cart)-(a.ina/a.cart))[0],sob=[...big].sort((a,b)=>(a.ina/a.cart)-(b.ina/b.cart))[0];
  // retrato: em todas as dimensões, os segmentos mais sobrerrepresentados entre inativos
  const ret=[];dims.forEach(dk=>{const Ld=linhasDim(dk);const Td=totDim(Ld);Ld.filter(x=>x.cart>=1000&&x.ina>0).forEach(x=>ret.push({dk,k:x.k,idx:(x.ina/Td.ina)/(x.cart/Td.cart),shI:x.ina/Td.ina*100,shU:Td.usa?x.usa/Td.usa*100:0}))});
  const topR=ret.filter(x=>x.idx>=1.1).sort((a,b)=>b.idx-a.idx).slice(0,6);
  return shell('inativos-perfil',`${semPerfil()}
  <div class="card"><h3>Retrato de quem não usa</h3><p class="sub">Grupos que aparecem bem mais entre os inativos (nunca geraram ou pararam há 6+ meses) do que na carteira como um todo.</p>
- ${topR.length?`<div class="tw"><table class="cmp pa-t"><thead><tr><th>Grupo</th><th class="n">% dos inativos</th><th class="n">% de quem usa</th><th class="n">Peso entre inativos</th></tr></thead><tbody>${topR.map(x=>`<tr><td>${esc(DIMS_I[x.dk])}: <b>${esc(x.k)}</b></td><td class="n">${pc1(x.shI)}</td><td class="n">${pc1(x.shU)}</td><td class="n"><b>${fmt(x.idx,2)}×</b></td></tr>`).join('')}</tbody></table></div><p class="hint">Peso 1,30× = o grupo aparece 30% mais entre os inativos do que na carteira.</p>`:'<p class="hint">Nenhum grupo se destaca.</p>'}</div>
- <div class="bar"><div class="fld"><span>Comparar por</span><div class="chips">${dims.map(k=>`<button class="chip ${INA.dim===k?'on':''}" data-idim="${k}" type="button">${DIMS_I[k]}</button>`).join('')}</div></div></div>
+ ${topR.length?`<div class="tw"><table class="cmp pa-t"><thead><tr><th>Grupo</th><th class="n">% dos inativos</th><th class="n">% de quem usa</th><th class="n">${T('peso-inativos','Peso entre inativos')}</th></tr></thead><tbody>${topR.map(x=>`<tr><td>${esc(DIMS_I[x.dk])}: <b>${esc(x.k)}</b></td><td class="n">${pc1(x.shI)}</td><td class="n">${pc1(x.shU)}</td><td class="n"><b>${fmt(x.idx,2)}×</b></td></tr>`).join('')}</tbody></table></div><p class="hint">Peso 1,30× = o grupo aparece 30% mais entre os inativos do que na carteira.</p>`:'<p class="hint">Nenhum grupo se destaca.</p>'}</div>
+ <div class="bar"><div class="fld"><span>Comparar por</span><div class="chips">${dims.map(k=>`<button class="chip ${INA.dim===k?'on':''}" data-idim="${k}" type="button">${dimT(k)}</button>`).join('')}</div></div></div>
  <p class="answer">${sobre&&sob&&sobre!==sob?`Por ${DIMS_I[INA.dim].toLowerCase()}: <b>${esc(sobre.k)}</b> tem ${pc1(sobre.ina/sobre.cart*100)} de inativos, contra ${pc1(sob.ina/sob.cart*100)} em <b>${esc(sob.k)}</b> (média da carteira: ${pc1(mI*100)}).`:''}</p>
- <div class="card tablecard"><div class="tw"><table class="cmp pa-t ina-t"><thead><tr><th>${DIMS_I[INA.dim]}</th><th class="n">Na carteira</th><th class="n">Usam (últimos 3 meses)</th><th class="n">Esfriando</th><th class="n">Pararam</th><th class="n">Nunca geraram</th><th>% de inativos</th><th class="n">Peso entre inativos</th></tr></thead><tbody>
- ${L.map(x=>{const pi=x.ina/x.cart;const idx=(x.ina/T.ina)/(x.cart/T.cart);return `<tr${x.cart<1000?' class="peq"':''}><td>${esc(x.k)}${x.cart<1000?' <small>base pequena</small>':''}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.usa)} <small>${pc1(x.usa/x.cart*100)}</small></td><td class="n">${fmt(x.esfriando)}</td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td><div class="barcell"><span style="width:${(pi*100).toFixed(1)}%;${pi>mI*1.05?'background:#C65911':''}"></span><b>${pc1(pi*100)}</b></div></td><td class="n ${idx>=1.1?'down':idx<=.9?'up':''}">${fmt(idx,2)}×</td></tr>`}).join('')}
- <tr class="tot"><td>Total</td><td class="n">${fmt(T.cart)}</td><td class="n">${fmt(T.usa)} <small>${pc1(mU*100)}</small></td><td class="n">—</td><td class="n">${fmt(T.parou)}</td><td class="n">${fmt(T.nunca)}</td><td><b>${pc1(mI*100)}</b></td><td class="n">1,00×</td></tr></tbody></table></div></div>
+ <div class="card tablecard"><div class="tw"><table class="cmp pa-t ina-t"><thead><tr><th>${dimT(INA.dim)}</th><th class="n">Na carteira</th><th class="n">Usam (últimos 3 meses)</th><th class="n">${T('esfriando','Esfriando')}</th><th class="n">${T('parou-de-gerar','Pararam')}</th><th class="n">${T('nunca-gerou','Nunca geraram')}</th><th>${T('inativos','% de inativos')}</th><th class="n">${T('peso-inativos','Peso entre inativos')}</th></tr></thead><tbody>
+ ${L.map(x=>{const pi=x.ina/x.cart;const idx=(x.ina/TT.ina)/(x.cart/TT.cart);return `<tr${x.cart<1000?' class="peq"':''}><td>${esc(x.k)}${x.cart<1000?' <small>base pequena</small>':''}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.usa)} <small>${pc1(x.usa/x.cart*100)}</small></td><td class="n">${fmt(x.esfriando)}</td><td class="n">${fmt(x.parou)} <small>${pc1(x.parou/x.cart*100)}</small></td><td class="n">${fmt(x.nunca)} <small>${pc1(x.nunca/x.cart*100)}</small></td><td><div class="barcell"><span style="width:${(pi*100).toFixed(1)}%;${pi>mI*1.05?'background:#C65911':''}"></span><b>${pc1(pi*100)}</b></div></td><td class="n ${idx>=1.1?'down':idx<=.9?'up':''}">${fmt(idx,2)}×</td></tr>`}).join('')}
+ <tr class="tot"><td>Total</td><td class="n">${fmt(TT.cart)}</td><td class="n">${fmt(TT.usa)} <small>${pc1(mU*100)}</small></td><td class="n">—</td><td class="n">${fmt(TT.parou)}</td><td class="n">${fmt(TT.nunca)}</td><td><b>${pc1(mI*100)}</b></td><td class="n">1,00×</td></tr></tbody></table></div></div>
  <p class="hint">Carteira de ${lab(D.mes)}. Inativos = nunca geraram (desde jul/2023) + pararam há 6 meses ou mais. Barra laranja: acima da média da carteira.</p>`)}
 
 /* ---------- página: Hipóteses ---------- */
@@ -2116,7 +2180,7 @@ function inaHipoteses(){const D=INA.d;const dims=D.dims;const all=k=>dims[k]?Obj
  // H1 janela de ativação
  {const p0=P(0),p3=P(3),c0=cum(0);const r=p0&&p3?p0/p3/3:null;
   H.push({t:'Quem não usa no começo dificilmente começa depois',v:veredito(r==null?null:r>=1?1.2:1),
-   e:p0?`Chance de gerar o primeiro voucher no mês de entrada: <b>${pc1(p0*100)}</b>. No 2º mês: ${pc1(P(1)*100)}. No 4º: ${pc1(p3*100)}. No 12º: ${pc1(P(11)*100)}. ${c0!=null?`${pc1(c0*100)} das estreias acontecem no próprio mês de entrada.`:''}`:'',
+   e:p0?`Chance de gerar o primeiro voucher no mês de entrada: <b>${pc1(p0*100)}</b>. No 2º mês: ${pc1(P(1)*100)}. No 4º: ${pc1(p3*100)}. No 12º: ${pc1(P(11)*100)}. ${c0!=null?`De quem já gerou o primeiro voucher, ${pc1(c0*100)} gerou no mesmo mês em que entrou na carteira.`:''}`:'',
    l:'O primeiro mês é a janela de ativação. Depois dele, a chance de estrear cai rápido e fica baixa.',
    a:'Concentrar esforço de CRM nos primeiros 30 dias (boas-vindas com um benefício de uso imediato, lembrete na 2ª e na 4ª semana) e tratar quem passou do 3º mês sem usar como reativação.'})}
  // H2 tempo parado
@@ -2154,34 +2218,34 @@ function inaHipoteses(){const D=INA.d;const dims=D.dims;const all=k=>dims[k]?Obj
    l:'Mais vínculos com GZH costumam vir com mais contato com o Clube.',a:'Usar o Clube como argumento de upgrade e de bundle (Petlove, Kids) para quem tem só uma assinatura.'})}
  const ord={ok:0,lim:1,x:2,sd:3};H.sort((a,b)=>ord[a.v[0]]-ord[b.v[0]]);
  return shell('inativos-hipoteses',`${semPerfil()}<p class="answer">Por que tanta gente tem o Clube e não usa? Cada hipótese abaixo é testada com os dados da carteira de ${lab(D.mes)} e do histórico desde jul/2023.</p>
- <div class="ina-hips">${H.map(h=>`<div class="card ina-h ina-${h.v[0]}"><div class="row-head"><h3>${h.t}</h3><span class="ina-v">${h.v[1]}</span></div>${h.e?`<p><b>O que os dados mostram:</b> ${h.e}</p><p><b>Leitura:</b> ${h.l}</p><p><b>O que fazer:</b> ${h.a}</p>`:`<p class="hint">Precisa do perfil por pessoa: reenvie a carteira de ${lab(D.mes)} em Clube em números › Enviar mês.</p>`}</div>`).join('')}</div>
+ <div class="ina-hips">${H.map(h=>`<div class="card ina-h ina-${h.v[0]}"><div class="row-head"><h3>${h.t}</h3><span class="ina-v">${T('hipotese',h.v[1])}</span></div>${h.e?`<p><b>O que os dados mostram:</b> ${h.e}</p><p><b>Leitura:</b> ${h.l}</p><p><b>O que fazer:</b> ${h.a}</p>`:`<p class="hint">Precisa do perfil por pessoa: reenvie a carteira de ${lab(D.mes)} em Clube em números › Enviar mês.</p>`}</div>`).join('')}</div>
  <p class="hint">Inativos = nunca geraram (desde jul/2023) + pararam há 6 meses ou mais. "Confirmam": o grupo tem pelo menos 15% mais inativos que a referência; "em parte": de 5% a 15% mais. Correlação não prova causa: as hipóteses indicam onde testar ações.</p>`)}
 
 /* ---------- página: Nunca gerou ---------- */
-function inaNunca(){const D=INA.d;const s=ultS();const pr=D.primeira||[];const L=linhasDim('tempo');const T=totDim(L);
+function inaNunca(){const D=INA.d;const s=ultS();const pr=D.primeira||[];const L=linhasDim('tempo');const TT=totDim(L);
  const ts=pr.filter(x=>x[0]<=24);const tot=pr.reduce((t,x)=>t+x[2],0);const c0=tot?pr[0][2]/tot:null;const c2=tot?pr.filter(x=>x[0]<=2).reduce((t,x)=>t+x[2],0)/tot:null;
  const onb=(D.dims.tempo||{})['Onboarding (0 a 6 meses)'];
  return shell('inativos-nunca',`${semPerfil()}<div class="td-kpis">
-  ${kc('Nunca geraram voucher',fmt(s.nunca),`${pc1(s.nunca/s.cart*100)} da carteira de ${lab(s.m)}`,'baixo')}
+  ${kc(T('nunca-gerou','Nunca geraram voucher'),fmt(s.nunca),`${pc1(s.nunca/s.cart*100)} da carteira de ${lab(s.m)}`,'baixo')}
   ${kc('Com até 6 meses de casa',fmt(onb?onb.nunca:null),'ainda na janela de ativação','pr')}
-  ${kc('Estreias no mês de entrada',pc1(c0*100),`${pc1(c2*100)} até o 3º mês`)}
-  ${kc('Primeiro voucher no mês',fmt(s.estreou),`em ${lab(s.m)}`,'ok')}</div>
- <div class="card"><h3>Chance de gerar o primeiro voucher, por mês de casa</h3><p class="sub">Entre quem ainda não tinha gerado, quantos geraram o primeiro voucher em cada mês desde a entrada na carteira (pessoas que entraram a partir de ago/2023).</p>
+  ${kc(T('comecaram-1-mes','Começaram a usar logo no 1º mês'),pc1(c0*100),`de quem já gerou o primeiro voucher, gerou no mesmo mês em que entrou na carteira; ${pc1(c2*100)} até o 3º mês`)}
+  ${kc(T('primeiro-voucher','Primeiro voucher no mês'),fmt(s.estreou),`em ${lab(s.m)}`,'ok')}</div>
+ <div class="card"><h3>${T('chance-primeiro','Chance de gerar o primeiro voucher')}, por mês de casa</h3><p class="sub">Entre quem ainda não tinha gerado, quantos geraram o primeiro voucher em cada mês desde a entrada na carteira (pessoas que entraram a partir de ago/2023).</p>
  ${barras(ts.map(x=>x[0]===25?'25+':x[0]===0?'Entrada':x[0]+'º'),ts.map(x=>x[2]/x[1]*100),{f:v=>fmt(v,1)+'%',c:j=>j===0?'#721a50':'#a06a91'})}
  <p class="hint">"Entrada" = mês em que a assinatura apareceu pela primeira vez na carteira; "1º" = mês seguinte, e assim por diante.</p></div>
  <div class="card tablecard"><h3>Quem nunca gerou, por tempo de casa</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Tempo de casa</th><th class="n">Na carteira</th><th class="n">Nunca geraram</th><th class="n">% do grupo</th><th class="n">% de todos que nunca geraram</th></tr></thead><tbody>
- ${L.map(x=>`<tr><td>${esc(x.k)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.nunca)}</td><td class="n">${pc1(x.nunca/x.cart*100)}</td><td class="n">${pc1(x.nunca/T.nunca*100)}</td></tr>`).join('')}</tbody></table></div>
+ ${L.map(x=>`<tr><td>${esc(x.k)}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.nunca)}</td><td class="n">${pc1(x.nunca/x.cart*100)}</td><td class="n">${pc1(x.nunca/TT.nunca*100)}</td></tr>`).join('')}</tbody></table></div>
  <p class="hint">Para quem tem mais de 3 anos de casa, "nunca gerou" quer dizer nenhum voucher desde jul/2023 (início do histórico).</p></div>`)}
 
 /* ---------- página: Pararam de gerar ---------- */
 function inaParou(){const D=INA.d;const s=ultS();const rt=(D.retorno||[]).filter(x=>x[0]<=24);const sem=D.sem||[];
  const lim=rt.find(x=>x[2]/x[1]<.05);
  return shell('inativos-parou',`${semPerfil()}<div class="td-kpis">
-  ${kc('Esfriando',fmt(s.esfriando),'3 a 5 meses sem gerar: ainda dá para recuperar','lim')}
-  ${kc('Pararam',fmt(s.parou),'6 meses ou mais sem gerar','baixo')}
-  ${kc('Voltaram no mês',fmt(s.voltou),`depois de 6+ meses parados, em ${lab(s.m)}`,'ok')}
-  ${kc('Ponto de não retorno',lim?`${lim[0]} meses`:'—',lim?'a partir daqui, menos de 5% voltam no mês seguinte':'')}</div>
- <div class="card"><h3>Chance de voltar no mês seguinte, por meses sem gerar</h3><p class="sub">Entre quem seguia na carteira, quantos geraram voucher no mês seguinte, de acordo com quantos meses estavam sem gerar.</p>
+  ${kc(T('esfriando','Esfriando'),fmt(s.esfriando),'3 a 5 meses sem gerar: ainda dá para recuperar','lim')}
+  ${kc(T('parou-de-gerar','Pararam'),fmt(s.parou),'6 meses ou mais sem gerar','baixo')}
+  ${kc(T('voltou-a-usar','Voltaram no mês'),fmt(s.voltou),`depois de 6+ meses parados, em ${lab(s.m)}`,'ok')}
+  ${kc(T('ponto-nao-retorno','Ponto de não retorno'),lim?`${lim[0]} meses`:'—',lim?'a partir daqui, menos de 5% voltam no mês seguinte':'')}</div>
+ <div class="card"><h3>${T('chance-voltar','Chance de voltar')} no mês seguinte, por meses sem gerar</h3><p class="sub">Entre quem seguia na carteira, quantos geraram voucher no mês seguinte, de acordo com quantos meses estavam sem gerar.</p>
  ${barras(rt.map(x=>x[0]+(x[0]===1?' mês':'')),rt.map(x=>x[2]/x[1]*100),{f:v=>fmt(v,1)+'%',c:j=>rt[j][0]<=2?'#a06a91':rt[j][0]<=5?'#ed9b6e':'#C65911'})}
  ${legend([['#a06a91','Ativo recente (1 a 2 meses)'],['#ed9b6e','Esfriando (3 a 5)'],['#C65911','Parou (6 ou mais)']])}</div>
  <div class="card"><h3>Há quanto tempo estão sem gerar</h3><p class="sub">Pessoas da carteira de ${lab(D.mes)} que já geraram voucher e não geraram no mês, por meses desde o último voucher.</p>
@@ -2192,8 +2256,8 @@ function inaParou(){const D=INA.d;const s=ultS();const rt=(D.retorno||[]).filter
 function inaVoltou(){const D=INA.d;const S=D.serie.filter(x=>x.cart);const s=ultS();
  const med=k=>S.slice(-12).reduce((t,x)=>t+x[k],0)/Math.min(12,S.length);
  return shell('inativos-voltou',`<div class="td-kpis">
-  ${kc('Primeiro voucher no mês',fmt(s.estreou),`média de 12 meses: ${fmt(med('estreou'))}`,'pr')}
-  ${kc('Voltaram após 6+ meses',fmt(s.voltou),`média de 12 meses: ${fmt(med('voltou'))}`,'ok')}
+  ${kc(T('primeiro-voucher','Primeiro voucher no mês'),fmt(s.estreou),`média de 12 meses: ${fmt(med('estreou'))}`,'pr')}
+  ${kc(T('voltou-a-usar','Voltaram após 6+ meses'),fmt(s.voltou),`média de 12 meses: ${fmt(med('voltou'))}`,'ok')}
   ${kc('% de quem usou no mês',pc1((s.estreou+s.voltou)/s.mes*100),'estrearam ou voltaram')}</div>
  <div class="card"><h3>Estreias e retornos por mês</h3>${barras(S.map(x=>lab(x.m)),S.map(x=>x.estreou),{c:'#721a50',lbl:false})}<p class="sub">Primeiro voucher (desde jul/2023)</p>
  ${barras(S.map(x=>lab(x.m)),S.map(x=>x.voltou),{c:'#C65911',lbl:false})}<p class="sub">Voltaram depois de 6 meses ou mais sem gerar</p></div>
@@ -2205,7 +2269,10 @@ function inaVoltou(){const D=INA.d;const S=D.serie.filter(x=>x.cart);const s=ult
 const INA_PAGES={inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
 async function inaParceiros(){if(INA.parc)return;try{await paCarregar();const at=PA.d.cad.filter(c=>c.status==='Ativo');const by=new Map();at.forEach(c=>{const g=grupoLocal(c.local);const k=baseNome(c.parceiro);if(!by.has(k))by.set(k,new Set());by.get(k).add(g)});
  const n=f=>[...by.values()].filter(f).length;INA.parc={poa:n(s=>s.has('Porto Alegre e região')||s.has('Várias cidades')),serra:n(s=>s.has('Serra')||s.has('Várias cidades')),int:n(s=>s.has('Interior do RS')||s.has('Várias cidades')),onl:n(s=>s.has('Online'))}}catch(e){}}
-function inaRender(h){app.innerHTML=INA_PAGES[h]();document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
+function inaRender(h){app.innerHTML=INA_PAGES[h]();
+ const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onchange=()=>f(el.value)};
+ on('ia-a',v=>{INA.a=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});on('ia-b',v=>{INA.b=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});
+ document.querySelectorAll('[data-ir]').forEach(x=>x.onclick=()=>{INA.a=inaRap(x.dataset.ir);inaRender(h)});document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
 async function rotaInativos(h){if(!INA_PAGES[h]){location.hash='inativos';return}
  if(!INA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');try{await inaCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os inativos: ${esc(e.message||e)}</div>`);return}}
  if(h==='inativos-hipoteses')await inaParceiros();
