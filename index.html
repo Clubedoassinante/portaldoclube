@@ -340,15 +340,16 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .td-k{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;border-top:4px solid #c9b3bf}
 .td-k span{font-size:11.5px;color:var(--muted)}.td-k b{font-size:24px;line-height:1.15}.td-k small{font-size:11.5px;color:var(--muted)}
 .td-k.pr{border-top-color:#C65911}.td-k.pr b{color:#C65911}.td-k.ok{border-top-color:#2e7d4f}.td-k.ok b{color:#2e7d4f}.td-k.lim{border-top-color:#d79a1c}.td-k.lim b{color:#a8740c}.td-k.baixo{border-top-color:#c0392b}.td-k.baixo b{color:#c0392b}
-.td-grid{margin-bottom:12px}.td-grid:not(.grid2){display:block}
+.td-grid{margin-bottom:12px;display:flex;flex-direction:column;gap:12px}
 .td-card h3{margin-bottom:8px}.td-svg{width:100%;height:auto;display:block}
 .td-t td,.td-t th{padding:6px 8px}.td-t td.down{color:#c0392b}.td-t td.up{color:#2e7d4f}
-.td-fcat{table-layout:fixed}.td-fcat th:nth-child(1),.td-fcat th:nth-child(2),.td-fcat th:nth-child(3){width:30%}.td-fcat th:nth-child(4){width:10%}
+.td-fcat{table-layout:fixed}.td-fcat th:nth-child(1){width:30%}.td-fcat th:nth-child(2),.td-fcat th:nth-child(3){width:35%}
 .td-fcat td{vertical-align:top;line-height:1.45;padding:9px 10px;white-space:normal}.td-fcat td.td-acao{background:#f3faf6}
 .td-fcat textarea{width:100%;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px}
 .td-fca .acoes{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 @media (max-width:760px){.td-fcat{table-layout:auto}.td-fcat th{width:auto!important}}
-.td-grid:not(.grid2) .td-card{max-width:900px}
+.td-fcat td p{margin:0 0 4px}.td-fcat td ul{margin:2px 0 6px;padding-left:18px}.td-fcat td li{margin:1px 0}
+.td-t th:first-child,.td-t td:first-child{width:40%}
 </style>
 </head>
 <body>
@@ -1594,7 +1595,7 @@ function gerarFCA(s,P){const L=SEM.dados.semanas;const p=L[s.k-1];const it=SEM.i
  const dv=p?varp(s.usos,p.usos):null,dly=ly?varp(s.usos,ly.usos):null;
  let causa='Semana anterior sem detalhamento por parceiro (contagem antiga).',acao='Acompanhar a próxima semana, já com o detalhamento.';
  if(it&&ip){const sent=s.usos>=p.usos?1:-1;const c=causaItens(it,ip,x=>x.marca,sent);const c2=causaItens(it,ip,x=>x.marca,-sent).slice(0,2);
-  causa=`${sent<0?'Maiores quedas':'Maiores altas'} por parceiro: ${c.join('; ')||'variação espalhada, sem um parceiro dominante'}.${c2.length?` Em sentido contrário: ${c2.join('; ')}.`:''}`;
+  causa=c.length?`${sent<0?'Maiores quedas':'Maiores altas'} por parceiro:\n- ${c.join('\n- ')}${c2.length?`\nEm sentido contrário:\n- ${c2.join('\n- ')}`:''}`:'Variação espalhada, sem um parceiro dominante.';
   const top=diffs(it,ip,x=>x.marca+'\t'+x.titulo).sort((a,b)=>sent<0?a.d-b.d:b.d-a.d)[0];
   acao=sent<0?(top&&top.cur===0&&top.prev>=15?`Buscar substituto para **${nomeT(top.k)}**, que saiu do ar, ou negociar a renovação; destacar parceiros equivalentes na próxima News.`:`Colocar em destaque na próxima semana os parceiros que mais caíram ou substitutos equivalentes${top?` (começando por **${nomeParc(top.k.split('\t')[0])}**)`:''}.`)
    :(top?`Entender o que puxou **${nomeT(top.k)}** e repetir o formato; manter em destaque enquanto a oferta estiver ativa.`:'Manter os destaques da semana.')}
@@ -1602,26 +1603,29 @@ function gerarFCA(s,P){const L=SEM.dados.semanas;const p=L[s.k-1];const it=SEM.i
  // 2. mês
  if(!P.semMtd){const r=P.refs.filter(x=>x.usos);const abaixo=r.filter(x=>x.st!=='ok');
   const fato=`${P.fechado?'Resultado':'Projeção'} de **${fmt(P.projU)} usos** em ${P.mesLab}: ${r.map(x=>`${fmt(x.pctU,1)}% de ${x.lab} (${sinalN(x.gapU)})`).join(' e ')}.`;
-  const ritmoTxt=`Ritmo das últimas 2 semanas: ${fmt(P.ritmo)} usos/dia; no mês até agora: ${fmt(P.ritmoMes)}/dia`;
+  const ritmoTxt=`- Ritmo das últimas 2 semanas: ${fmt(P.ritmo)} usos/dia\n- No mês até agora: ${fmt(P.ritmoMes)} usos/dia`;
   let cat='';if(it&&ant.length){const cs=categorias(it);const cm=TCATS.map(([k,n])=>({n,d:varp(cs[k],mediaA(ant.map(w=>categorias(SEM.itens[w.i])[k])))})).filter(x=>x.d!=null&&isFinite(x.d)).sort((a,b)=>a.d-b.d);
-   const neg=cm.filter(x=>x.d<-10).slice(0,2);if(neg.length)cat=`; categorias abaixo da média das últimas semanas: ${neg.map(x=>`${x.n} (${sinalP(x.d)})`).join(', ')}`}
+   const neg=cm.filter(x=>x.d<-10).slice(0,2);if(neg.length)cat=`\nCategorias abaixo da média das últimas semanas:\n- ${neg.map(x=>`${x.n} (${sinalP(x.d)})`).join('\n- ')}`}
   const alvo=abaixo.sort((a,b)=>b.usos-a.usos)[0];
-  rows.push({f:fato,c:`${ritmoTxt}${cat}.`,a:P.fechado?'Mês fechado: usar o resultado como base do planejamento do próximo mês.':alvo?`Para superar ${alvo.lab} faltam **${fmt(alvo.faltam)} usos**: **${fmt(alvo.nec)} por dia** nos ${P.rest} dias restantes (${sinalP(alvo.acel)} sobre o ritmo atual). Concentrar a comunicação nos parceiros de maior uso e programar uma ação de cortesia.`:`Manter o ritmo: com ${fmt(P.ritmo)} usos/dia o mês fecha acima das duas referências.`})}
+  rows.push({f:fato,c:`${ritmoTxt}${cat}`,a:P.fechado?'Mês fechado: usar o resultado como base do planejamento do próximo mês.':alvo?`Para superar ${alvo.lab} faltam **${fmt(alvo.faltam)} usos**: **${fmt(alvo.nec)} por dia** nos ${P.rest} dias restantes (${sinalP(alvo.acel)} sobre o ritmo atual). Concentrar a comunicação nos parceiros de maior uso e programar uma ação de cortesia.`:`Manter o ritmo: com ${fmt(P.ritmo)} usos/dia o mês fecha acima das duas referências.`})}
  // 3. categorias que mais se moveram
  if(it&&ant.length){const cs=categorias(it);const base=ant.map(w=>({w,c:categorias(SEM.itens[w.i])}));
   const mov=TCATS.map(([k,n])=>{const b=mediaA(base.map(x=>x.c[k]));return {k,n,cur:cs[k],b,d:varp(cs[k],b),abs:cs[k]-b}}).filter(x=>x.d!=null&&isFinite(x.d)&&Math.abs(x.d)>=20&&Math.abs(x.abs)>=40).sort((a,b)=>Math.abs(b.abs)-Math.abs(a.abs)).slice(0,3);
   mov.forEach(x=>{const sent=x.abs>=0?1:-1;const ref=ip||SEM.itens[ant[ant.length-1].i];
    const c=causaItens(it.filter(filtroCat[x.k]),(ref||[]).filter(filtroCat[x.k]),y=>y.marca+'\t'+y.titulo,sent);
-   rows.push({f:`**${x.n}: ${fmt(x.cur)} usos**, ${sinalP(x.d)} vs média das ${ant.length} semanas anteriores (${fmt(x.b)}).`,c:c.length?`${sent<0?'Caíram':'Subiram'} vs semana anterior: ${c.join('; ')}.`:'Variação espalhada entre as ofertas da categoria.',a:ACOES[x.k][sent<0?'down':'up']})})}
+   rows.push({f:`**${x.n}: ${fmt(x.cur)} usos**, ${sinalP(x.d)} vs média das ${ant.length} semanas anteriores (${fmt(x.b)}).`,c:c.length?`${sent<0?'Caíram':'Subiram'} vs semana anterior:\n- ${c.join('\n- ')}`:'Variação espalhada entre as ofertas da categoria.',a:ACOES[x.k][sent<0?'down':'up']})})}
  // 4. concentração
  if(it){const R=rankings(it).parceiros;const t=R[0];if(t&&t.usos/s.usos>=.2)rows.push({f:`**${nomeParc(t.k)}** concentrou **${fmt(100*t.usos/s.usos,1)}%** dos usos da semana.`,c:`Um parceiro responde por 1 em cada ${fmt(s.usos/t.usos,0)} usos: o resultado da semana depende muito dele.`,a:`Diversificar os destaques da comunicação (News, push, home) para reduzir a dependência de ${nomeParc(t.k)}.`})}
  // 5. frequência
  if(p&&p.upu&&s.upu){const d=varp(s.upu,p.upu);if(Math.abs(d)>=8)rows.push({f:`Cada usuário gerou **${fmt(s.upu,2)} vouchers** na semana (${sinalP(d)} vs semana anterior).`,c:`Usos ${sinalP(varp(s.usos,p.usos))} e usuários únicos ${sinalP(varp(s.unicos,p.unicos))}: ${d<0?'menos repetição de uso por pessoa':'mais uso repetido por pessoa (ofertas de uso recorrente)'}.`,a:d<0?'Estimular a recorrência: comunicar novos benefícios a quem usou nas últimas semanas (CRM pós-uso).':'Identificar as ofertas de uso repetido da semana e mantê-las em destaque.'})}
  return rows}
 
+/* texto com linhas "- " vira lista */
+function blocoHtml(t){const out=[];let ul=[];const fecha=()=>{if(ul.length){out.push(`<ul>${ul.join('')}</ul>`);ul=[]}};
+ String(t||'').split('\n').forEach(l=>{const m=l.match(/^\s*[-•*]\s+(.*)$/);if(m)ul.push(`<li>${richHtml(m[1])}</li>`);else if(l.trim()){fecha();out.push(`<p>${richHtml(l.trim())}</p>`)}});fecha();return out.join('')}
 /* ---------- gráfico das semanas ---------- */
 function tendChart(hist,prox){const pts=[...hist.map(w=>({lab:w.lab,v:w.usos,ly:w.ly,proj:null})),...prox.out.map(w=>({lab:w.lab,v:w.real,ly:w.ly,proj:w.proj}))];
- const W=640,H=230,Lm=46,R=14,T0=16,B=34;const all=pts.flatMap(p=>[p.v,p.ly,p.proj]).filter(v=>v!=null);const mx=Math.max(...all)*1.1,mn=Math.min(...all)*.85;
+ const W=1100,H=250,Lm=46,R=14,T0=16,B=34;const all=pts.flatMap(p=>[p.v,p.ly,p.proj]).filter(v=>v!=null);const mx=Math.max(...all)*1.1,mn=Math.min(...all)*.85;
  const x=j=>Lm+j*(W-Lm-R)/(pts.length-1),y=v=>T0+(1-(v-mn)/(mx-mn))*(H-T0-B);
  let g='';for(let k=0;k<=4;k++){const v=mn+(mx-mn)*k/4;g+=`<line x1="${Lm}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${Lm-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(v)}</text>`}
  const h=hist.length-1;g+=`<rect x="${x(h)}" y="${T0}" width="${x(pts.length-1)-x(h)}" height="${H-T0-B}" fill="#C65911" opacity=".06"/><text x="${x(pts.length-1)}" y="${T0-4}" text-anchor="end" font-size="11" fill="#C65911">projeção</text>`;
@@ -1665,20 +1669,20 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
   <div class="tw"><table class="cmp td-t"><thead><tr><th>Semana</th><th class="n">Projeção</th><th class="n">Mesma semana ${P.y-1}</th><th class="n">vs ano anterior</th>${prox.out.some(w=>w.real!=null)?'<th class="n">Realizado</th>':''}</tr></thead><tbody>
   ${prox.out.map(w=>`<tr><td>${w.lab}</td><td class="n"><b>${fmt(w.proj)}</b></td><td class="n">${fmt(w.ly)}</td><td class="n">${w.ly?delta(w.proj,w.ly):'—'}</td>${prox.out.some(z=>z.real!=null)?`<td class="n">${fmt(w.real)}</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
  const ed=SEM.fcaEd!=null;
- const fca=`<div class="card td-card td-fca"><div class="row-head"><div><h3>${T('fca','FCA da semana')}</h3><p class="sub">${ed?'Edite fato, causa e ação. Use **texto** para negrito.':salvo?'Versão revisada pelo time.':'Gerado automaticamente a partir dos números da semana. Revise as ações antes de compartilhar.'}</p></div>
+ const fca=`<div class="card td-card td-fca"><div class="row-head"><div><h3>${T('fca','FCA da semana')}</h3><p class="sub">${ed?'Edite fato, causa e ação. Use **texto** para negrito; comece a linha com - para virar tópico.':salvo?'Versão revisada pelo time.':'Gerado automaticamente a partir dos números da semana. Revise as ações antes de compartilhar.'}</p></div>
   ${ADMIN?`<div class="acoes">${ed?`<button class="btn" id="fca-ok" type="button">Salvar FCA</button><button class="chip" id="fca-add" type="button">Adicionar linha</button><button class="chip" id="fca-x" type="button">Cancelar</button>`:`<button class="chip" id="fca-ed" type="button">Editar FCA</button>${salvo?'<button class="chip" id="fca-auto" type="button">Voltar ao automático</button>':''}`}<span class="hint" id="fca-msg"></span></div>`:''}</div>
-  <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th><th>Responsável</th>${ed?'<th></th>':''}</tr></thead><tbody>
-  ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="4">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><textarea data-c="r" rows="2">${esc(x.r||'')}</textarea></td><td><button class="chip" data-del="${j}" type="button" title="Remover linha">×</button></td></tr>`
-   :`<tr><td>${richHtml(x.f)}</td><td>${richHtml(x.c)}</td><td class="td-acao">${richHtml(x.a)}</td><td>${esc(x.r||'')}</td></tr>`).join('')||'<tr><td colspan="4" class="hint">Sem dados suficientes para o FCA desta semana.</td></tr>'}</tbody></table></div></div>`;
+  <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th>${ed?'<th></th>':''}</tr></thead><tbody>
+  ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button" title="Remover linha">×</button></td></tr>`
+   :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')||'<tr><td colspan="3" class="hint">Sem dados suficientes para o FCA desta semana.</td></tr>'}</tbody></table></div></div>`;
  const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: números do mês da plataforma (Enviar semana › Números do mês).${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
  box.innerHTML=`<div class="td-status td-${cls}"><span>Status de ${P.mesLab}</span><p>${status}</p></div>
  ${kp?`<div class="td-kpis">${kp}</div>`:''}
- <div class="${ritmo?'grid2':''} td-grid">${ritmo}${tend}</div>${fca}${metodo}`;
+ <div class="td-grid">${ritmo}${tend}</div>${fca}${metodo}`;
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
  const ler=()=>[...box.querySelectorAll('tr[data-j]')].map(tr=>{const o={};tr.querySelectorAll('textarea').forEach(t=>o[t.dataset.c]=t.value.trim());return o}).filter(o=>o.f||o.c||o.a);
  on('fca-ed',()=>{SEM.fcaEd=rows.map(x=>({...x}));renderTendencia(box,s)});
  on('fca-x',()=>{SEM.fcaEd=null;renderTendencia(box,s)});
- on('fca-add',()=>{SEM.fcaEd=ler();SEM.fcaEd.push({f:'',c:'',a:'',r:''});renderTendencia(box,s)});
+ on('fca-add',()=>{SEM.fcaEd=ler();SEM.fcaEd.push({f:'',c:'',a:''});renderTendencia(box,s)});
  box.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const v=ler();v.splice(+b.dataset.del,1);SEM.fcaEd=v;renderTendencia(box,s)});
  const salvar=async v=>{const m=document.getElementById('fca-msg');m.textContent='Salvando…';const {error}=await sb.rpc('salvar_fca',{p_inicio:s.i,p:v});
   if(error){m.textContent='Não salvou: '+error.message;return}s.fca=v;SEM.fcaEd=null;renderTendencia(box,s)};
