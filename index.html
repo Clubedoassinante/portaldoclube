@@ -829,15 +829,27 @@ function coorteTabela(kind,P){const C=(RAW.coortes||[]).map(([vi,n,...a])=>({vi,
  <p class="hint">A última coluna é a mesma medida da ativação por safra (6 primeiros meses), só que mês a mês.</p>`}
 
 /* ---------- recorrência (consulta sob demanda) ---------- */
-async function renderRecorrencia(box,m){const {data,error}=await sb.rpc('recorrencia',{p_mes:m+'-01'});
- if(error){box.innerHTML=`<p class="hint">${/recorrencia/.test(error.message)?'Ainda não disponível: rode o arquivo 6_clube_numeros.sql no Supabase.':'Não foi possível carregar: '+esc(error.message)}</p>`;return}
+let REC_J=6;
+const REC_OPTS=[[6,'6 meses'],[12,'12 meses'],[24,'24 meses'],[0,'Desde jul/2023']];
+function faixasRec(n){if(n<=6)return Array.from({length:n},(_,j)=>[j+1,j+1]);if(n<=12)return [[1,1],[2,2],[3,3],[4,6],[7,9],[10,n]];if(n<=24)return [[1,1],[2,2],[3,5],[6,11],[12,17],[18,n]];return [[1,1],[2,2],[3,5],[6,11],[12,23],[24,n]]}
+const FX_SEG=[[1,1],[2,2],[3,3],[4,6],[7,12],[13,24],[25,999]];
+const rotF=([a,b],max)=>a===b?`${a} ${a>1?'meses':'mês'}`:b>=999?`${a} meses ou mais`:`${a} a ${b} meses`;
+async function renderRecorrencia(box,m){box.innerHTML='<p class="carregando">Carregando…</p>';
+ let {data,error}=await sb.rpc('recorrencia',{p_mes:m+'-01',p_janela:REC_J});
+ if(error&&/recorrencia/.test(error.message)&&REC_J===6){({data,error}=await sb.rpc('recorrencia',{p_mes:m+'-01'}))}
+ if(error){box.innerHTML=`<p class="hint">${/recorrencia/.test(error.message)?'Para ver janelas maiores, rode o arquivo 13_recorrencia.sql no Supabase.':'Não foi possível carregar: '+esc(error.message)}</p>`;return}
  if(!data||!data.distintos){box.innerHTML='<p class="hint">Sem dados de recorrência para este mês.</p>';return}
  const ini=shift('2023-07',data.ini),fim=shift('2023-07',data.fim);const nm=data.fim-data.ini+1;
- const dist=Object.entries(data.distintos||{}).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);const tD=dist.reduce((t,x)=>t+x[1],0);
- const seg={};Object.entries(data.seguidos||{}).forEach(([k,v])=>{const kk=Math.min(+k,6);seg[kk]=(seg[kk]||0)+v});const sg=Object.entries(seg).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);const tS=sg.reduce((t,x)=>t+x[1],0);
- const tab=(rows,tot,rot)=>{const mx=Math.max(...rows.map(r=>r[1]));return `<table class="cmp prof"><tbody>${rows.map(([k,v])=>`<tr><td>${rot(k)}</td><td class="n">${fmt(v)}</td><td><div class="barcell"><span style="width:${(v/mx*100).toFixed(1)}%"></span><b>${fmt(100*v/tot,1)}%</b></div></td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt(tot)}</td><td></td></tr></tbody></table>`};
- box.innerHTML=`<div class="grid2"><div><h4>Em quantos meses gerou voucher, de ${lab(ini)} a ${lab(fim)}</h4><p class="sub">Pessoas que geraram pelo menos 1 voucher nesses ${nm} meses${nm<6?' (só há estes meses de dados)':''}.</p>${tab(dist,tD,k=>`${k} ${k>1?'meses':'mês'}`)}</div>
- <div><h4>Há quantos meses seguidos gera voucher</h4><p class="sub">De quem gerou voucher em ${lab(fim)}: sequência de meses seguidos até ${lab(fim)}.</p>${tab(sg,tS,k=>k>=6?'6 meses ou mais':`${k} ${k>1?'meses':'mês'}`)}</div></div>`}
+ const fx=faixasRec(nm);const dd=Object.entries(data.distintos||{}).map(([k,v])=>[+k,v]);
+ const dist=fx.map(f=>[f,dd.filter(([k])=>k>=f[0]&&k<=f[1]).reduce((t,x)=>t+x[1],0)]);const tD=dist.reduce((t,x)=>t+x[1],0);
+ const ss=Object.entries(data.seguidos||{}).map(([k,v])=>[+k,v]);const sg=FX_SEG.map(f=>[f,ss.filter(([k])=>k>=f[0]&&k<=f[1]).reduce((t,x)=>t+x[1],0)]).filter(x=>x[1]>0);const tS=sg.reduce((t,x)=>t+x[1],0);
+ const md=dd.reduce((t,[k,v])=>t+k*v,0)/tD;const umV=(dd.find(x=>x[0]===1)||[0,0])[1];const metade=dd.filter(x=>x[0]>=Math.ceil(nm/2)).reduce((t,x)=>t+x[1],0);
+ const tab=(rows,tot)=>{const mx=Math.max(...rows.map(r=>r[1]),1);return `<table class="cmp prof"><tbody>${rows.map(([f,v])=>`<tr><td>${rotF(f)}</td><td class="n">${fmt(v)}</td><td><div class="barcell"><span style="width:${(v/mx*100).toFixed(1)}%"></span><b>${fmt(100*v/tot,1)}%</b></div></td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt(tot)}</td><td></td></tr></tbody></table>`};
+ box.innerHTML=`<div class="bar" style="box-shadow:none;margin:0 0 10px"><div class="fld"><span>Janela</span><div class="chips">${REC_OPTS.map(([j,n])=>`<button class="chip ${REC_J===j?'on':''}" data-recj="${j}" type="button">${n}</button>`).join('')}</div></div></div>
+ <p class="answer" style="font-size:14px">De ${lab(ini)} a ${lab(fim)} (${nm} meses), <b>${fmt(tD)} pessoas</b> geraram voucher pelo menos uma vez: <b>${fmt(100*umV/tD,1)}%</b> usaram em um mês só, e ${fmt(100*metade/tD,1)}% usaram em metade dos meses ou mais. Em média, cada pessoa usou em ${fmt(md,1)} meses.</p>
+ <div class="grid2"><div><h4>Em quantos meses gerou voucher, de ${lab(ini)} a ${lab(fim)}</h4><p class="sub">Pessoas que geraram pelo menos 1 voucher nesses ${nm} meses${REC_J&&nm<REC_J?' (só há estes meses de dados)':''}.</p>${tab(dist,tD)}</div>
+ <div><h4>Há quantos meses seguidos gera voucher</h4><p class="sub">De quem gerou voucher em ${lab(fim)}: sequência de meses seguidos até ${lab(fim)} (desde jul/2023, não depende da janela).</p>${tab(sg,tS)}</div></div>`;
+ box.querySelectorAll('[data-recj]').forEach(b=>b.onclick=()=>{REC_J=+b.dataset.recj;renderRecorrencia(box,m)})}
 
 /* ---------- por que os números de usuários são diferentes ---------- */
 function usuariosExplica(P,A,r){const m=r.m;const tot=TOT[m]?.[1];const base=r.ger_pessoas??r.ger;const fora=r.fora??0;const nunca=Math.min(RAW.fora_nunca?.[m]??NaN,fora);
