@@ -1082,7 +1082,15 @@ async function desenharTotais(rows){const box=document.getElementById('cg-tot');
    O arquivo é lido aqui no navegador; para o banco vão só as contagens
    por marca e promoção, os usos e o número de usuários únicos.
    ===================================================================== */
-const ONLINE=['Proxy Media','Hubconn','SponsorB'];
+const ONLINE=['Proxy Media','Hubconn','SponsorB','Integrada Comunicação e Marketing'];
+/* acentos quebrados na exportação (ex.: "OpiniÃ£o") voltam ao normal */
+const CP1252={'€':128,'‚':130,'ƒ':131,'„':132,'…':133,'†':134,'‡':135,'ˆ':136,'‰':137,'Š':138,'‹':139,'Œ':140,'Ž':142,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'˜':152,'™':153,'š':154,'›':155,'œ':156,'ž':158,'Ÿ':159};
+function conserta(v){if(typeof v!=='string'||!/[ÃÂ]/.test(v))return v;const b=[];
+ for(const ch of v){const c=ch.codePointAt(0);if(CP1252[ch]!=null)b.push(CP1252[ch]);else if(c<256)b.push(c);else return v}
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(new Uint8Array(b))}catch(e){return v}}
+/* produtora de eventos nova: reconhecida pelo nome */
+const PROD_RE=/produ[cç][aãoõ]|produtora|entretenimento|entertainment|eventos|teatro|espet[aá]culo/i;
+function produtorasNovas(...listas){const v=new Set();listas.flat().forEach(it=>{const m=it.marca;if(!SEM.prod.has(m)&&m!==CLUBE_MARCA&&m!==LACADOR&&!ONLINE.includes(m)&&PROD_RE.test(semAcento(m)))v.add(m)});return [...v].sort()}
 const LACADOR='Laçador de Ofertas', CLUBE_MARCA='Clube do Assinante';
 const SEM={dados:null,itens:{},sel:null,met:'usos',editando:false,envio:{},aba:'parceiros'};
 
@@ -1394,7 +1402,7 @@ function enviarPagina(){const ult=[...SEM.dados.semanas].reverse().filter(s=>!s.
  <div id="wprev"></div>
  <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel: uso e usuários do site, carteira da penetração e usos de cortesia. Preencha quando o mês fechar. O mês em andamento vem da base do mês.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
  <div class="grid2">
-  <div class="card"><h3>Produtoras de eventos</h3><p class="sub">Uma por linha, com o nome exatamente como aparece na coluna Marca. Define o ranking de ${T('eventos','Eventos')}.</p><textarea id="wpr" rows="9">${esc(SEM.dados.produtoras.join('\n'))}</textarea><div class="acoes"><button class="btn" id="wpr-ok" type="button">Salvar lista</button><span class="hint" id="wpr-msg"></span></div></div>
+  <div class="card"><h3>Produtoras de eventos</h3><p class="sub">Define o ranking de ${T('eventos','Eventos')}. O portal acrescenta sozinho as produtoras novas que têm no nome Produções, Produtora, Entretenimento, Eventos, Teatro ou Espetáculo. Só mexa aqui se alguma ficar de fora ou entrar por engano (uma por linha, com o nome como aparece na coluna Marca).</p><textarea id="wpr" rows="9">${esc(SEM.dados.produtoras.join('\n'))}</textarea><div class="acoes"><button class="btn" id="wpr-ok" type="button">Salvar lista</button><span class="hint" id="wpr-msg"></span></div></div>
   <div class="card"><h3>Semanas enviadas</h3>${ult.length?`<div class="mes-chips">${ult.map(s=>`<span>${semLab(s)}${s.mtd&&!s.mtd.antiga?'':' · sem base do mês'}</span>`).join('')}</div>`:'<p class="hint">Nenhuma ainda.</p>'}<p class="hint" style="margin-top:10px">Enviar de novo uma semana que já está no portal substitui a anterior. Se enviar só a Base da semana, a base do mês que já estava salva é mantida.</p></div>
  </div>`)}
 function bindEnviar(){libs();SEM.envio=SEM.envio||{};
@@ -1430,7 +1438,7 @@ async function lerSemana(file){let linhas;
  if(iT<0)throw new Error('Não encontrei a coluna Título.');if(iN<0&&iC<0)throw new Error('Não encontrei as colunas Nome e CPF, que contam os usuários únicos.');
  const lim=s=>String(s??'').replace(/\s+/g,' ').trim();
  const itens=new Map(),pess=new Set();let usos=0,admin=0,farm=0;
- for(let r=hi+1;r<linhas.length;r++){const L=linhas[r];if(!L)continue;const marca=lim(L[iM]);if(!marca)continue;
+ for(let r=hi+1;r<linhas.length;r++){if(!linhas[r])continue;const L=linhas[r].map(conserta);const marca=lim(L[iM]);if(!marca)continue;
   if(iN>=0&&normU(L[iN])==='ADMIN C'){admin++;continue}
   if(FARMACIAS.has(normL(marca))){farm++;continue}
   usos++;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
@@ -1462,7 +1470,7 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
  ${sobre.length?`<div class="note">Vai substituir ${sobre.map(s=>`<b>${semLab(s)}</b>${s.so_total?' (contagem antiga)':''}`).join(', ')}.</div>`:''}
  <div class="label" style="margin-top:6px">Semana · ${esc(e.arquivo)}</div>
  <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Fora: farmácias')}</div>
- <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>
+ <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>${(()=>{const nv=produtorasNovas(e.itens,mm?mm.itens:[]);return nv.length?`<p class="hint">Produtoras de eventos novas, reconhecidas pelo nome: <b>${nv.map(esc).join(', ')}</b>. Entram no ranking de Eventos ao salvar.</p>`:''})()}
  <div class="label" style="margin-top:14px">Mês até a data · ${mm?esc(mm.arquivo):'não enviada'}</div>
  ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Fora: farmácias')}</div>${avisoMes}
   <p class="hint">Vai para o bloco de <b>${mesLab}</b>. Top 5 parceiros do mês: ${resumoMes(mm).parceiros.map(p=>`${esc(p[0])} (${fmt(p[1])})`).join(', ')}.</p>`
@@ -1473,6 +1481,8 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
 async function salvarSemana(){const E=SEM.envio,e=E.sem,b=document.getElementById('wsalvar'),m=document.getElementById('wsmsg');
  if(!E.inicio||!E.fim||E.fim<E.inicio){m.textContent='Confira as datas.';return}
  b.disabled=true;m.textContent='Salvando…';
+ const nv=produtorasNovas(e.itens,E.mes?E.mes.itens:[]);
+ if(nv.length){const r=await sb.rpc('salvar_produtoras',{p_lista:[...SEM.prod,...nv]});if(r.error){b.disabled=false;m.textContent='Não salvou: '+r.error.message;return}nv.forEach(x=>SEM.prod.add(x))}
  const {error}=await sb.rpc('salvar_semana',{p:{inicio:E.inicio,fim:E.fim,usos:e.usos,unicos:e.unicos,excluidos:e.admin+e.farm,itens:e.itens,mtd:E.mes?resumoMes(E.mes):null}});
  if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
  delete SEM.itens[E.inicio];const ini=E.inicio;SEM.envio={};await semCarregar(true);SEM.sel=ini;SEM.editando=!!ADMIN;
