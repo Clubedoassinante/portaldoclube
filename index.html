@@ -554,6 +554,8 @@ const GL=[
   ['email-cadastro','E-mail no cadastro','Se a carteira traz um e-mail válido para a pessoa.','Sem e-mail, a pessoa não recebe a News nem os e-mails pontuais.'],
   ['cdass','CDASS','Número de identificação da assinatura na carteira. É a chave para cruzar a base gerada com o cadastro (e-mail, telefone) sem expor CPF.','Uma pessoa com mais de uma assinatura ativa tem mais de um CDASS.'],
   ['meses-sem-gerar','Meses sem gerar','Meses desde o último voucher, contados até o último mês carregado. Ex.: último voucher em mar/2026 e carteira de set/2026 = 6 meses.',''],
+  ['taxa-ativacao','Taxa de ativação','Pessoas que geraram o primeiro voucher no mês divididas por quem nunca tinha gerado no mês anterior.',''],
+  ['taxa-reativacao','Taxa de reativação','Pessoas que voltaram a usar no mês divididas por quem estava parado (6 meses ou mais sem gerar) no mês anterior.',''],
  ]],
  ['Regras',[
   ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora de todos os números, porque são gerados automaticamente.','Panvel continua contando.'],
@@ -948,7 +950,7 @@ const AREAS={
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
-  r:[['inativos','Visão geral'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar'],['inativos-bases','Gerar bases',1]]},
+  r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar'],['inativos-bases','Gerar bases',1]]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp e push: envios, cliques e vouchers gerados.',c:'var(--vinho-esc)',st:['dep','Aguarda dados'],
@@ -2282,14 +2284,14 @@ function inaVoltou(){const D=INA.d;const S=D.serie.filter(x=>x.cart);const s=ult
  <p class="hint">Use esta página para medir campanhas de ativação e reativação: uma ação que funciona aparece como pico de estreias ou de retornos no mês. Os parceiros pelos quais as pessoas voltam aparecem quando cruzarmos vouchers por pessoa e marca (próxima etapa).</p>`)}
 
 /* ---------- roteamento ---------- */
-const INA_PAGES={'inativos-bases':()=>inaBases(),inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
+const INA_PAGES={'inativos-bases':()=>inaBases(),'inativos-fca':()=>inaFca(),inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
 async function inaParceiros(){if(INA.parc)return;try{await paCarregar();const at=PA.d.cad.filter(c=>c.status==='Ativo');const by=new Map();at.forEach(c=>{const g=grupoLocal(c.local);const k=baseNome(c.parceiro);if(!by.has(k))by.set(k,new Set());by.get(k).add(g)});
  const n=f=>[...by.values()].filter(f).length;INA.parc={poa:n(s=>s.has('Porto Alegre e região')||s.has('Várias cidades')),serra:n(s=>s.has('Serra')||s.has('Várias cidades')),int:n(s=>s.has('Interior do RS')||s.has('Várias cidades')),onl:n(s=>s.has('Online'))}}catch(e){}}
 function inaRender(h){app.innerHTML=INA_PAGES[h]();
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onchange=()=>f(el.value)};
  on('ia-a',v=>{INA.a=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});on('ia-b',v=>{INA.b=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});
  document.querySelectorAll('[data-ir]').forEach(x=>x.onclick=()=>{INA.a=inaRap(x.dataset.ir);inaRender(h)});
- if(h==='inativos-bases')bindBases(h);document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
+ if(h==='inativos-bases')bindBases(h);if(h==='inativos-fca')bindFca(h);document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
 async function rotaInativos(h){if(!INA_PAGES[h]||(h==='inativos-bases'&&!ADMIN)){location.hash='inativos';return}
  if(!INA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');try{await inaCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os inativos: ${esc(e.message||e)}</div>`);return}}
  if(h==='inativos-hipoteses')await inaParceiros();
@@ -2339,6 +2341,61 @@ function bindBases(h){const re=()=>inaRender(h);
  on('b-csv',()=>{const q=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const txt='﻿'+[BASE_COLS,...BASE.res.linhas.map(linhaBase)].map(r=>r.map(q).join(';')).join('\r\n');baixarTexto(nome('csv'),txt,'text/csv;charset=utf-8')});
  on('b-cdass',()=>baixarTexto(nome('txt'),BASE.res.linhas.map(l=>l[0]).join('\r\n'),'text/plain'))}
+
+/* ---------- página: FCA do mês ---------- */
+INA.fm=null;INA.fcaEd=null;
+function fcaInativos(m){const S=INA.d.serie;const j=S.findIndex(x=>x.m===m);const s=S[j],a=S[j-1]||null,l=S.find(x=>x.m===mAdd(m,-12))||null;
+ const ult12=S.slice(Math.max(0,j-12),j);const med=k=>ult12.length?ult12.reduce((t,x)=>t+x[k],0)/ult12.length:null;
+ const pp=(v,c)=>v/c*100;const dpp=(k,o)=>o?pp(s[k],s.cart)-pp(o[k],o.cart):null;const ppT=v=>v==null?'—':`${v>=0?'+':'−'}${fmt(Math.abs(v),1)} p.p.`;
+ const rows=[];const ina=s.parou+s.nunca,inaA=a?a.parou+a.nunca:null;
+ // 1. inativos
+ rows.push({f:`**${fmt(ina)} inativos** em ${lab(m)}, ${pc1(ina/s.cart*100)} da carteira${a?` (${ppT(ina/s.cart*100-inaA/a.cart*100)} vs ${lab(a.m)}`:''}${l?`; ${ppT(ina/s.cart*100-(l.parou+l.nunca)/l.cart*100)} vs ${lab(l.m)})`:a?')':''}.`,
+  c:a?`O que mudou vs ${lab(a.m)}:\n- Nunca gerou: ${sinalN(s.nunca-a.nunca)} (${pc1(pp(s.nunca,s.cart))} da carteira)\n- Parou de gerar: ${sinalN(s.parou-a.parou)} (${pc1(pp(s.parou,s.cart))})\n- Carteira: ${sinalN(s.cart-a.cart)} pessoas${s.cart>a.cart?' (quem entra começa como "nunca gerou")':''}\n- Primeiro voucher no mês: ${fmt(s.estreou)}; voltaram a usar: ${fmt(s.voltou)}`:'Primeiro mês do histórico do painel.',
+  a:s.parou-(a?a.parou:0)>Math.abs(s.nunca-(a?a.nunca:0))?'O aumento vem de quem parou: priorizar a reativação de quem está esfriando e parou há pouco (Gerar bases › Parados há 6 a 12 meses).':'O movimento vem de quem nunca usou: priorizar a ativação de quem entrou nos últimos meses (Gerar bases › Novos sem uso).'});
+ // 2. ativação
+ const tE=a&&a.nunca?s.estreou/a.nunca*100:null;const tEm=ult12.length>1?ult12.slice(1).reduce((t,x,q)=>t+(ult12[q].nunca?x.estreou/ult12[q].nunca*100:0),0)/(ult12.length-1):null;
+ rows.push({f:`**${fmt(s.estreou)} pessoas geraram o primeiro voucher**${a?` (${sinalP(varp(s.estreou,a.estreou))} vs ${lab(a.m)}`:''}${l?`; ${sinalP(varp(s.estreou,l.estreou))} vs ${lab(l.m)})`:a?')':''}.`,
+  c:`- Média dos 12 meses anteriores: ${fmt(med('estreou'))} por mês${tE!=null?`\n- Taxa de ativação: ${fmt(tE,2)}% de quem nunca tinha usado estreou no mês${tEm!=null?` (média: ${fmt(tEm,2)}%)`:''}`:''}\n- A maior parte das estreias acontece no mês de entrada na carteira: o número acompanha as vendas e a comunicação de boas-vindas`,
+  a:med('estreou')&&s.estreou<med('estreou')*0.9?'Ativação abaixo da média: revisar a régua de boas-vindas dos novos assinantes e usar um benefício de uso imediato no primeiro e-mail.':'Manter a régua de boas-vindas e acompanhar os novos sem uso dos últimos 6 meses.'});
+ // 3. reativação
+ const tV=a&&a.parou?s.voltou/a.parou*100:null;
+ rows.push({f:`**${fmt(s.voltou)} pessoas voltaram a usar** depois de 6 meses ou mais paradas${a?` (${sinalP(varp(s.voltou,a.voltou))} vs ${lab(a.m)}`:''}${l?`; ${sinalP(varp(s.voltou,l.voltou))} vs ${lab(l.m)})`:a?')':''}.`,
+  c:`- Média dos 12 meses anteriores: ${fmt(med('voltou'))} por mês${tV!=null?`\n- Taxa de reativação: ${fmt(tV,2)}% de quem estava parado voltou no mês`:''}\n- Picos costumam vir de ações de cortesia e eventos grandes (ver Parceiros › Visão geral do mês)`,
+  a:med('voltou')&&s.voltou<med('voltou')*0.9?'Reativação abaixo da média: acionar quem parou há 6 a 12 meses com o tipo de benefício mais usado no período (cinema, eventos).':'Registrar qual ação puxou os retornos e repetir o formato.'});
+ // 4. esfriando
+ rows.push({f:`**${fmt(s.esfriando)} pessoas esfriando** (3 a 5 meses sem gerar), ${pc1(pp(s.esfriando,s.cart))} da carteira${a?` (${sinalN(s.esfriando-a.esfriando)} vs ${lab(a.m)})`:''}.`,
+  c:`- Se não voltarem, passam a "parou de gerar" nos próximos 1 a 3 meses\n- Ativos recentes (1 a 2 meses sem gerar): ${fmt(s.recente)}${a?` (${sinalN(s.recente-a.recente)})`:''}, que alimentam o grupo esfriando no mês seguinte`,
+  a:'Régua para quem está esfriando: lembrete com novidades e o último tipo de benefício usado (Gerar bases › Esfriando).'});
+ // 5. uso no mês
+ rows.push({f:`**${fmt(s.mes)} pessoas da carteira usaram no mês**, ${pc1(pp(s.mes,s.cart))}${a?` (${ppT(dpp('mes',a))} vs ${lab(a.m)}`:''}${l?`; ${ppT(dpp('mes',l))} vs ${lab(l.m)})`:a?')':''}.`,
+  c:`- Delas, ${fmt(s.estreou)} estrearam e ${fmt(s.voltou)} voltaram depois de 6+ meses\n- As demais (${fmt(s.mes-s.estreou-s.voltou)}) já vinham usando nos meses anteriores`,
+  a:'Cruzar com Parceiros › Visão geral do mesmo mês para ver quais parceiros e categorias puxaram o uso.'});
+ // 6. perfil (só mês mais recente)
+ if(m===INA.d.mes&&INA.d.perfil){const ret=[];Object.keys(DIMS_I).filter(k=>INA.d.dims[k]).forEach(dk=>{const Ld=linhasDim(dk);const Td=totDim(Ld);Ld.filter(x=>x.cart>=1000&&x.ina>0).forEach(x=>ret.push({dk,k:x.k,idx:(x.ina/Td.ina)/(x.cart/Td.cart),pi:x.ina/x.cart}))});
+  const top=ret.filter(x=>x.idx>=1.1).sort((a,b)=>b.idx-a.idx).slice(0,3);if(top.length)rows.push({f:`Grupos com mais inativos que a média: ${top.map(x=>`**${DIMS_I[x.dk]}: ${x.k}**`).join(', ')}.`,c:top.map(x=>`- ${DIMS_I[x.dk]} ${x.k}: ${pc1(x.pi*100)} inativos (${fmt(x.idx,2)}× o peso na carteira)`).join('\n'),a:'Ver as hipóteses ligadas a esses grupos (Inativos › Hipóteses) e gerar a base do segmento para testar uma ação.'})}
+ return rows}
+function inaFca(){const D=INA.d;const M=D.serie.map(x=>x.m).filter((m,j)=>j>0);if(!INA.fm||!M.includes(INA.fm))INA.fm=M[M.length-1];const m=INA.fm;
+ const salvo=(D.fca||{})[m];const auto=fcaInativos(m);const rows=INA.fcaEd||(salvo?salvo.rows:auto);const ed=INA.fcaEd!=null;
+ return shell('inativos-fca',`<div class="bar"><label class="fld"><span>Mês</span><select id="if-m">${[...M].reverse().map(x=>`<option value="${x}" ${x===m?'selected':''}>${lab(x)}</option>`).join('')}</select></label></div>
+ <div class="card td-card td-fca"><div class="row-head"><div><h3>${T('fca','FCA')} de ${lab(m)}</h3><p class="sub">${ed?'Edite fato, causa e ação. Use **texto** para negrito; comece a linha com - para virar tópico.':salvo?'Versão revisada pelo time.':'Gerado automaticamente a partir dos números do mês, comparados com o mês anterior e com o mesmo mês do ano anterior. Revise as ações antes de compartilhar.'}</p></div>
+ ${ADMIN?`<div class="acoes">${ed?`<button class="btn" id="if-ok" type="button">Salvar FCA</button><button class="chip" id="if-add" type="button">Adicionar linha</button><button class="chip" id="if-x" type="button">Cancelar</button>`:`<button class="chip" id="if-ed" type="button">Editar FCA</button>${salvo?'<button class="chip" id="if-auto" type="button">Voltar ao automático</button>':''}`}<span class="hint" id="if-msg"></span></div>`:''}</div>
+ <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th>${ed?'<th></th>':''}</tr></thead><tbody>
+ ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button">×</button></td></tr>`
+  :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')}</tbody></table></div></div>
+ <p class="hint">Estados de uso contados a partir de jul/2023. ${T('taxa-ativacao','Taxa de ativação')} = primeiro voucher no mês ÷ quem nunca tinha gerado no mês anterior. ${T('taxa-reativacao','Taxa de reativação')} = voltaram no mês ÷ quem estava parado (6+ meses) no mês anterior. Os grupos de perfil aparecem só no mês mais recente.</p>`)}
+function bindFca(h){const box=document.querySelector('.td-fca');const m=INA.fm;
+ const sel=document.getElementById('if-m');if(sel)sel.onchange=()=>{INA.fm=sel.value;INA.fcaEd=null;inaRender(h)};
+ const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+ const ler=()=>[...box.querySelectorAll('tr[data-j]')].map(tr=>{const o={};tr.querySelectorAll('textarea').forEach(t=>o[t.dataset.c]=t.value.trim());return o}).filter(o=>o.f||o.c||o.a);
+ const salvo=(INA.d.fca||{})[m];
+ on('if-ed',()=>{INA.fcaEd=(salvo?salvo.rows:fcaInativos(m)).map(x=>({...x}));inaRender(h)});
+ on('if-x',()=>{INA.fcaEd=null;inaRender(h)});
+ on('if-add',()=>{INA.fcaEd=ler();INA.fcaEd.push({f:'',c:'',a:''});inaRender(h)});
+ box.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const v=ler();v.splice(+b.dataset.del,1);INA.fcaEd=v;inaRender(h)});
+ const salvar=async v=>{const msg=document.getElementById('if-msg');msg.textContent='Salvando…';const {error}=await sb.rpc('salvar_fca_inativos',{p_mes:m,p:v});
+  if(error){msg.textContent='Não salvou: '+error.message;return}INA.d.fca=INA.d.fca||{};if(v)INA.d.fca[m]=v;else delete INA.d.fca[m];INA.fcaEd=null;inaRender(h)};
+ on('if-ok',()=>salvar({rows:ler(),em:new Date().toISOString()}));
+ on('if-auto',()=>{if(confirm('Descartar a versão revisada e voltar ao FCA automático?'))salvar(null)})}
 
 
 /* ---------- telas gerais ---------- */
