@@ -477,6 +477,11 @@ const GL=[
  ['Perfil',[
   ['geracoes','Gerações','Faixas de idade usadas em todo o portal.','<table><tr><th>Geração</th><th>Idade</th></tr><tr><td>Gen Z</td><td>18 a 29</td></tr><tr><td>Millennials</td><td>30 a 45</td></tr><tr><td>Gen X</td><td>46 a 61</td></tr><tr><td>Baby Boomers</td><td>62 a 80</td></tr><tr><td>Pré-Boomer</td><td>81 a 85</td></tr><tr><td>86+</td><td>86 a 115</td></tr><tr><td>Idade não informada</td><td>sem idade no cadastro</td></tr></table>'],
   ['tempo-casa','Tempo de casa','Tempo desde a venda da assinatura.','<table><tr><th>Faixa</th><th>Tempo</th></tr><tr><td>Onboarding</td><td>0 a 6 meses</td></tr><tr><td>Consolidação</td><td>7 meses a 2 anos</td></tr><tr><td>Maturidade</td><td>3 a 5 anos</td></tr><tr><td>Lealdade</td><td>6 a 9 anos</td></tr><tr><td>Legado</td><td>10 anos ou mais</td></tr></table>'],
+  ['idade-media','Idade média','Média da idade informada na carteira: de quem gerou voucher no mês e de todos os titulares da carteira ativa.','Idades não informadas (0 e o código repetido da fonte) ficam fora da média.'],
+  ['vouchers-geracao','Uso por geração','Para cada geração: pessoas na carteira, quantas geraram voucher, penetração, vouchers e vouchers por pessoa no mês.','Vouchers por geração existem nos meses enviados depois do arquivo 15.'],
+  ['churn-1-ano','Churn do 1º ano','Das assinaturas de uma safra (mês de venda) que entraram na carteira, quantas não estavam mais ativas no 13º mês, o primeiro depois do 1º ano completo.','Por assinatura (CDASS). Mês 1 = mês da venda.'],
+  ['churn-renovacao','Churn na virada do ano','Das assinaturas ativas no 12º mês, quantas não estavam mais ativas no 13º. É onde se concentra o cancelamento do fim do período promocional.',''],
+  ['usou-1-ano','Churn de quem usou o Clube','Churn do 1º ano das assinaturas cujo titular gerou voucher em algum dos 12 primeiros meses, comparado com quem não gerou.','Mostra associação, não prova causa.'],
   ['safra','Safra','Semestre em que a assinatura foi vendida (1º sem: jan–jun; 2º sem: jul–dez).','Vendas com mais de 3 anos aparecem juntas como "Safras anteriores".'],
   ['heavy-user','Heavy user','Gerou 8 ou mais vouchers em 12 meses, em pelo menos 4 meses diferentes, e o último há no máximo 90 dias.',''],
  ]],
@@ -936,17 +941,17 @@ function renderPerfil(){const box=document.getElementById('res');if(idx(sp.a)>id
   :`Esta tabela conta só quem está na carteira ativa do mês (${fmt(totg)} pessoas geraram voucher). A penetração do mês (${fmt(rows[0].pen,2)}%) usa todas as ${fmt(rows[0].ger)} pessoas que geraram voucher, inclusive ${fmt(rows[0].fora)} fora da carteira, que não têm perfil.`}</p></div>`;
  box.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{sp.o=b.dataset.o;renderPerfil()})}
 
-function bindClube(h){const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
+function bindClube(h){if(h==='clube-idade'){renderIdade();return}if(h==='clube-churn'){renderChurn();return}const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
  if(h==='clube'){on('mm',v=>{sm.m=v;renderVisao('mes')});on('mcmp',v=>{sm.cmp=v;renderVisao('mes')});renderVisao('mes')}
  if(h==='clube-ano'){on('ay',v=>{sa.y=v;sa.cmp=YEARS.includes(String(+v-1))?String(+v-1):String(+v+1);const c=document.getElementById('acmp');c.innerHTML=YEARS.filter(y=>y!==sa.y).map(y=>`<option value="${y}" ${y===sa.cmp?'selected':''}>${y}${y===String(+sa.y-1)?' (ano anterior)':''}</option>`).join('');renderVisao('ano')});on('acmp',v=>{sa.cmp=v;renderVisao('ano')});renderVisao('ano')}
  if(h==='clube-comparar'){['a1','b1','a2','b2'].forEach(k=>on(k,v=>{sc[k]=v;renderComp()}));renderComp()}
  if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});on('pa',v=>{sp.a=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
-const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-comparar':comparar,'clube-perfil':perfil};
+const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-comparar':comparar,'clube-perfil':perfil,'clube-idade':()=>idadePagina(),'clube-churn':()=>churnPagina()};
 
 /* ---------- áreas e relatórios ---------- */
 const AREAS={
  clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos e perfil de quem usa.',c:'var(--vinho)',st:['ok','Pronto'],
-  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-enviar','Enviar mês',1]]},
+  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-enviar','Enviar mês',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
@@ -1071,7 +1076,7 @@ async function lerCarteira(file,mes){
   if(ativo){const fam=FAMILIA[normU(iF>=0?L[iF]:null)]||'Indefinido';
    row.pf_ativo=fam==='Ativo';row.produto=PRODUTO[normU(iSig>=0?L[iSig]:null)]||'Outros';
    row.modalidade=iMod>=0?(modalidade2(L[iMod])||'Não informado'):null;
-   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm);
+   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.idade=row.geracao==='Idade não informada'?null:Math.trunc(L[iI]);row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm);
    if(iCid>=0){const cid=nomeCidade(L[iCid]);row.cidade=cid;row.regiao=regiaoCidade(cid)}if(iEm>=0)row.email=/\S+@\S+\.\S+/.test(String(L[iEm]??''))}
   out.push(row)}
  linhas=null;return out}
@@ -1167,6 +1172,7 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    await enviar('staging_carteira',cart,(a,b)=>etapa(`${nome}: enviando a carteira (${fmt(a)} de ${fmt(b)})…`,base+passo*(.2+.55*a/b)));
    await rpc('salvar_perfil_pessoas',{p_mes:m+'-01'});
    await enviar('staging_vouchers',vrows,(a,b)=>etapa(`${nome}: enviando os vouchers (${fmt(a)} de ${fmt(b)})…`,base+passo*(.75+.15*a/b)));
+   await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
    logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.`,'ok')}
@@ -2396,6 +2402,62 @@ function bindFca(h){const box=document.querySelector('.td-fca');const m=INA.fm;
   if(error){msg.textContent='Não salvou: '+error.message;return}INA.d.fca=INA.d.fca||{};if(v)INA.d.fca[m]=v;else delete INA.d.fca[m];INA.fcaEd=null;inaRender(h)};
  on('if-ok',()=>salvar({rows:ler(),em:new Date().toISOString()}));
  on('if-auto',()=>{if(confirm('Descartar a versão revisada e voltar ao FCA automático?'))salvar(null)})}
+
+/* =====================================================================
+   Clube em números — Idade e gerações / Churn do 1º ano
+   ===================================================================== */
+const IC={id:null,ch:null,m:null,sa:null,sb:null};
+const GERS=['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'];
+const FAIXA_G={'Gen Z':'18 a 29 anos','Millennials':'30 a 45','Gen X':'46 a 61','Baby Boomers':'62 a 80','Pré-Boomer':'81 a 85','86+':'86 anos ou mais','Idade não informada':''};
+function linhaSvg(cats,series,o={}){const W=1000,H=o.h||220,Lm=46,R=14,T0=14,B=28;const all=series.flatMap(s=>s.v).filter(v=>v!=null);if(!all.length)return '';
+ const mn=o.min??Math.min(...all)*.97,mx=Math.max(...all)*1.03;const x=j=>Lm+j*(W-Lm-R)/Math.max(cats.length-1,1),y=v=>T0+(1-(v-mn)/(mx-mn||1))*(H-T0-B);let g='';
+ for(let k=0;k<=3;k++){const v=mn+(mx-mn)*k/3;g+=`<line x1="${Lm}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${Lm-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${o.f?o.f(v):fmt(v)}</text>`}
+ series.forEach(s=>{let d='',up=false;s.v.forEach((v,j)=>{if(v==null){up=false;return}d+=`${up?'L':'M'}${x(j).toFixed(1)} ${y(v).toFixed(1)}`;up=true});g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2.4"${s.dash?' stroke-dasharray="5 4"':''}/>`;
+  s.v.forEach((v,j)=>{if(v!=null)g+=`<circle cx="${x(j)}" cy="${y(v)}" r="3" fill="${s.c}"><title>${cats[j]} · ${s.n}: ${o.f?o.f(v):fmt(v)}</title></circle>`})});
+ cats.forEach((c,j)=>{if(j%Math.ceil(cats.length/12)===0||j===cats.length-1)g+=`<text x="${x(j)}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${c}</text>`});
+ return `<svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>${legend(series.map(s=>[s.c,s.n]))}`}
+
+/* ---------- Idade e gerações ---------- */
+function idadePagina(){return shell('clube-idade','<div id="ic-res"><p class="carregando">Carregando…</p></div>')}
+async function renderIdade(){const box=document.getElementById('ic-res');if(!box)return;
+ if(!IC.id){const {data,error}=await sb.rpc('dados_idade');if(error){box.innerHTML=`<div class="note">${/dados_idade/.test(error.message)?'Rode o arquivo 15_idade_churn.sql no Supabase para ver esta página.':esc(error.message)}</div>`;return}IC.id=data||[]}
+ const R=IC.id;const ms=M.map(r=>r.m);if(!IC.m||!ms.includes(IC.m))IC.m=LAST;const m=IC.m;const r=R.find(x=>x.m===m);
+ const P=(PERFIL[m]||{}).geracao||{};const tem=!!r;
+ const rows=GERS.map(g=>{const pf=P[g]||[0,0];const gi=r&&r.g?r.g[g]:null;return {g,cart:gi?gi[0]:pf[0],usou:gi?gi[1]:pf[1],vou:gi?gi[2]:null}}).filter(x=>x.cart>0);
+ const tc=rows.reduce((t,x)=>t+x.cart,0),tu=rows.reduce((t,x)=>t+x.usou,0),tv=rows.reduce((t,x)=>t+(x.vou||0),0);
+ const imC=r&&r.cn?r.cs/r.cn:null,imU=r&&r.un?r.us/r.un:null;const ant=R.find(x=>x.m===shift(m,-1));const imUa=ant&&ant.un?ant.us/ant.un:null;
+ const serie=R.filter(x=>x.cn);const mx=Math.max(...rows.map(x=>x.usou/x.cart*100));
+ const vMax=rows.filter(x=>x.vou).sort((a,b)=>b.vou/b.usou-a.vou/a.usou)[0];const pMax=rows.filter(x=>x.cart>=1000&&x.g!=='Idade não informada').sort((a,b)=>b.usou/b.cart-a.usou/a.cart)[0];
+ box.innerHTML=`<div class="bar"><label class="fld"><span>Mês</span><select id="ic-m">${monthOpts(m,0)}</select></label></div>
+ ${tem?'':`<div class="note">A idade média e os vouchers por geração de ${lab(m)} ainda não estão no portal: eles passam a ser guardados nos meses enviados depois do arquivo 15. Para ter este mês, reenvie a carteira e os vouchers de ${lab(m)} em Clube em números › Enviar mês. A tabela abaixo mostra as pessoas por geração, que já existiam.</div>`}
+ ${tem?`<p class="answer">Em ${lab(m)}, quem gerou voucher tem em média <b>${fmt(imU,1)} anos</b>, contra <b>${fmt(imC,1)} anos</b> da carteira: ${imU<imC?`quem usa é ${fmt(imC-imU,1)} anos mais novo`:`quem usa é ${fmt(imU-imC,1)} anos mais velho`}.${pMax?` A geração que mais usa, proporcionalmente, é <b>${pMax.g}</b> (${fmt(pMax.usou/pMax.cart*100,1)}% geraram voucher).`:''}${vMax?` Quem mais repete é <b>${vMax.g}</b>, com ${fmt(vMax.vou/vMax.usou,2)} vouchers por pessoa.`:''}</p>
+ <div class="td-kpis">${[[T('idade-media','Idade média de quem usa'),fmt(imU,1)+' anos',imUa!=null?`${imU-imUa>=0?'+':'−'}${fmt(Math.abs(imU-imUa),1)} ano vs ${lab(ant.m)}`:''],[T('idade-media','Idade média da carteira'),fmt(imC,1)+' anos',''],['Diferença',`${fmt(Math.abs(imU-imC),1)} anos`,imU<imC?'quem usa é mais novo':'quem usa é mais velho']].map(([a,b,c])=>`<div class="td-k"><span>${a}</span><b>${b}</b><small>${c}</small></div>`).join('')}</div>`:''}
+ <div class="card tablecard"><h3>${T('vouchers-geracao','Uso por geração')} · ${lab(m)}</h3><div class="tw"><table class="cmp prof"><thead><tr><th>${T('geracoes','Geração')}</th><th class="n">Na carteira</th><th class="n">% da carteira</th><th class="n">Geraram voucher</th><th class="n">% de quem gerou</th><th>${T('penetracao','Penetração')}</th><th class="n">${T('vouchers','Vouchers')}</th><th class="n">% dos vouchers</th><th class="n">Vouchers por pessoa</th></tr></thead><tbody>
+ ${rows.map(x=>`<tr><td>${x.g}${FAIXA_G[x.g]?` <small>${FAIXA_G[x.g]}</small>`:''}</td><td class="n">${fmt(x.cart)}</td><td class="n">${fmt(x.cart/tc*100,1)}%</td><td class="n">${fmt(x.usou)}</td><td class="n">${fmt(x.usou/tu*100,1)}%</td><td><div class="barcell"><span style="width:${(x.usou/x.cart*100/mx*100).toFixed(1)}%"></span><b>${fmt(x.usou/x.cart*100,1)}%</b></div></td><td class="n">${x.vou!=null?fmt(x.vou):'—'}</td><td class="n">${x.vou!=null&&tv?fmt(x.vou/tv*100,1)+'%':'—'}</td><td class="n">${x.vou!=null&&x.usou?fmt(x.vou/x.usou,2):'—'}</td></tr>`).join('')}
+ <tr class="tot"><td>Total</td><td class="n">${fmt(tc)}</td><td class="n">100%</td><td class="n">${fmt(tu)}</td><td class="n">100%</td><td><b>${fmt(tu/tc*100,1)}%</b></td><td class="n">${tem?fmt(tv):'—'}</td><td class="n">${tem?'100%':'—'}</td><td class="n">${tem&&tu?fmt(tv/tu,2):'—'}</td></tr></tbody></table></div>
+ <p class="hint">Pessoas = titulares da carteira ativa do mês. Idade informada na carteira; valores de "não informado" (0 e o código repetido da fonte) ficam fora da média. Vouchers por geração contam só quem está na carteira do mês.</p></div>
+ ${serie.length>1?`<div class="card"><h3>Idade média ao longo dos meses</h3>${linhaSvg(serie.map(x=>lab(x.m)),[{n:'Quem gerou voucher',c:'#721a50',v:serie.map(x=>x.un?x.us/x.un:null)},{n:'Carteira',c:'#C65911',v:serie.map(x=>x.cs/x.cn)}],{f:v=>fmt(v,1)})}</div>`:''}`;
+ const sel=document.getElementById('ic-m');sel.onchange=()=>{IC.m=sel.value;renderIdade()}}
+
+/* ---------- Churn do 1º ano ---------- */
+function churnPagina(){return shell('clube-churn','<div id="ic-res"><p class="carregando">Carregando…</p></div>')}
+async function renderChurn(){const box=document.getElementById('ic-res');if(!box)return;
+ if(!IC.ch){const {data,error}=await sb.rpc('churn_1ano');if(error){box.innerHTML=`<div class="note">${/churn_1ano/.test(error.message)?'Rode o arquivo 15_idade_churn.sql no Supabase para ver esta página.':esc(error.message)}</div>`;return}IC.ch=(data||[]).map(([m,n,a12,a13,nu,a13u,nn,a13n])=>({m,n,a12,a13,nu,a13u,nn,a13n}))}
+ const C=IC.ch;if(!C.length){box.innerHTML='<p class="answer">Ainda não há safras com o 1º ano completo.</p>';return}
+ const ms=C.map(x=>x.m);if(!IC.sb||!ms.includes(IC.sb))IC.sb=ms[ms.length-1];if(!IC.sa||!ms.includes(IC.sa))IC.sa=ms[Math.max(0,ms.length-12)];if(IC.sa>IC.sb)[IC.sa,IC.sb]=[IC.sb,IC.sa];
+ const sel=C.filter(x=>x.m>=IC.sa&&x.m<=IC.sb);const S=k=>sel.reduce((t,x)=>t+x[k],0);
+ const ch=(n,a)=>n?(1-a/n)*100:null;const c1=ch(S('n'),S('a13')),cR=ch(S('a12'),S('a13')),cU=ch(S('nu'),S('a13u')),cN=ch(S('nn'),S('a13n')),pu=S('nu')/S('n')*100;
+ const opt=v=>[...ms].reverse().map(m=>`<option value="${m}" ${m===v?'selected':''}>${lab(m)}</option>`).join('');
+ const k=(a,b,c,cl)=>`<div class="td-k ${cl||''}"><span>${a}</span><b>${b}</b><small>${c}</small></div>`;
+ box.innerHTML=`<div class="bar"><div class="fld"><span>Safras (mês de venda)</span><div class="pair"><select id="ch-a">${opt(IC.sa)}</select><em>até</em><select id="ch-b">${opt(IC.sb)}</select></div></div></div>
+ <p class="answer">Das <b>${fmt(S('n'))} assinaturas</b> vendidas de ${lab(IC.sa)} a ${lab(IC.sb)} que entraram na carteira, <b>${fmt(c1,1)}% não estavam mais ativas no 13º mês</b>, o primeiro depois do 1º ano completo. Só na virada (do 12º para o 13º mês), cancelaram ${fmt(cR,1)}% das que chegaram ao 12º mês. Entre quem usou o Clube no 1º ano, o churn foi de <b>${fmt(cU,1)}%</b>; entre quem não usou, <b>${fmt(cN,1)}%</b>.</p>
+ <div class="td-kpis">${k(T('churn-1-ano','Churn do 1º ano'),fmt(c1,1)+'%','não ativas no 13º mês','baixo')}${k(T('churn-renovacao','Churn na virada do ano'),fmt(cR,1)+'%','ativas no 12º mês que saíram no 13º','lim')}${k(T('usou-1-ano','Churn de quem usou o Clube'),fmt(cU,1)+'%',`${fmt(pu,1)}% usaram no 1º ano`,'ok')}${k('Churn de quem não usou',fmt(cN,1)+'%',`${fmt(cN-cU,1)} p.p. acima de quem usou`,'baixo')}</div>
+ <div class="card"><h3>Churn do 1º ano por safra: quem usou × quem não usou o Clube</h3>${linhaSvg(sel.map(x=>lab(x.m)),[{n:'Não usou o Clube no 1º ano',c:'#C65911',v:sel.map(x=>ch(x.nn,x.a13n))},{n:'Todas',c:'#a06a91',v:sel.map(x=>ch(x.n,x.a13)),dash:1},{n:'Usou o Clube no 1º ano',c:'#721a50',v:sel.map(x=>ch(x.nu,x.a13u))}],{f:v=>fmt(v,0)+'%',min:0})}</div>
+ <div class="card tablecard"><h3>Por safra</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Safra</th><th class="n">Assinaturas</th><th class="n">Ativas no 12º mês</th><th class="n">Ativas no 13º mês</th><th class="n">Churn do 1º ano</th><th class="n">Churn na virada</th><th class="n">% que usou o Clube</th><th class="n">Churn de quem usou</th><th class="n">Churn de quem não usou</th></tr></thead><tbody>
+ ${[...sel].reverse().map(x=>`<tr${RESSALVA[shift(x.m,12)]||RESSALVA[shift(x.m,11)]?' title="Mês com ressalva no período"':''}><td>${lab(x.m)}${RESSALVA[shift(x.m,12)]||RESSALVA[shift(x.m,11)]?' ⚠':''}</td><td class="n">${fmt(x.n)}</td><td class="n">${fmt(x.a12)}</td><td class="n">${fmt(x.a13)}</td><td class="n"><b>${fmt(ch(x.n,x.a13),1)}%</b></td><td class="n">${fmt(ch(x.a12,x.a13),1)}%</td><td class="n">${fmt(x.nu/x.n*100,1)}%</td><td class="n">${fmt(ch(x.nu,x.a13u),1)}%</td><td class="n">${fmt(ch(x.nn,x.a13n),1)}%</td></tr>`).join('')}
+ <tr class="tot"><td>Período</td><td class="n">${fmt(S('n'))}</td><td class="n">${fmt(S('a12'))}</td><td class="n">${fmt(S('a13'))}</td><td class="n"><b>${fmt(c1,1)}%</b></td><td class="n">${fmt(cR,1)}%</td><td class="n">${fmt(pu,1)}%</td><td class="n">${fmt(cU,1)}%</td><td class="n">${fmt(cN,1)}%</td></tr></tbody></table></div>
+ <p class="hint">Por assinatura (CDASS). Safra = mês da venda (mês 1). Entram as assinaturas vendidas a partir de jul/2023 que apareceram ativas na carteira no mês da venda ou no seguinte. 12º mês = venda + 11 meses; 13º mês = venda + 12. "Usou o Clube" = o titular gerou voucher em algum dos 12 primeiros meses da assinatura. ⚠ = a virada cai num mês com ressalva na carteira (ex.: abr/2026 e jun/2026). Usar o Clube e ficar andam juntos, mas isso não prova que um causa o outro: quem já gosta da assinatura também tende a usar mais.</p></div>`;
+ const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onchange=()=>f(el.value)};on('ch-a',v=>{IC.sa=v;renderChurn()});on('ch-b',v=>{IC.sb=v;renderChurn()})}
 
 
 /* ---------- telas gerais ---------- */
