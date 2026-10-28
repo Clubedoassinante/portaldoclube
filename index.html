@@ -1082,7 +1082,7 @@ async function lerCarteira(file,mes){
  linhas=null;return out}
 
 function colunasVoucher(campos,nome){const f=(campos||[]).map(x=>[x,normU(x)]);const ach=t=>(f.find(t)||[])[0];
- const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS')};
+ const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD')}; // quantidade de vouchers da linha: nunca ignorar
  if(!c.cpf||!c.marca||!c.data)throw new Error(`${nome} não parece um arquivo de vouchers (precisa das colunas CPF, Marca e Data).`);return c}
 function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
  let marca=String(marcaRaw??'').trim();if(/^\d+\.0+$/.test(marca))marca=marca.replace(/\.0+$/,'');
