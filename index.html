@@ -1571,15 +1571,17 @@ async function lerSemana(file){let linhas;
  const hi=linhas.slice(0,10).findIndex(r=>(r||[]).some(x=>normU(x)==='MARCA'));
  if(hi<0)throw new Error('Não encontrei a coluna Marca. Envie a base exportada (com Nome, CPF, Marca, Título e Descrição do cupom).');
  const h=linhas[hi].map(normU);const col=f=>h.findIndex(f);
- const iN=col(x=>x.startsWith('NOME')),iC=col(x=>x==='CPF'),iM=col(x=>x==='MARCA'),iT=col(x=>x.startsWith('TITULO')),iD=col(x=>x.startsWith('DESCRI'));
+ const iN=col(x=>x.startsWith('NOME')),iC=col(x=>x==='CPF'),iM=col(x=>x==='MARCA'),iT=col(x=>x.startsWith('TITULO')),iD=col(x=>x.startsWith('DESCRI')),iQ=col(x=>x==='PRODUTOS'||x.startsWith('QUANTIDADE')||x==='QTD');
  if(iT<0)throw new Error('Não encontrei a coluna Título.');if(iN<0&&iC<0)throw new Error('Não encontrei as colunas Nome e CPF, que contam os usuários únicos.');
  const lim=s=>String(s??'').replace(/\s+/g,' ').trim();
  const itens=new Map(),pess=new Set();let usos=0,admin=0,farm=0;
  for(let r=hi+1;r<linhas.length;r++){if(!linhas[r])continue;const L=linhas[r].map(conserta);const marca=lim(L[iM]);if(!marca)continue;
-  if(iN>=0&&normU(L[iN])==='ADMIN C'){admin++;continue}
-  if(FARMACIAS.has(normL(marca))){farm++;continue}
-  usos++;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
-  const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos++;
+  // quantidade de vouchers da linha (exportação da plataforma traz a coluna Produtos; a base do relatório traz uma linha por voucher)
+  const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
+  if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
+  if(FARMACIAS.has(normL(marca))){farm+=q;continue}
+  usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
+  const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
  if(!usos)throw new Error(`${file.name} não tem nenhum uso válido.`);
  return {arquivo:file.name,usos,unicos:pess.size,admin,farm,itens:[...itens.values()],...periodoDoArquivo(file.name)}}
