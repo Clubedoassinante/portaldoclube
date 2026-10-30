@@ -523,7 +523,7 @@ const GL=[
   ['usuarios-semana','Usuários únicos da semana','Pessoas diferentes que geraram pelo menos 1 voucher na semana.',''],
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
-  ['cortesia','Usos de cortesia','Vouchers da marca Clube do Assinante cuja descrição do cupom tem uma destas palavras: ação, ação especial, presente, presentear ou presentar. O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. Meses sem base no portal mostram o número digitado em Números do mês.'],
+  ['cortesia','Usos de cortesia','Vouchers da marca Clube do Assinante cuja descrição do cupom tem uma destas palavras: ação, ação especial, presente, presentear ou presentar. O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. O mês fechado é atualizado ao enviar os vouchers do mês em Clube em números.'],
   ['acoes-clube','Ações do Clube','Promoções da própria marca Clube do Assinante, como as ações de cortesia.',''],
   ['eventos','Eventos','Promoções das produtoras de eventos.','A lista de produtoras fica na página Enviar semana e pode ser editada pelos administradores.'],
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
@@ -1343,14 +1343,20 @@ const MESN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agost
 const MES3=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const diasNoMes=(y,m)=>new Date(y,m,0).getDate();
 function plat(y,m){return (SEM.dados.plataforma||[]).find(r=>r.m===`${y}-${pad2(m)}`)||{}}
-function carteira(y,m){for(let k=m;k>=1;k--){const c=plat(y,k).carteira;if(c)return c}for(let k=12;k>=1;k--){const c=plat(y-1,k).carteira;if(c)return c}return null}
+/* números mensais: totais da plataforma (Clube em números › Enviar mês › Uso na plataforma); se faltar, o Clube em números; se faltar, a última base do mês enviada no semanal */
+function mtdDoMes(y,m){const k=`${y}-${pad2(m)}`;let r=null;for(const w of SEM.dados.semanas){const t=w.mtd;if(t&&!t.antiga&&(t.mes||w.f.slice(0,7))===k&&(!r||w.f>r.f))r={f:w.f,usos:t.usos,unicos:t.unicos}}return r}
+function mesNum(y,m,k,soFechado){const P=plat(y,m);const v=P[k==='usos'?'usos':'usuarios'];if(v!=null)return v;
+ const r=(typeof M!=='undefined'?M:[]).find(x=>x.m===`${y}-${pad2(m)}`);if(r)return k==='usos'?r.vou:r.ger;
+ const t=soFechado?null:mtdDoMes(y,m);return t?(k==='usos'?t.usos:t.unicos):null}
+function carteiraMes(y,m){const c=plat(y,m).carteira;if(c)return c;const r=(typeof M!=='undefined'?M:[]).find(x=>x.m===`${y}-${pad2(m)}`);return r&&r.pessoas||null}
+function carteira(y,m){for(let k=m;k>=1;k--){const c=carteiraMes(y,k);if(c)return c}for(let k=12;k>=1;k--){const c=carteiraMes(y-1,k);if(c)return c}return null}
 function mesRef(s){const f=dt(s.f),mf=iso(f).slice(0,7);const mm=s.mtd&&s.mtd.mes||mf;const y=+mm.slice(0,4),mi=+mm.slice(5,7);return {y,mi,dm:mm===mf?f.getDate():diasNoMes(y,mi),fechado:mm!==mf}}
 function painel(s){const f=dt(s.f),{y,mi,dm}=mesRef(s);const L=SEM.dados.semanas;const mtd=s.mtd||null;
  const doAno=a=>L.filter(w=>dt(w.i).getFullYear()===a);
  const cur=doAno(y).filter(w=>w.i<=s.i).map(w=>{const a=semComparada(w,'yoy');return {lab:semLab(w,true),usos:w.usos,unicos:w.unicos,pu:a?.usos??null,pn:a?.unicos??null}});
  const prevW=doAno(y-1).map(w=>({lab:semLab(w,true),usos:w.usos,unicos:w.unicos}));
  const p1=doAno(y-1)[0];const desde=p1&&dt(p1.i).getMonth()>0?` (Desde ${MESN[dt(p1.i).getMonth()].toLowerCase()})`:'';
- const mes=(a,m,k)=>{if(a===y&&m===mi&&mtd)return k==='usos'?mtd.usos:mtd.unicos;if(a===y&&m>=mi)return null;return plat(a,m)[k==='usos'?'usos':'usuarios']??null};
+ const mes=(a,m,k)=>{if(a===y&&m===mi&&mtd)return k==='usos'?mtd.usos:mtd.unicos;if(a===y&&m>=mi)return null;return mesNum(a,m,k)};
  const anos=[y-2,y-1,y];
  const meses=anos.map(a=>({a,usos:MES3.map((_,j)=>mes(a,j+1,'usos')),usuarios:MES3.map((_,j)=>mes(a,j+1,'usuarios'))}));
  const pen=MES3.slice(0,mi).map((l,j)=>{const u=mes(y,j+1,'usuarios'),c=carteira(y,j+1);return {l,v:u!=null&&c?u/c:null}});
@@ -1566,38 +1572,24 @@ SEM.anoPl=null;
 function enviarPagina(){const ult=[...SEM.dados.semanas].reverse().filter(s=>!s.so_total);
  return shell('semanal-enviar',`<p class="answer">Envie a Base da semana e a base do mês até a quinta-feira da semana. Os arquivos são lidos aqui no navegador; para o banco vão só as contagens.</p>
  <div class="grid2">
-  <label class="drop"><b>1. Base da semana</b><span>De sexta a quinta. Pode ser o .xlsx do relatório (guia Base) ou a exportação em .csv. O período vem do nome do arquivo (ex.: "1016 a 1022 - Relatório Semanal 2026.xlsx").</span><input type="file" id="wf" accept=".xlsx,.xls,.csv"></label>
-  <label class="drop"><b>2. Base do mês até a data</b><span>Do dia 1º do mês até a quinta-feira da semana. Alimenta o bloco do mês: total, usuários únicos, Top 5 parceiros e eventos e média diária.</span><input type="file" id="wfm" accept=".xlsx,.xls,.csv"></label>
+  <label class="drop"><b>1. Base da semana</b><span>De sexta a quinta. Pode ser o .xlsx do relatório (guia Base) ou a exportação em .csv. O período vem do nome do arquivo: dia de início-dia do fim-ano (ex.: "23-29-2026.csv").</span><input type="file" id="wf" accept=".xlsx,.xls,.csv"></label>
+  <label class="drop"><b>2. Base do mês até a data</b><span>Do dia 1º do mês até a quinta-feira da semana, com o nome no mesmo formato (ex.: "01-29-2026.csv"). Alimenta o bloco do mês: total, usuários únicos, Top 5 parceiros e eventos e média diária.</span><input type="file" id="wfm" accept=".xlsx,.xls,.csv"></label>
  </div>
  <div id="wprev"></div>
- <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel: uso e usuários do site e carteira da penetração. Preencha quando o mês fechar. Os ${T('cortesia','usos de cortesia')} são calculados pelo portal com a base do mês (aqui) e com os vouchers do mês (Clube em números › Enviar mês); só meses sem base ficam com o número digitado.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
  <div class="grid2">
   <div class="card"><h3>Produtoras de eventos</h3><p class="sub">Define o ranking de ${T('eventos','Eventos')}. O portal acrescenta sozinho as produtoras novas que têm no nome Produções, Produtora, Entretenimento, Eventos, Teatro ou Espetáculo. Só mexa aqui se alguma ficar de fora ou entrar por engano (uma por linha, com o nome como aparece na coluna Marca).</p><textarea id="wpr" rows="9">${esc(SEM.dados.produtoras.join('\n'))}</textarea><div class="acoes"><button class="btn" id="wpr-ok" type="button">Salvar lista</button><span class="hint" id="wpr-msg"></span></div></div>
   <div class="card"><h3>Semanas enviadas</h3>${ult.length?`<div class="mes-chips">${ult.map(s=>`<span>${semLab(s)}${s.mtd&&!s.mtd.antiga?'':' · sem base do mês'}</span>`).join('')}</div>`:'<p class="hint">Nenhuma ainda.</p>'}<p class="hint" style="margin-top:10px">Enviar de novo uma semana que já está no portal substitui a anterior. Se enviar só a Base da semana, a base do mês que já estava salva é mantida.</p></div>
  </div>`)}
 function bindEnviar(){libs();SEM.envio=SEM.envio||{};
  document.getElementById('wf').onchange=async e=>{const f=e.target.files[0];if(!f)return;SEM.envio.sem=null;SEM.envio.erro=null;SEM.envio.lendo=true;desenharEnvio();
-  try{const r=await lerSemana(f);Object.assign(SEM.envio,{sem:r,inicio:r.inicio,fim:r.fim,doNome:r.doNome})}catch(err){SEM.envio.erro=err.message||String(err)}SEM.envio.lendo=false;desenharEnvio()};
+  try{const r=await lerSemana(f);Object.assign(SEM.envio,{sem:r,inicio:r.inicio,fim:r.fim,doNome:r.doNome,ambiguo:r.ambiguo})}catch(err){SEM.envio.erro=err.message||String(err)}SEM.envio.lendo=false;desenharEnvio()};
  document.getElementById('wfm').onchange=async e=>{const f=e.target.files[0];if(!f)return;SEM.envio.mes=null;SEM.envio.erroMes=null;SEM.envio.lendo=true;desenharEnvio();
   try{SEM.envio.mes=await lerSemana(f)}catch(err){SEM.envio.erroMes=err.message||String(err)}SEM.envio.lendo=false;desenharEnvio()};
  document.getElementById('wpr-ok').onclick=async()=>{const m=document.getElementById('wpr-msg');m.textContent='Salvando…';
   const lista=document.getElementById('wpr').value.split('\n').map(x=>x.trim()).filter(Boolean);
   const {error}=await sb.rpc('salvar_produtoras',{p_lista:lista});if(error){m.textContent='Não salvou: '+error.message;return}
   await semCarregar(true);m.textContent='Lista salva.'};
- desenharPlataforma();desenharEnvio()}
-function desenharPlataforma(){const box=document.getElementById('wpl'),ch=document.getElementById('wpl-anos');if(!box)return;
- const hoje=new Date();const anos=[];for(let a=2024;a<=hoje.getFullYear();a++)anos.push(a);SEM.anoPl=SEM.anoPl||hoje.getFullYear();
- ch.innerHTML=anos.map(a=>`<button class="chip ${a===SEM.anoPl?'on':''}" data-pa="${a}" type="button">${a}</button>`).join('');
- ch.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{SEM.anoPl=+b.dataset.pa;desenharPlataforma()});
- const a=SEM.anoPl;const inp=(m,k)=>{const P=plat(a,m);if(k==='cortesia'&&P.cortesia_auto)return `<span class="auto" title="Calculada pelo portal com as bases de vouchers">${fmt(P.cortesia)}<small>auto · até ${dt(P.cortesia_ate).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</small></span><input type="hidden" data-m="${a}-${pad2(m)}" data-k="${k}" value="${P.cortesia_man??''}">`;
-  const v=k==='cortesia'?P.cortesia_man:P[k];return `<input type="number" min="0" step="1" inputmode="numeric" data-m="${a}-${pad2(m)}" data-k="${k}" value="${v??''}">`};
- box.innerHTML=`<div class="tw"><table class="cmp pl"><thead><tr><th>Mês</th><th class="n">Uso (site)</th><th class="n">Usuários (site)</th><th class="n">Carteira (penetração)</th><th class="n">Usos de cortesia</th></tr></thead>
- <tbody>${MESN.map((nm,j)=>`<tr><td>${nm}/${a}</td><td class="n">${inp(j+1,'usos')}</td><td class="n">${inp(j+1,'usuarios')}</td><td class="n">${inp(j+1,'carteira')}</td><td class="n">${inp(j+1,'cortesia')}</td></tr>`).join('')}</tbody></table></div>
- <div class="acoes"><button class="btn" id="wpl-ok" type="button">Salvar números de ${a}</button><span class="hint" id="wpl-msg"></span></div>`;
- document.getElementById('wpl-ok').onclick=async()=>{const m=document.getElementById('wpl-msg');m.textContent='Salvando…';const map={};
-  box.querySelectorAll('input[data-m]').forEach(i=>{const o=map[i.dataset.m]=map[i.dataset.m]||{m:i.dataset.m};o[i.dataset.k]=i.value===''?null:Math.round(+i.value)});
-  const {error}=await sb.rpc('salvar_plataforma',{p:Object.values(map)});if(error){m.textContent='Não salvou: '+error.message;return}
-  await semCarregar(true);m.textContent='Números salvos.'}}
+ desenharEnvio()}
 async function lerSemana(file){let linhas;
  if(/\.csv$/i.test(file.name)){const txt=await file.text();linhas=Papa.parse(txt,{skipEmptyLines:true}).data}
  else{const wb=XLSX.read(await file.arrayBuffer(),{type:'array',dense:true});const nm=wb.SheetNames.find(n=>normU(n)==='BASE')||wb.SheetNames[0];
@@ -1620,7 +1612,19 @@ async function lerSemana(file){let linhas;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
  if(!usos)throw new Error(`${file.name} não tem nenhum uso válido.`);
  return {arquivo:file.name,usos,unicos:pess.size,admin,farm,cort,itens:[...itens.values()],...periodoDoArquivo(file.name)}}
-function periodoDoArquivo(nome){const m=nome.match(/(\d{2})(\d{2})[\s_-]*a[\s_-]*(\d{2})(\d{2})/);const hoje=new Date();
+/* nome no formato "dia de início-dia do fim-ano" (ex.: 23-29-2026): os meses vêm do calendário.
+   Procura, no ano, a semana que termina no dia do fim e começa no dia do início (preferindo sexta a quinta)
+   e fica com a mais próxima da semana seguinte à última enviada. */
+function periodoPorDias(d1,d2,ano){const L=SEM.dados.semanas;const ref=dt(L.length?addDias(L[L.length-1].f,7):iso(new Date()));const c=[];
+ for(let mm=0;mm<12;mm++){const b=new Date(ano,mm,d2);if(b.getDate()!==d2)continue;
+  for(let span=1;span<=10;span++){const a=new Date(b);a.setDate(b.getDate()-span);if(a.getDate()===d1){c.push({a,b,qui:b.getDay()===4&&span===6});break}}}
+ if(!c.length)return null;c.sort((x,y)=>(y.qui-x.qui)||Math.abs(x.b-ref)-Math.abs(y.b-ref));return {inicio:iso(c[0].a),fim:iso(c[0].b),ambiguo:c.filter(x=>x.qui===c[0].qui).length>1}}
+function periodoDoArquivo(nome){const hoje=new Date();
+ const n=nome.match(/(?:^|[^\d])(\d{1,2})\s*[-_]\s*(\d{1,2})\s*[-_]\s*(20\d\d)(?!\d)/);
+ if(n){const d1=+n[1],d2=+n[2],ano=+n[3];const base={diaIni:d1,diaFim:d2};
+  if(d1===1&&d2!==7)return {...base,doNome:false,mesAte:true}; // base do mês (1º até o dia do fim)
+  const r=d1>=1&&d1<=31&&d2>=1&&d2<=31?periodoPorDias(d1,d2,ano):null;if(r)return {...base,...r,doNome:true}}
+ const m=nome.match(/(\d{2})(\d{2})[\s_-]*a[\s_-]*(\d{2})(\d{2})/);
  const ano=+(nome.match(/20\d\d/)||[hoje.getFullYear()])[0];
  if(m){let [,m1,d1,m2,d2]=m.map(Number);let y1=ano,y2=ano;if(m1===12&&m2===1)y1=ano-1;
   const a=new Date(y1,m1-1,d1),b=new Date(y2,m2-1,d2);if(!isNaN(a)&&!isNaN(b)&&b>=a&&a.getMonth()===m1-1&&b.getMonth()===m2-1)return {inicio:iso(a),fim:iso(b),doNome:true}}
@@ -1636,17 +1640,19 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
  const e=E.sem,mm=E.mes;const L=SEM.dados.semanas;const sobre=L.filter(s=>!(s.f<E.inicio||s.i>E.fim));
  const top=agrupa(e.itens,it=>it.marca).slice(0,5);const dd=E.fim>=E.inicio?dias(E.inicio,E.fim):0;
  const fimD=dt(E.fim);const mesLab=`${MESN[fimD.getMonth()].toLowerCase()}/${fimD.getFullYear()}`;
+ const avisoNomeMes=mm&&mm.diaFim!=null&&(mm.diaIni!==1||mm.diaFim!==fimD.getDate())?`<div class="note">O nome da base do mês (${esc(mm.arquivo)}) indica do dia ${pad2(mm.diaIni)} ao dia ${pad2(mm.diaFim)}; o esperado é de 01 a ${pad2(fimD.getDate())}. Confira se é o arquivo certo.</div>`:'';
  const avisoMes=mm&&mm.usos<e.usos?`<div class="note">A base do mês tem menos usos que a da semana. Confira se é o arquivo do dia 1º até ${pad2(fimD.getDate())}/${pad2(fimD.getMonth()+1)}.</div>`:'';
  box.innerHTML=err+`<div class="card"><h3>Conferir antes de salvar</h3>
  <div class="bar" style="position:static;box-shadow:none;padding:0;border:0;margin:8px 0 14px"><label class="fld"><span>Início (sexta)</span><input type="date" id="wi" value="${E.inicio}"></label><label class="fld"><span>Fim (quinta)</span><input type="date" id="wfim" value="${E.fim}"></label></div>
  ${E.doNome?'':'<div class="note">Não reconheci o período no nome do arquivo. Confira as datas acima.</div>'}
+ ${E.doNome&&E.ambiguo?`<p class="hint">O nome do arquivo não traz o mês. Considerei a semana de <b>${dt(E.inicio).toLocaleDateString('pt-BR')} a ${dt(E.fim).toLocaleDateString('pt-BR')}</b>, a mais próxima da última enviada. Se for outra, ajuste as datas acima.</p>`:''}
  ${dd!==7?`<div class="note">O período tem ${dd} ${dd===1?'dia':'dias'}; a semana do relatório tem 7 (sexta a quinta).</div>`:''}
  ${sobre.length?`<div class="note">Vai substituir ${sobre.map(s=>`<b>${semLab(s)}</b>${s.so_total?' (contagem antiga)':''}`).join(', ')}.</div>`:''}
  <div class="label" style="margin-top:6px">Semana · ${esc(e.arquivo)}</div>
  <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Farmácias (incluídas)')}</div>
  <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>${(()=>{const nv=produtorasNovas(e.itens,mm?mm.itens:[]);return nv.length?`<p class="hint">Produtoras de eventos novas, reconhecidas pelo nome: <b>${nv.map(esc).join(', ')}</b>. Entram no ranking de Eventos ao salvar.</p>`:''})()}
  <div class="label" style="margin-top:14px">Mês até a data · ${mm?esc(mm.arquivo):'não enviada'}</div>
- ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}${KPI('','cortesia',fmt(mm.cort),'','','Usos de cortesia no mês')}</div>${avisoMes}
+ ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}${KPI('','cortesia',fmt(mm.cort),'','','Usos de cortesia no mês')}</div>${avisoMes}${avisoNomeMes}
   <p class="hint">Vai para o bloco de <b>${mesLab}</b>. Top 5 parceiros do mês: ${resumoMes(mm).parceiros.map(p=>`${esc(p[0])} (${fmt(p[1])})`).join(', ')}.</p>`
   :`<p class="hint">Sem a base do mês, o bloco do mês fica ${sobre.some(s=>s.i===E.inicio&&s.mtd)?'com o que já estava salvo':'vazio'}. Dá para enviar depois: é só mandar a semana de novo com as duas bases.</p>`}
  <button class="btn" id="wsalvar" type="button">Salvar semana</button> <span class="hint" id="wsmsg"></span></div>`;
@@ -1689,21 +1695,21 @@ function semanaLY(i){const alvo=dt(addDias(i,-364));return SEM.dados.semanas.fin
 function ritmoDe(w){const L=SEM.dados.semanas;const ult=L.slice(Math.max(0,w.k-1),w.k+1);return ult.reduce((t,x)=>t+x.usos,0)/ult.reduce((t,x)=>t+x.dias,0)}
 const faixa=d=>d<=10?0:d<=20?1:2;
 function margemMes(s,dm){const {y,mi}=mesRef(s);const e=[[],[],[]];
- SEM.dados.semanas.forEach(w=>{if(!w.mtd||w.k>=s.k)return;const r=mesRef(w);if(r.fechado||(r.y===y&&r.mi===mi))return;const fim=plat(r.y,r.mi).usos;if(!fim)return;
+ SEM.dados.semanas.forEach(w=>{if(!w.mtd||w.k>=s.k)return;const r=mesRef(w);if(r.fechado||(r.y===y&&r.mi===mi))return;const fim=mesNum(r.y,r.mi,'usos',1);if(!fim)return;
   const pj=w.mtd.usos+ritmoDe(w)*(diasNoMes(r.y,r.mi)-r.dm);e[faixa(r.dm)].push(Math.abs(pj/fim-1)*100)});
  const b=e[faixa(dm)],all=e.flat();const v=b.length>=3?b:all;return v.length>=3?{m:mediaA(v),n:v.length}:null}
 function projecao(s){const L=SEM.dados.semanas;const {y,mi,dm,fechado}=mesRef(s);const mtd=s.mtd;
  const dmes=diasNoMes(y,mi),rest=fechado?0:dmes-dm;
  const ritmo=ritmoDe(s);
  const pm=mi===1?{y:y-1,m:12}:{y,m:mi-1};
- const refs=[{id:'ant',nome:'Mês anterior',lab:nomeMes(pm.y,pm.m),...plat(pm.y,pm.m)},{id:'ly',nome:`Mesmo mês de ${y-1}`,lab:nomeMes(y-1,mi),...plat(y-1,mi)}]
+ const refs=[{id:'ant',nome:'Mês anterior',lab:nomeMes(pm.y,pm.m),usos:mesNum(pm.y,pm.m,'usos',1),usuarios:mesNum(pm.y,pm.m,'usuarios',1)},{id:'ly',nome:`Mesmo mês de ${y-1}`,lab:nomeMes(y-1,mi),usos:mesNum(y-1,mi,'usos',1),usuarios:mesNum(y-1,mi,'usuarios',1)}]
   .map(r=>({...r,usos:r.usos??null,usuarios:r.usuarios??null}));
  const P={y,mi,dm,dmes,rest,fechado,ritmo,refs,mesLab:nomeMes(y,mi)};
  if(!mtd)return {...P,semMtd:true};
  const U=mtd.usos,N=mtd.unicos;P.U=U;P.N=N;P.ritmoMes=U/dm;
  P.projU=Math.round(U+ritmo*rest);P.projLin=Math.round(U/dm*dmes);P.margem=fechado?null:margemMes(s,dm);const mg=fechado?0:Math.max(.02,(P.margem?P.margem.m:5)/100);
  // usuários únicos: quanto o número do mês costuma crescer a partir deste ponto do mês (histórico das semanas)
- const pares=[];L.forEach(w=>{if(!w.mtd||w.i===s.i)return;const r=mesRef(w);if(r.y===y&&r.mi===mi)return;const fim=plat(r.y,r.mi).usuarios;if(!fim||!w.mtd.unicos)return;pares.push({x:r.dm/diasNoMes(r.y,r.mi),r:fim/w.mtd.unicos})});
+ const pares=[];L.forEach(w=>{if(!w.mtd||w.i===s.i)return;const r=mesRef(w);if(r.y===y&&r.mi===mi)return;const fim=mesNum(r.y,r.mi,'usuarios',1);if(!fim||!w.mtd.unicos)return;pares.push({x:r.dm/diasNoMes(r.y,r.mi),r:fim/w.mtd.unicos})});
  const x0=dm/dmes;const viz=pares.filter(p=>Math.abs(p.x-x0)<=.1).map(p=>p.r).sort((a,b)=>a-b);
  if(fechado){P.projN=N;P.metN='mês fechado'}
  else if(viz.length>=2){P.projN=Math.round(N*viz[Math.floor(viz.length/2)]);P.metN=`curva de ${viz.length} meses`}
