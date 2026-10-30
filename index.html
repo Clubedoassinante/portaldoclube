@@ -2660,15 +2660,18 @@ function coCabecalho(linhas,teste){const i=linhas.slice(0,15).findIndex(r=>(r||[
 
 /* relatório da comunicação: detecta as colunas; a admin confere na tela */
 function coDetecta(h,nome){const H=h.map(x=>normU(x));const ach=f=>{const i=H.findIndex(f);return i<0?'':String(i)};
- const nm=normL(nome);
- return {cpf:ach(x=>x==='CPF'||x.startsWith('CPF ')||x.endsWith(' CPF')),
+ const nm=normL(nome).replace(/newsletter_aberta/g,'newsletter');
+ const m={cpf:ach(x=>x==='CPF'||x.startsWith('CPF ')||x.endsWith(' CPF')),
   email:ach(x=>/E-?MAIL/.test(x)),
-  abriu:ach(x=>/ABERT|ABRIU|OPEN/.test(x)&&!/DATA|HORA|DATE|TAXA/.test(x)),
+  abriu:ach(x=>/ABERT|ABRIU|OPEN/.test(x)&&!/DATA|HORA|DATE|TAXA/.test(x))||ach(x=>/ABERT|OPEN/.test(x)&&/DATA|DATE/.test(x)&&!/TAXA/.test(x)),
   clicou:ach(x=>/CLIQU|CLICOU|CLICK/.test(x)&&!/DATA|HORA|DATE|LINK|URL|TAXA/.test(x)),
   dclique:ach(x=>/CLIQU|CLICK/.test(x)&&/DATA|HORA|DATE/.test(x)),
   status:ach(x=>x==='STATUS'||x.startsWith('STATUS')||x==='EVENTO'||x==='ACAO'),
   link:ach(x=>/LINK|URL/.test(x)),
-  tipo:/clic|click/.test(nm)?'clicaram':/abert|abriu|open/.test(nm)?'abriram':'destinatarios'}}
+  tipo:'destinatarios'};
+ // com colunas de abertura/clique, o arquivo traz todos que receberam; senão, o nome do arquivo indica o tipo
+ if(m.abriu===''&&m.clicou===''&&m.dclique===''&&m.status==='')m.tipo=/clic|click/.test(nm)?'clicaram':/abert|abriu|open/.test(nm)?'abriram':'destinatarios';
+ return m}
 
 /* lista colada (formato do doc "Instruções — Leitura de comunicações para o painel") */
 function coLista(txt){const out={canal:'',envio:'',lista:'',assunto:'',preheader:'',linhas:[]};
@@ -2698,9 +2701,9 @@ async function coLerVouchers(file){const L=await coTabela(file);
  for(let r=hi+1;r<L.length;r++){const x=L[r];if(!x)continue;const marca=String(x[iM]??'').replace(/\s+/g,' ').trim();if(!marca)continue;
   const q=iQ>=0?Math.max(1,parseInt(String(x[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(iN>=0&&normU(x[iN]).startsWith('ADMIN C')){admin+=q;continue}
-  if(FARMACIAS.has(normL(marca))){farm+=q;continue}
-  const c=cpf11(x[iC]);const d=coDiaDe(x[iDt]);if(!c||d==null)continue;
   const tit=String(x[iT]??'').replace(/\s+/g,' ').trim()||marca;
+  if(FARMACIAS.has(normL(marca))&&/cpf no balc/.test(normL(tit))){farm+=q;continue} // só o resgate "CPF no Balcão" fica de fora
+  const c=cpf11(x[iC]);const d=coDiaDe(x[iDt]);if(!c||d==null)continue;
   let a=por.get(c);if(!a){a=[];por.set(c,a)}a.push([d,marca,tit,q]);n+=q;min=min==null?d:Math.min(min,d);max=max==null?d:Math.max(max,d);
   let t=titulos.get(marca);if(!t){t=new Map();titulos.set(marca,t)}t.set(tit,(t.get(tit)||0)+q)}
  return {arquivo:file.name,por,titulos,n,min,max,admin,farm}}
@@ -2797,7 +2800,7 @@ function coGeral(h){const L=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);
  <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th><th>Canal</th><th>Assunto</th><th class="n">Enviados</th><th class="n">Abertura</th><th class="n">Clique</th><th class="n">${T('beneficio-divulgado','Divulgado')}: clicou</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">Não abriu</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
  ${R.map(x=>`<tr><td>${coDia(coIsoDia(x.c.envio))}</td><td>${esc(x.c.canal)}</td><td><a href="#comunicacoes-detalhe" data-co="${x.c.id}">${esc(x.c.assunto||x.c.lista||'(sem assunto)')}</a></td><td class="n">${fmt(x.f.enviados)}</td><td class="n">${x.c.canal==='In-app'?'—':coPct(x.f.abriram,x.f.enviados)}</td><td class="n">${coPct(x.f.clicaram,x.f.enviados)}</td><td class="n"><b>${x.tx!=null?fmt(100*x.tx,1)+'%':'—'}</b></td><td class="n">${x.tx7!=null?fmt(100*x.tx7,1)+'%':'—'}</td><td class="n">${x.txr!=null?fmt(100*x.txr,1)+'%':'—'}</td><td class="n">${x.lift!=null?fmt(x.lift,1)+'×':'—'}</td></tr>`).join('')}
  </tbody></table></div></div>
- <p class="hint">Regras: ${T('prazo-oficial','prazo oficial')} de cada canal (até 3 dias depois do clique em e-mail e WhatsApp, mesmo dia no push, período no ar no in-app), conta de testes e farmácias automáticas fora, e o e-mail de teste da equipe fora dos relatórios.</p>`);
+ <p class="hint">Regras: ${T('prazo-oficial','prazo oficial')} de cada canal (até 3 dias depois do clique em e-mail e WhatsApp, mesmo dia no push, período no ar no in-app), conta de testes e resgates "CPF no Balcão" das farmácias fora, e o e-mail de teste da equipe fora dos relatórios.</p>`);
  coBindFiltro(h);document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co})}
 function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);const L=CO.d;const c=L.find(x=>x.id===CO.sel)||L[0];CO.sel=c.id;const r=c.r,f=r.funil,g=r.grupos,q=r.qualidade||{};
  const inapp=c.canal==='In-app';const base=g.clicou||g.exposto,ref=g.naoabriu||g.naorec;
@@ -2826,7 +2829,7 @@ function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);const L=CO.d;const
  ${r.links&&r.links.length?`<div class="card"><h3>Links clicados</h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Link</th><th class="n">Pessoas</th></tr></thead><tbody>${r.links.map(o=>`<tr><td style="word-break:break-all">${esc(o[0])}</td><td class="n">${fmt(o[1])}</td></tr>`).join('')}</tbody></table></div></div>`:''}
  <div class="card"><h3>Qualidade dos dados</h3><ul class="hint" style="margin:0;padding-left:18px">
   <li>${fmt(q.linhasRel)} linhas no relatório; ${fmt(f.enviados)} pessoas diferentes; ${fmt(q.semCpf)} sem CPF identificado (ficam no funil, fora das taxas); ${fmt(q.semId)} linhas sem CPF nem e-mail; ${fmt(q.teste)} linhas do ${T('email-teste','e-mail de teste')} retiradas.</li>
-  <li>Base de vouchers: ${esc(q.vouArq||'')} · ${q.vMin!=null?coDia(q.vMin)+' a '+coDia(q.vMax):''} · ${fmt(q.vouchers)} vouchers (conta de testes e farmácias automáticas fora).${q.coberto?'':' <b>A base não cobre todo o prazo da comunicação: os números podem estar abaixo do real.</b>'}</li>
+  <li>Base de vouchers: ${esc(q.vouArq||'')} · ${q.vMin!=null?coDia(q.vMin)+' a '+coDia(q.vMax):''} · ${fmt(q.vouchers)} vouchers (conta de testes e resgates "CPF no Balcão" das farmácias fora).${q.coberto?'':' <b>A base não cobre todo o prazo da comunicação: os números podem estar abaixo do real.</b>'}</li>
   ${q.cartArq?`<li>Carteira: ${esc(q.cartArq)}.</li>`:''}<li>Relatório(s): ${esc((q.arqs||[]).join(', '))}.</li></ul>
   ${ADMIN?`<p style="margin-top:10px"><button class="btn-sec" id="co-del" type="button">Excluir esta comunicação</button> <span class="hint" id="co-delm"></span></p>`:''}</div>`);
  document.getElementById('co-sel').onchange=e=>{CO.sel=e.target.value;coDetalhe(h)};
