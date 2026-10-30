@@ -524,7 +524,7 @@ const GL=[
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
   ['cortesia','Usos de cortesia','Vouchers da marca Clube do Assinante cuja descrição do cupom tem uma destas palavras: ação, ação especial, presente, presentear ou presentar. O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. O mês fechado é atualizado ao enviar os vouchers do mês em Clube em números.'],
-  ['acoes-clube','Ações do Clube','Promoções da própria marca Clube do Assinante, como as ações de cortesia.',''],
+  ['acoes-clube','Ações do Clube','No Relatório semanal, só as ações de cortesia da marca Clube do Assinante (mesma regra dos usos de cortesia). Dica de filme do mês, lojas online e outros benefícios da marca aparecem à parte, como "Clube (outros benefícios)".','Nos painéis mensais (Parceiros), Ações do Clube continua sendo a marca inteira.'],
   ['eventos','Eventos','Promoções das produtoras de eventos.','A lista de produtoras fica na página Enviar semana e pode ser editada pelos administradores.'],
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
@@ -1258,7 +1258,7 @@ function conserta(v){if(typeof v!=='string'||!/[ÃÂ]/.test(v))return v;const b=
 /* produtora de eventos nova: reconhecida pelo nome */
 const PROD_RE=/produ[cç][aãoõ]|produtora|entretenimento|entertainment|eventos|teatro|espet[aá]culo/i;
 function produtorasNovas(...listas){const v=new Set();listas.flat().forEach(it=>{const m=it.marca;if(!SEM.prod.has(m)&&m!==CLUBE_MARCA&&m!==LACADOR&&!ONLINE.includes(m)&&PROD_RE.test(semAcento(m)))v.add(m)});return [...v].sort()}
-const LACADOR='Laçador de Ofertas', CLUBE_MARCA='Clube do Assinante';
+const LACADOR='Laçador de Ofertas', CLUBE_MARCA='Clube do Assinante', CLUBE_OUTROS='Clube do Assinante (outros)'; // no semanal, "Clube do Assinante" = só ações de cortesia
 const SEM={dados:null,itens:{},sel:null,met:'usos',editando:false,envio:{},aba:'parceiros'};
 
 /* ---------- datas ---------- */
@@ -1318,7 +1318,7 @@ const limpa=l=>runs(l).map(r=>r.t).join('');
 
 /* ---------- insights (rascunho automático, no estilo do relatório) ---------- */
 const ORDINAL=['','primeira','segunda','terceira','quarta','quinta','sexta','sétima','oitava','nona','décima'];
-const nomeParc=k=>k===CLUBE_MARCA?'Clube (ações de cortesia)':k;
+const nomeParc=k=>k===CLUBE_MARCA?'Clube (ações de cortesia)':k===CLUBE_OUTROS?'Clube (outros benefícios)':k;
 function tendencia(a,b){if(!b)return '';const v=(a/b-1)*100;
  if(Math.abs(v)<3)return ', seguindo na mesma linha da última semana';return `, ${v>0?'acima':'abaixo'} da última semana (${v>0?'+':'−'}${fmt(Math.abs(v),1)}%)`}
 function linhaVs(a,b,txt){if(b==null)return '';const v=b?(a/b-1)*100:0;if(Math.abs(v)<3)return `, ${txt||'mesma linha da última semana'}`;return `, ${v>0?'subindo':'caindo'} em relação à última semana (${fmt(b)})`}
@@ -1601,12 +1601,13 @@ async function lerSemana(file){let linhas;
  if(iT<0)throw new Error('Não encontrei a coluna Título.');if(iN<0&&iC<0)throw new Error('Não encontrei as colunas Nome e CPF, que contam os usuários únicos.');
  const lim=s=>String(s??'').replace(/\s+/g,' ').trim();
  const itens=new Map(),pess=new Set();let usos=0,admin=0,farm=0,cort=0;
- for(let r=hi+1;r<linhas.length;r++){if(!linhas[r])continue;const L=linhas[r].map(conserta);const marca=lim(L[iM]);if(!marca)continue;
+ for(let r=hi+1;r<linhas.length;r++){if(!linhas[r])continue;const L=linhas[r].map(conserta);let marca=lim(L[iM]);if(!marca)continue;
   // quantidade de vouchers da linha (exportação da plataforma traz a coluna Produtos; a base do relatório traz uma linha por voucher)
   const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
   if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
-  if(iD>=0&&ehCortesia(marca,L[iD]))cort+=q;
+  // marca Clube do Assinante: só as ações de cortesia ficam como "Clube"; dica de filme, lojas etc. viram "Clube do Assinante (outros)"
+  if(normL(marca)===normL(CLUBE_MARCA)){if(iD>=0&&ehCortesia(marca,L[iD])){cort+=q;marca=CLUBE_MARCA}else marca=CLUBE_OUTROS}
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
   const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
