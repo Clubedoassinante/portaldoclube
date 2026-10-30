@@ -390,6 +390,8 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .ina-pres{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.ina-pres .td-k{cursor:pointer;text-align:left;font:inherit}
 .ina-filtros{display:grid;gap:12px}.ina-filtros .chips{flex-wrap:wrap}
 .btn-sec{display:inline-flex;align-items:center;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer}.btn-sec:hover{border-color:var(--laranja)}
+
+.pl .auto{display:inline-flex;flex-direction:column;align-items:flex-end;font-weight:700}.pl .auto small{font-weight:400;font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -521,6 +523,7 @@ const GL=[
   ['usuarios-semana','Usuários únicos da semana','Pessoas diferentes que geraram pelo menos 1 voucher na semana.',''],
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
+  ['cortesia','Usos de cortesia','Vouchers da marca Clube do Assinante cuja descrição do cupom tem uma destas palavras: ação, ação especial, presente, presentear ou presentar. O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. Meses sem base no portal mostram o número digitado em Números do mês.'],
   ['acoes-clube','Ações do Clube','Promoções da própria marca Clube do Assinante, como as ações de cortesia.',''],
   ['eventos','Eventos','Promoções das produtoras de eventos.','A lista de produtoras fica na página Enviar semana e pode ser editada pelos administradores.'],
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
@@ -1025,6 +1028,9 @@ const pad2=n=>String(n).padStart(2,'0');
 const semAcento=s=>String(s??'').normalize('NFKD').replace(/[̀-ͯ]/g,'');
 const normU=s=>semAcento(s).toUpperCase().replace(/\s+/g,' ').trim();
 const normL=s=>semAcento(s).toLowerCase().replace(/\s+/g,' ').trim();
+/* cortesia: marca Clube do Assinante e, na descrição do cupom, ação / ação especial / presente / presentear / presentar (sem acento, palavra inteira) */
+const CORT_RE=/\b(acao|acoes|presente|presentes|presentear|presentar)\b/;
+const ehCortesia=(marca,desc)=>normL(marca)==='clube do assinante'&&CORT_RE.test(normL(desc));
 const FARMACIAS=new Set(['Droga Raia','Farmácia Pague Menos','Farmácias Pague Menos','Drogaria Araujo','Drogarias Pacheco','Drogaria Pacheco','Drogaria São Paulo','Farmácias Droga Raia e Drogasil','Farmácias Raia e Drogasil'].map(normL));
 const ATIVAS=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
 const PRODUTO={'DIGITAL':'Digital','IMPRESSO':'Impresso','IMP+DIG':'Impresso + Digital'};
@@ -1106,22 +1112,23 @@ async function lerCarteira(file,mes){
  linhas=null;return out}
 
 function colunasVoucher(campos,nome){const f=(campos||[]).map(x=>[x,normU(x)]);const ach=t=>(f.find(t)||[])[0];
- const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD')}; // quantidade de vouchers da linha: nunca ignorar
+ const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD'),desc:ach(x=>x[1].startsWith('DESCRI')),nome:ach(x=>x[1].startsWith('NOME'))}; // quantidade de vouchers da linha: nunca ignorar
  if(!c.cpf||!c.marca||!c.data)throw new Error(`${nome} não parece um arquivo de vouchers (precisa das colunas CPF, Marca e Data).`);return c}
-function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
+function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
  let marca=String(marcaRaw??'').trim();if(/^\d+\.0+$/.test(marca))marca=marca.replace(/\.0+$/,'');
  if(FARMACIAS.has(normL(marca))){est.farm++;return}
  const c=cpf11(cpfRaw);if(!c){est.semCpf++;return}
  let p=parseInt(prodRaw,10);if(!(p>0))p=1;
- const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0};CG.vou.set(m,g)}
+ const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0,cort:descRaw===undefined?null:0};CG.vou.set(m,g)}
+ if(g.cort!=null&&ehCortesia(marca,descRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
  const k=c+'\t'+marca;g.mapa.set(k,(g.mapa.get(k)||0)+p);g.linhas++;est.ok++}
 function lerVouchers(file,prog){const est={ok:0,farm:0,semCpf:0,semData:0};
  if(/\.xlsx?$/i.test(file.name))return file.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array',dense:true});
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:true,defval:null});const c=colunasVoucher(Object.keys(rows[0]||{}),file.name);
-  for(const r of rows)somarVoucher(r[c.cpf],r[c.marca],r[c.data],c.prod?r[c.prod]:1,est);prog(est);return est});
+  for(const r of rows)somarVoucher(r[c.cpf],r[c.marca],r[c.data],c.prod?r[c.prod]:1,est,c.desc?r[c.desc]:undefined,c.nome?r[c.nome]:'');prog(est);return est});
  return new Promise((res,rej)=>{let c=null;
   Papa.parse(file,{header:true,skipEmptyLines:true,chunkSize:4*1024*1024,
-   chunk:(r,parser)=>{try{if(!c)c=colunasVoucher(r.meta.fields,file.name);for(const x of r.data)somarVoucher(x[c.cpf],x[c.marca],x[c.data],c.prod?x[c.prod]:1,est);prog(est)}catch(e){parser.abort();rej(e)}},
+   chunk:(r,parser)=>{try{if(!c)c=colunasVoucher(r.meta.fields,file.name);for(const x of r.data)somarVoucher(x[c.cpf],x[c.marca],x[c.data],c.prod?x[c.prod]:1,est,c.desc?x[c.desc]:undefined,c.nome?x[c.nome]:'');prog(est)}catch(e){parser.abort();rej(e)}},
    complete:()=>res(est),error:e=>rej(e)})})}
 
 /* código do CPF: SHA-256(chave:cpf), 13 primeiros dígitos hexadecimais (igual à função codigo_cpf do banco) */
@@ -1199,7 +1206,9 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
-   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.`,'ok')}
+   let txtC='';if(v.cort!=null){const [yy,mm]=m.split('-').map(Number);const fimMes=`${m}-${pad2(new Date(yy,mm,0).getDate())}`;
+    try{await rpc('salvar_cortesia',{p_mes:m+'-01',p_valor:v.cort,p_ate:fimMes});txtC=` Cortesia: ${fmt(v.cort)} usos.`}catch(e){txtC=` A cortesia não foi salva (${esc(e.message||e)}).`}}
+   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}`,'ok')}
  }catch(e){logar(`Parou com erro: ${esc(e.message||e)}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
  try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
    try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
@@ -1561,7 +1570,7 @@ function enviarPagina(){const ult=[...SEM.dados.semanas].reverse().filter(s=>!s.
   <label class="drop"><b>2. Base do mês até a data</b><span>Do dia 1º do mês até a quinta-feira da semana. Alimenta o bloco do mês: total, usuários únicos, Top 5 parceiros e eventos e média diária.</span><input type="file" id="wfm" accept=".xlsx,.xls,.csv"></label>
  </div>
  <div id="wprev"></div>
- <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel: uso e usuários do site, carteira da penetração e usos de cortesia. Preencha quando o mês fechar. O mês em andamento vem da base do mês.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
+ <div class="card"><div class="row-head"><div><h3>Números do mês (plataforma)</h3><p class="sub">Usados nos gráficos mensais do painel: uso e usuários do site e carteira da penetração. Preencha quando o mês fechar. Os ${T('cortesia','usos de cortesia')} são calculados pelo portal com a base do mês (aqui) e com os vouchers do mês (Clube em números › Enviar mês); só meses sem base ficam com o número digitado.</p></div><div class="chips" id="wpl-anos"></div></div><div id="wpl"></div></div>
  <div class="grid2">
   <div class="card"><h3>Produtoras de eventos</h3><p class="sub">Define o ranking de ${T('eventos','Eventos')}. O portal acrescenta sozinho as produtoras novas que têm no nome Produções, Produtora, Entretenimento, Eventos, Teatro ou Espetáculo. Só mexa aqui se alguma ficar de fora ou entrar por engano (uma por linha, com o nome como aparece na coluna Marca).</p><textarea id="wpr" rows="9">${esc(SEM.dados.produtoras.join('\n'))}</textarea><div class="acoes"><button class="btn" id="wpr-ok" type="button">Salvar lista</button><span class="hint" id="wpr-msg"></span></div></div>
   <div class="card"><h3>Semanas enviadas</h3>${ult.length?`<div class="mes-chips">${ult.map(s=>`<span>${semLab(s)}${s.mtd&&!s.mtd.antiga?'':' · sem base do mês'}</span>`).join('')}</div>`:'<p class="hint">Nenhuma ainda.</p>'}<p class="hint" style="margin-top:10px">Enviar de novo uma semana que já está no portal substitui a anterior. Se enviar só a Base da semana, a base do mês que já estava salva é mantida.</p></div>
@@ -1580,7 +1589,8 @@ function desenharPlataforma(){const box=document.getElementById('wpl'),ch=docume
  const hoje=new Date();const anos=[];for(let a=2024;a<=hoje.getFullYear();a++)anos.push(a);SEM.anoPl=SEM.anoPl||hoje.getFullYear();
  ch.innerHTML=anos.map(a=>`<button class="chip ${a===SEM.anoPl?'on':''}" data-pa="${a}" type="button">${a}</button>`).join('');
  ch.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{SEM.anoPl=+b.dataset.pa;desenharPlataforma()});
- const a=SEM.anoPl;const inp=(m,k)=>{const v=plat(a,m)[k];return `<input type="number" min="0" step="1" inputmode="numeric" data-m="${a}-${pad2(m)}" data-k="${k}" value="${v??''}">`};
+ const a=SEM.anoPl;const inp=(m,k)=>{const P=plat(a,m);if(k==='cortesia'&&P.cortesia_auto)return `<span class="auto" title="Calculada pelo portal com as bases de vouchers">${fmt(P.cortesia)}<small>auto · até ${dt(P.cortesia_ate).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</small></span><input type="hidden" data-m="${a}-${pad2(m)}" data-k="${k}" value="${P.cortesia_man??''}">`;
+  const v=k==='cortesia'?P.cortesia_man:P[k];return `<input type="number" min="0" step="1" inputmode="numeric" data-m="${a}-${pad2(m)}" data-k="${k}" value="${v??''}">`};
  box.innerHTML=`<div class="tw"><table class="cmp pl"><thead><tr><th>Mês</th><th class="n">Uso (site)</th><th class="n">Usuários (site)</th><th class="n">Carteira (penetração)</th><th class="n">Usos de cortesia</th></tr></thead>
  <tbody>${MESN.map((nm,j)=>`<tr><td>${nm}/${a}</td><td class="n">${inp(j+1,'usos')}</td><td class="n">${inp(j+1,'usuarios')}</td><td class="n">${inp(j+1,'carteira')}</td><td class="n">${inp(j+1,'cortesia')}</td></tr>`).join('')}</tbody></table></div>
  <div class="acoes"><button class="btn" id="wpl-ok" type="button">Salvar números de ${a}</button><span class="hint" id="wpl-msg"></span></div>`;
@@ -1598,17 +1608,18 @@ async function lerSemana(file){let linhas;
  const iN=col(x=>x.startsWith('NOME')),iC=col(x=>x==='CPF'),iM=col(x=>x==='MARCA'),iT=col(x=>x.startsWith('TITULO')),iD=col(x=>x.startsWith('DESCRI')),iQ=col(x=>x==='PRODUTOS'||x.startsWith('QUANTIDADE')||x==='QTD');
  if(iT<0)throw new Error('Não encontrei a coluna Título.');if(iN<0&&iC<0)throw new Error('Não encontrei as colunas Nome e CPF, que contam os usuários únicos.');
  const lim=s=>String(s??'').replace(/\s+/g,' ').trim();
- const itens=new Map(),pess=new Set();let usos=0,admin=0,farm=0;
+ const itens=new Map(),pess=new Set();let usos=0,admin=0,farm=0,cort=0;
  for(let r=hi+1;r<linhas.length;r++){if(!linhas[r])continue;const L=linhas[r].map(conserta);const marca=lim(L[iM]);if(!marca)continue;
   // quantidade de vouchers da linha (exportação da plataforma traz a coluna Produtos; a base do relatório traz uma linha por voucher)
   const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
   if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
+  if(iD>=0&&ehCortesia(marca,L[iD]))cort+=q;
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
   const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
  if(!usos)throw new Error(`${file.name} não tem nenhum uso válido.`);
- return {arquivo:file.name,usos,unicos:pess.size,admin,farm,itens:[...itens.values()],...periodoDoArquivo(file.name)}}
+ return {arquivo:file.name,usos,unicos:pess.size,admin,farm,cort,itens:[...itens.values()],...periodoDoArquivo(file.name)}}
 function periodoDoArquivo(nome){const m=nome.match(/(\d{2})(\d{2})[\s_-]*a[\s_-]*(\d{2})(\d{2})/);const hoje=new Date();
  const ano=+(nome.match(/20\d\d/)||[hoje.getFullYear()])[0];
  if(m){let [,m1,d1,m2,d2]=m.map(Number);let y1=ano,y2=ano;if(m1===12&&m2===1)y1=ano-1;
@@ -1635,7 +1646,7 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
  <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Farmácias (incluídas)')}</div>
  <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>${(()=>{const nv=produtorasNovas(e.itens,mm?mm.itens:[]);return nv.length?`<p class="hint">Produtoras de eventos novas, reconhecidas pelo nome: <b>${nv.map(esc).join(', ')}</b>. Entram no ranking de Eventos ao salvar.</p>`:''})()}
  <div class="label" style="margin-top:14px">Mês até a data · ${mm?esc(mm.arquivo):'não enviada'}</div>
- ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}</div>${avisoMes}
+ ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}${KPI('','cortesia',fmt(mm.cort),'','','Usos de cortesia no mês')}</div>${avisoMes}
   <p class="hint">Vai para o bloco de <b>${mesLab}</b>. Top 5 parceiros do mês: ${resumoMes(mm).parceiros.map(p=>`${esc(p[0])} (${fmt(p[1])})`).join(', ')}.</p>`
   :`<p class="hint">Sem a base do mês, o bloco do mês fica ${sobre.some(s=>s.i===E.inicio&&s.mtd)?'com o que já estava salvo':'vazio'}. Dá para enviar depois: é só mandar a semana de novo com as duas bases.</p>`}
  <button class="btn" id="wsalvar" type="button">Salvar semana</button> <span class="hint" id="wsmsg"></span></div>`;
@@ -1646,6 +1657,7 @@ async function salvarSemana(){const E=SEM.envio,e=E.sem,b=document.getElementByI
  b.disabled=true;m.textContent='Salvando…';
  const nv=produtorasNovas(e.itens,E.mes?E.mes.itens:[]);
  if(nv.length){const r=await sb.rpc('salvar_produtoras',{p_lista:[...SEM.prod,...nv]});if(r.error){b.disabled=false;m.textContent='Não salvou: '+r.error.message;return}nv.forEach(x=>SEM.prod.add(x))}
+ if(E.mes){const r=await sb.rpc('salvar_cortesia',{p_mes:E.fim.slice(0,7)+'-01',p_valor:E.mes.cort,p_ate:E.fim});if(r.error){b.disabled=false;m.textContent='Não salvou a cortesia: '+r.error.message;return}}
  const {error}=await sb.rpc('salvar_semana',{p:{inicio:E.inicio,fim:E.fim,usos:e.usos,unicos:e.unicos,excluidos:e.admin,itens:e.itens,mtd:E.mes?resumoMes(E.mes):null}});
  if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
  delete SEM.itens[E.inicio];const ini=E.inicio;SEM.envio={};await semCarregar(true);SEM.sel=ini;SEM.editando=!!ADMIN;
