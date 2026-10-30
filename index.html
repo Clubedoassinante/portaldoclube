@@ -245,7 +245,7 @@ table.cmp td.ps{white-space:nowrap;color:var(--muted);font-size:12.5px}
 .jx-t th,.jx-t td{padding:2px 5px;text-align:left}
 .jx-t .n{text-align:right}.jx-t .c{text-align:center}
 .jx-t tr.hp th{background:#6F164E;color:#fff}.jx-t tr.hk th{background:#000;color:#fff}.jx-t tr.ht th{background:#3C7175;color:#fff}
-.jx-t tr.b td{font-weight:700}.jx-t tr.g td{color:#a6a6a6;font-size:11.5px}
+.jx-t tr.b td{font-weight:700}.jx-t tr.g td{color:#6b6b6b;font-size:11.5px}
 .jx-t tr:nth-child(4n+2) td,.jx-t tr:nth-child(4n+3) td{background:#F2F2F2}
 .jx-abas{margin-top:14px}.jx-abas .chips{margin-bottom:12px}
 .jx-aba{display:grid;grid-template-columns:minmax(0,1.4fr) auto minmax(0,1.2fr);gap:16px;align-items:start;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif}
@@ -262,7 +262,8 @@ table.cmp td.ps{white-space:nowrap;color:var(--muted);font-size:12.5px}
 table.cmp.pl input{width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;text-align:right}
 @media (max-width:1100px){.jx-insights,.jx-c1,.jx-mesbox,.jx-c4{grid-column:span 12}.jx-c2,.jx-c3,.jx-c5,.jx-c6{grid-column:span 6}}
 @media (max-width:760px){.jx>*{grid-column:span 12!important}.jx-mes{grid-template-columns:1fr}.jx-aba{grid-template-columns:1fr}.jx-rk{font-size:12px}}
-:root[data-theme="dark"] .jx-box,:root[data-theme="dark"] .jx-aba{color-scheme:light}
+/* réplica do relatório (planilha): sempre clara, também no modo noturno */
+.jx-box,.jx-abas,.jx-aba,.jx-ed,.jx-insights{--bg:#fbf5f1;--surface:#ffffff;--ink:#241019;--muted:#6e5763;--line:#ead9df;--chip:#f4e8ee;--good:#2f8a6a;--bad:#c2410c;--warn:#b7791f;color-scheme:light}
 .jx-abas{background:#fff;color:#000}
 .jx-aba{max-height:640px;overflow:auto}
 @media (max-width:760px){.jx-wide{overflow-x:auto}.jx-wide .jx-svg{min-width:720px}}
@@ -392,6 +393,99 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .btn-sec{display:inline-flex;align-items:center;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer}.btn-sec:hover{border-color:var(--laranja)}
 
 .pl .auto{display:inline-flex;flex-direction:column;align-items:flex-end;font-weight:700}.pl .auto small{font-weight:400;font-size:11px;color:var(--muted)}
+
+/* ===== modo noturno: contraste (texto ≥ 4,5:1, gráficos ≥ 3:1) ===== */
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) .area .go,:root:not([data-theme="light"]) .gl h3,:root:not([data-theme="light"]) .pop a,:root:not([data-theme="light"]) table.cmp tr.grp td,:root:not([data-theme="light"]) details.card>summary::before{color:#f0b6d6}
+:root:not([data-theme="light"]) .td-t td.down,:root:not([data-theme="light"]) .pa-t td.down,:root:not([data-theme="light"]) .ina-t td.down{color:#ff9a6b}
+:root:not([data-theme="light"]) .td-t td.up,:root:not([data-theme="light"]) .pa-t td.up,:root:not([data-theme="light"]) .ina-t td.up{color:#6fd6a8}
+:root:not([data-theme="light"]) .td-k.pr b{color:#ff9a6b}
+:root:not([data-theme="light"]) .td-k.ok b{color:#6fd6a8}
+:root:not([data-theme="light"]) .td-fcat td.td-acao{background:rgba(92,199,157,.10)}
+:root:not([data-theme="light"]) .pa-tag{background:#3a2330;color:#f0b6d6}
+:root:not([data-theme="light"]) .pa-tag.x{background:rgba(240,138,75,.16);color:#ff9a6b}
+:root:not([data-theme="light"]) .pa-grupos .pa-sub{color:#e3d2da}
+:root:not([data-theme="light"]) .pa-grupos .td-k.on{outline-color:#f0b6d6}
+:root:not([data-theme="light"]) .ina-v{background:#2e1824;color:var(--ink)}
+:root:not([data-theme="light"]) .ina-ok .ina-v{background:rgba(92,199,157,.16);color:#6fd6a8}
+:root:not([data-theme="light"]) .ina-lim .ina-v{background:rgba(227,176,75,.16);color:#f0c46a}
+:root:not([data-theme="light"]) .ina-x .ina-v{background:rgba(255,255,255,.08);color:#d9c6cf}
+:root:not([data-theme="light"]) .ina-sd .ina-v{background:#3a2330;color:#f0b6d6}
+:root:not([data-theme="light"]) X,:root:not([data-theme="light"]) .note,:root:not([data-theme="light"]) small{color:#d9c6cf}
+:root:not([data-theme="light"]) .chip{background:#2e1824;border-color:#5a3a4b;color:var(--ink)}
+:root:not([data-theme="light"]) .chip:hover{border-color:#f0b6d6}
+:root:not([data-theme="light"]) .chip.on{background:#a8336c;border-color:#a8336c;color:#fff}
+:root:not([data-theme="light"]) .btn-sec{border-color:#7a5568;color:var(--ink)}
+:root:not([data-theme="light"]) input,:root:not([data-theme="light"]) select,:root:not([data-theme="light"]) textarea{background:#170b12;color:var(--ink);border-color:#5a3a4b}
+:root:not([data-theme="light"]) input::placeholder,:root:not([data-theme="light"]) textarea::placeholder{color:#a88e9c}
+:root:not([data-theme="light"]) input[type=file]::file-selector-button{background:#3a2330;color:var(--ink);border:1px solid #7a5568;border-radius:8px;padding:4px 10px}
+:root:not([data-theme="light"]) .side-tog,:root:not([data-theme="light"]) .btn-sair{border-color:rgba(255,255,255,.55)}
+:root:not([data-theme="light"]) svg [fill="#721a50"]{fill:#d47aa9}
+:root:not([data-theme="light"]) svg [stroke="#721a50"]{stroke:#d47aa9}
+:root:not([data-theme="light"]) .legend i[style*="#721a50"]{background:#d47aa9!important}
+:root:not([data-theme="light"]) svg [fill="#404040"]{fill:#e3d2da}
+:root:not([data-theme="light"]) .jx-box .hint,:root:not([data-theme="light"]) .jx-box .sub,:root:not([data-theme="light"]) .jx-box small,:root:not([data-theme="light"]) .jx-abas .hint,:root:not([data-theme="light"]) .jx-ed .hint,:root:not([data-theme="light"]) .jx-insights .hint{color:#6e5763}
+:root:not([data-theme="light"]) .jx-box .chip,:root:not([data-theme="light"]) .jx-abas .chip,:root:not([data-theme="light"]) .jx-ed .chip{background:#fbf5f1;border-color:#ead9df;color:#241019}
+:root:not([data-theme="light"]) .jx-abas .chip.on{background:#721a50;border-color:#721a50;color:#fff}
+:root:not([data-theme="light"]) .jx-box input,:root:not([data-theme="light"]) .jx-box select,:root:not([data-theme="light"]) .jx-box textarea,:root:not([data-theme="light"]) .jx-insights textarea{background:#fff;color:#241019;border-color:#ead9df}
+:root:not([data-theme="light"]) .jx-box svg [fill="#404040"]{fill:#404040}
+}
+:root[data-theme="dark"] .area .go,:root[data-theme="dark"] .gl h3,:root[data-theme="dark"] .pop a,:root[data-theme="dark"] table.cmp tr.grp td,:root[data-theme="dark"] details.card>summary::before{color:#f0b6d6}
+:root[data-theme="dark"] .td-t td.down,:root[data-theme="dark"] .pa-t td.down,:root[data-theme="dark"] .ina-t td.down{color:#ff9a6b}
+:root[data-theme="dark"] .td-t td.up,:root[data-theme="dark"] .pa-t td.up,:root[data-theme="dark"] .ina-t td.up{color:#6fd6a8}
+:root[data-theme="dark"] .td-k.pr b{color:#ff9a6b}
+:root[data-theme="dark"] .td-k.ok b{color:#6fd6a8}
+:root[data-theme="dark"] .td-fcat td.td-acao{background:rgba(92,199,157,.10)}
+:root[data-theme="dark"] .pa-tag{background:#3a2330;color:#f0b6d6}
+:root[data-theme="dark"] .pa-tag.x{background:rgba(240,138,75,.16);color:#ff9a6b}
+:root[data-theme="dark"] .pa-grupos .pa-sub{color:#e3d2da}
+:root[data-theme="dark"] .pa-grupos .td-k.on{outline-color:#f0b6d6}
+:root[data-theme="dark"] .ina-v{background:#2e1824;color:var(--ink)}
+:root[data-theme="dark"] .ina-ok .ina-v{background:rgba(92,199,157,.16);color:#6fd6a8}
+:root[data-theme="dark"] .ina-lim .ina-v{background:rgba(227,176,75,.16);color:#f0c46a}
+:root[data-theme="dark"] .ina-x .ina-v{background:rgba(255,255,255,.08);color:#d9c6cf}
+:root[data-theme="dark"] .ina-sd .ina-v{background:#3a2330;color:#f0b6d6}
+:root[data-theme="dark"] .hint,:root[data-theme="dark"] .sub,:root[data-theme="dark"] .note{color:#d9c6cf}
+:root[data-theme="dark"] .chip{background:#2e1824;border-color:#5a3a4b;color:var(--ink)}
+:root[data-theme="dark"] .chip:hover{border-color:#f0b6d6}
+:root[data-theme="dark"] .chip.on{background:#a8336c;border-color:#a8336c;color:#fff}
+:root[data-theme="dark"] .btn-sec{border-color:#7a5568;color:var(--ink)}
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:#170b12;color:var(--ink);border-color:#5a3a4b}
+:root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#a88e9c}
+:root[data-theme="dark"] input[type=file]::file-selector-button{background:#3a2330;color:var(--ink);border:1px solid #7a5568;border-radius:8px;padding:4px 10px}
+:root[data-theme="dark"] .side-tog,:root[data-theme="dark"] .btn-sair{border-color:rgba(255,255,255,.55)}
+:root[data-theme="dark"] svg [fill="#721a50"]{fill:#d47aa9}
+:root[data-theme="dark"] svg [stroke="#721a50"]{stroke:#d47aa9}
+:root[data-theme="dark"] .legend i[style*="#721a50"]{background:#d47aa9!important}
+:root[data-theme="dark"] svg [fill="#404040"]{fill:#e3d2da}
+:root[data-theme="dark"] .jx-box .hint,:root[data-theme="dark"] .jx-box .sub,:root[data-theme="dark"] .jx-box small,:root[data-theme="dark"] .jx-abas .hint,:root[data-theme="dark"] .jx-ed .hint,:root[data-theme="dark"] .jx-insights .hint{color:#6e5763}
+:root[data-theme="dark"] .jx-box .chip,:root[data-theme="dark"] .jx-abas .chip,:root[data-theme="dark"] .jx-ed .chip{background:#fbf5f1;border-color:#ead9df;color:#241019}
+:root[data-theme="dark"] .jx-abas .chip.on{background:#721a50;border-color:#721a50;color:#fff}
+:root[data-theme="dark"] .jx-box input,:root[data-theme="dark"] .jx-box select,:root[data-theme="dark"] .jx-box textarea,:root[data-theme="dark"] .jx-insights textarea{background:#fff;color:#241019;border-color:#ead9df}
+:root[data-theme="dark"] .jx-box svg [fill="#404040"]{fill:#404040}
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) .chip.on *,:root:not([data-theme="light"]) .chip.on small{color:rgba(255,255,255,.92)!important}
+:root:not([data-theme="light"]) svg [fill="#C65911"],:root:not([data-theme="light"]) svg [fill="#c65911"]{fill:#ff9a6b}
+:root:not([data-theme="light"]) svg [stroke="#C65911"],:root:not([data-theme="light"]) svg [stroke="#c65911"]{stroke:#ff9a6b}
+:root:not([data-theme="light"]) .jx-box svg [fill="#C65911"],:root:not([data-theme="light"]) .jx-box svg [fill="#c65911"]{fill:#C65911}
+:root:not([data-theme="light"]) .jx-box svg [stroke="#C65911"],:root:not([data-theme="light"]) .jx-box svg [stroke="#c65911"]{stroke:#C65911}
+}
+:root[data-theme="dark"] .chip.on *,:root[data-theme="dark"] .chip.on small{color:rgba(255,255,255,.92)!important}
+:root[data-theme="dark"] svg [fill="#C65911"],:root[data-theme="dark"] svg [fill="#c65911"]{fill:#ff9a6b}
+:root[data-theme="dark"] svg [stroke="#C65911"],:root[data-theme="dark"] svg [stroke="#c65911"]{stroke:#ff9a6b}
+:root[data-theme="dark"] .jx-box svg [fill="#C65911"],:root[data-theme="dark"] .jx-box svg [fill="#c65911"]{fill:#C65911}
+:root[data-theme="dark"] .jx-box svg [stroke="#C65911"],:root[data-theme="dark"] .jx-box svg [stroke="#c65911"]{stroke:#C65911}
+.chip.on .t,.chip.on small{color:inherit}
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) .td-k.baixo b{color:#ff8a7a}
+:root:not([data-theme="light"]) .td-k.lim b{color:#f0c46a}
+:root:not([data-theme="light"]) .td-k.pr b{color:#ff9a6b}
+:root:not([data-theme="light"]) .td-k.ok b{color:#6fd6a8}
+}
+:root[data-theme="dark"] .td-k.baixo b{color:#ff8a7a}
+:root[data-theme="dark"] .td-k.lim b{color:#f0c46a}
+:root[data-theme="dark"] .td-k.pr b{color:#ff9a6b}
+:root[data-theme="dark"] .td-k.ok b{color:#6fd6a8}
 </style>
 </head>
 <body>
@@ -464,6 +558,15 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const lab=m=>{const [y,mm]=m.split('-');return MESES[+mm-1]+'/'+y};
 const fmt=(n,d=0)=>n==null||!isFinite(n)?'—':n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+/* nomes de exibição: como o parceiro é citado no portal e nas planilhas baixadas (os dados guardados não mudam) */
+const NOMES_EXIB=[[/Uber para Empresas/gi,'Uber']];
+const exibir=s=>NOMES_EXIB.reduce((t,[re,n])=>t.replace(re,n),String(s));
+(()=>{const pula=new Set(['TEXTAREA','INPUT','SCRIPT','STYLE']);
+ const troca=root=>{const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>pula.has(n.parentNode&&n.parentNode.nodeName)||!/uber para empresas/i.test(n.nodeValue)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  const l=[];while(w.nextNode())l.push(w.currentNode);l.forEach(n=>n.nodeValue=exibir(n.nodeValue))};
+ const ob=new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData'){const n=m.target;if(/uber para empresas/i.test(n.nodeValue)&&!pula.has(n.parentNode&&n.parentNode.nodeName))n.nodeValue=exibir(n.nodeValue)}else m.addedNodes.forEach(n=>n.nodeType===3?(/uber para empresas/i.test(n.nodeValue)&&!pula.has(n.parentNode&&n.parentNode.nodeName)&&(n.nodeValue=exibir(n.nodeValue))):n.nodeType===1&&troca(n))}});
+ const ini=()=>{troca(document.body);ob.observe(document.body,{childList:true,subtree:true,characterData:true})};
+ if(document.body)ini();else document.addEventListener('DOMContentLoaded',ini)})();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const mesIdx=m=>{const [y,mm]=m.split('-').map(Number);return (y-2023)*12+mm-7};
 
@@ -1298,6 +1401,8 @@ function rankings(itens){const ev=it=>SEM.prod.has(it.marca);
   lacador:agrupa(itens.filter(it=>it.marca===LACADOR),it=>it.titulo),
   online:agrupa(itens.filter(it=>ONLINE.includes(it.marca)),it=>it.marca+'\t'+it.titulo),
   premium:agrupa(itens.filter(it=>it.premium),it=>it.marca+'\t'+it.titulo)}}
+/* totais de categoria da semana: nas semanas dos relatórios do João, os totais que ele reportou */
+function catsSemana(w){const c=categorias(SEM.itens[w.i]||[]);return w&&w.joao&&w.cats?{...c,...w.cats}:c}
 function categorias(itens){const s=f=>itens.filter(f).reduce((t,it)=>t+it.usos,0);
  return {clube:s(it=>it.marca===CLUBE_MARCA),eventos:s(it=>SEM.prod.has(it.marca)),lacador:s(it=>it.marca===LACADOR),online:s(it=>ONLINE.includes(it.marca)),premium:s(it=>it.premium)}}
 const RANKS=[
@@ -1322,8 +1427,8 @@ const nomeParc=k=>k===CLUBE_MARCA?'Clube (ações de cortesia)':k===CLUBE_OUTROS
 function tendencia(a,b){if(!b)return '';const v=(a/b-1)*100;
  if(Math.abs(v)<3)return ', seguindo na mesma linha da última semana';return `, ${v>0?'acima':'abaixo'} da última semana (${v>0?'+':'−'}${fmt(Math.abs(v),1)}%)`}
 function linhaVs(a,b,txt){if(b==null)return '';const v=b?(a/b-1)*100:0;if(Math.abs(v)<3)return `, ${txt||'mesma linha da última semana'}`;return `, ${v>0?'subindo':'caindo'} em relação à última semana (${fmt(b)})`}
-function rascunho(s){const L=SEM.dados.semanas;const p=L[s.k-1];const R=rankings(SEM.itens[s.i]);const cat=categorias(SEM.itens[s.i]);
- const pi=p&&!p.so_total&&SEM.itens[p.i];const RP=pi?rankings(SEM.itens[p.i]):null,cp=pi?categorias(SEM.itens[p.i]):null;const out=[];
+function rascunho(s){const L=SEM.dados.semanas;const p=L[s.k-1];const R=rankings(SEM.itens[s.i]);const cat=catsSemana(s);
+ const pi=p&&!p.so_total&&SEM.itens[p.i];const RP=pi?rankings(SEM.itens[p.i]):null,cp=pi?catsSemana(p):null;const out=[];
  out.push(`[[${fmt(s.usos)} usos na semana]], sendo [[${fmt(s.unicos)} usuários únicos]]${p?tendencia(s.usos,p.usos):''}.`);
  const tp=R.premium[0];out.push(`**Benefícios Premium tiveram ${fmt(cat.premium)} usos**${tp?`, com destaque para [[${tp.cols[1].trim()}]] (${fmt(tp.usos)})`:''}${cp?linhaVs(cat.premium,cp.premium):''}.`);
  out.push(`**Vertical Laçador teve ${fmt(cat.lacador)} usos**${cp?linhaVs(cat.lacador,cp.lacador,'mantendo a média do parceiro'):''}.`);
@@ -1459,7 +1564,7 @@ function abaHtml(s,k){const A=ABAS[k];const R=rankings(SEM.itens[s.i]);const p=S
  return `<div class="jx-aba">${tab(cur)}${A.tot?`<div class="jx-tot"><div><span>TOTAL DE USOS DA CATEGORIA</span><b>${fmt(tot)}</b></div><div class="sm"><span>Total da semana</span><b>${fmt(s.usos)}</b></div><div class="pv"><span>SEMANA PASSADA</span><b>${totP!=null?fmt(totP):'—'}</b></div></div>`:''}${tab(prev,true)}</div>`}
 
 /* ---------- exportar: preenche o modelo do relatório (mesmas guias, cores e gráficos) ---------- */
-const xe=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const xe=s=>exibir(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const n2col=n=>{let s='';while(n){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s};
 const serial=d=>Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(1899,11,30))/864e5);
 function celXml(ref,st,v){const s=st!=null&&st!==''?` s="${st}"`:'';
@@ -1760,12 +1865,12 @@ function gerarFCA(s,P){const L=SEM.dados.semanas;const p=L[s.k-1];const it=SEM.i
  if(!P.semMtd){const r=P.refs.filter(x=>x.usos);const abaixo=r.filter(x=>x.st!=='ok');
   const fato=`${P.fechado?'Resultado':'Projeção'} de **${fmt(P.projU)} usos** em ${P.mesLab}: ${r.map(x=>`${fmt(x.pctU,1)}% de ${x.lab} (${sinalN(x.gapU)})`).join(' e ')}.`;
   const ritmoTxt=`- Ritmo das últimas 2 semanas: ${fmt(P.ritmo)} usos/dia\n- No mês até agora: ${fmt(P.ritmoMes)} usos/dia`;
-  let cat='';if(it&&ant.length){const cs=categorias(it);const cm=TCATS.map(([k,n])=>({n,d:varp(cs[k],mediaA(ant.map(w=>categorias(SEM.itens[w.i])[k])))})).filter(x=>x.d!=null&&isFinite(x.d)).sort((a,b)=>a.d-b.d);
+  let cat='';if(it&&ant.length){const cs=catsSemana(s);const cm=TCATS.map(([k,n])=>({n,d:varp(cs[k],mediaA(ant.map(w=>catsSemana(w)[k])))})).filter(x=>x.d!=null&&isFinite(x.d)).sort((a,b)=>a.d-b.d);
    const neg=cm.filter(x=>x.d<-10).slice(0,2);if(neg.length)cat=`\nCategorias abaixo da média das últimas semanas:\n- ${neg.map(x=>`${x.n} (${sinalP(x.d)})`).join('\n- ')}`}
   const alvo=abaixo.sort((a,b)=>b.usos-a.usos)[0];
   rows.push({f:fato,c:`${ritmoTxt}${cat}`,a:P.fechado?'Mês fechado: usar o resultado como base do planejamento do próximo mês.':alvo?`Para superar ${alvo.lab} faltam **${fmt(alvo.faltam)} usos**: **${fmt(alvo.nec)} por dia** nos ${P.rest} dias restantes (${sinalP(alvo.acel)} sobre o ritmo atual). Concentrar a comunicação nos parceiros de maior uso e programar uma ação de cortesia.`:`Manter o ritmo: com ${fmt(P.ritmo)} usos/dia o mês fecha acima das duas referências.`})}
  // 3. categorias que mais se moveram
- if(it&&ant.length){const cs=categorias(it);const base=ant.map(w=>({w,c:categorias(SEM.itens[w.i])}));
+ if(it&&ant.length){const cs=catsSemana(s);const base=ant.map(w=>({w,c:catsSemana(w)}));
   const mov=TCATS.map(([k,n])=>{const b=mediaA(base.map(x=>x.c[k]));return {k,n,cur:cs[k],b,d:varp(cs[k],b),abs:cs[k]-b}}).filter(x=>x.d!=null&&isFinite(x.d)&&Math.abs(x.d)>=20&&Math.abs(x.abs)>=40).sort((a,b)=>Math.abs(b.abs)-Math.abs(a.abs)).slice(0,3);
   mov.forEach(x=>{const sent=x.abs>=0?1:-1;const ref=ip||SEM.itens[ant[ant.length-1].i];
    const c=causaItens(it.filter(filtroCat[x.k]),(ref||[]).filter(filtroCat[x.k]),y=>y.marca+'\t'+y.titulo,sent);
