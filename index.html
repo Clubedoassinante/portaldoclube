@@ -181,6 +181,14 @@ html,body{margin:0}
 .login-card input{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:15px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--ink)}
 .login-card .btn{margin-top:4px;padding:13px}
 .login-msg{margin:0;color:var(--bad);font-size:13.5px;font-weight:500}
+.login-dica{margin:0;color:var(--muted);font-size:12.5px}
+.login-troca{background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;padding:4px}
+.acc-link{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 4px}
+.acc-link input{flex:1 1 320px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:13.5px;color:var(--ink)}
+.acc-tab{width:100%;border-collapse:collapse}
+.acc-tab td,.acc-tab th{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px;vertical-align:middle}
+.acc-tab select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:13px}
+.acc-tab .rem{background:none;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12.5px;color:var(--bad);cursor:pointer}
 .login-pe{position:relative;z-index:1;margin-top:18px;color:var(--head-sub);font-size:12px;text-align:center}
 /* cabeçalho logado */
 .top .info{font-size:12px;color:var(--head-sub)}
@@ -381,6 +389,7 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .ina-sec{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
 .ina-pres{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.ina-pres .td-k{cursor:pointer;text-align:left;font:inherit}
 .ina-filtros{display:grid;gap:12px}.ina-filtros .chips{flex-wrap:wrap}
+.btn-sec{display:inline-flex;align-items:center;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-weight:700;font-size:13.5px;cursor:pointer}.btn-sec:hover{border-color:var(--laranja)}
 </style>
 </head>
 <body>
@@ -396,6 +405,15 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
     <p id="login-msg" class="login-msg" role="alert" hidden></p>
     <button class="btn" type="submit">Entrar</button>
    </form>
+   <form id="form-cadastro" novalidate hidden>
+    <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
+    <label>Crie uma senha<input name="senha" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label>Repita a senha<input name="senha2" type="password" autocomplete="new-password" minlength="8" required></label>
+    <p class="login-dica">Mínimo de 8 caracteres. O acesso é de visualização: você vê todos os painéis, sem enviar dados.</p>
+    <p id="cad-msg" class="login-msg" role="alert" hidden></p>
+    <button class="btn" type="submit">Criar meu acesso</button>
+    <button class="login-troca" type="button" id="ir-login">Já tenho acesso · Entrar</button>
+   </form>
   </div>
   <p class="login-pe">Esqueceu a senha? Fale com a administradora do portal.</p>
  </div>
@@ -405,6 +423,7 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
   <a class="brand" href="#home"><img src="data:image/webp;base64,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" alt="Clube do Assinante"><b>Portal do Clube</b></a>
   <span class="sp"></span>
   <span class="info" id="atualizado"></span>
+  <a class="lnk" id="lnk-acessos" href="#acessos" hidden>Acessos</a>
   <span class="user" id="usuario"></span>
   <button class="btn-sair" id="sair" type="button">Sair</button>
  </div></header>
@@ -498,7 +517,7 @@ const GL=[
  ]],
  ['Relatório semanal',[
   ['semana','Semana','Período do relatório semanal: de sexta a quinta-feira.',''],
-  ['usos','Usos','Vouchers gerados na semana. Cada voucher gerado conta como 1 uso.','Ficam fora a conta de testes da equipe e as farmácias (exceto Panvel), como no restante do portal.'],
+  ['usos','Usos','Vouchers gerados na semana. Cada voucher gerado conta como 1 uso.','Fica fora só a conta de testes da equipe (ADMIN C). As farmácias contam no Relatório semanal, diferente dos painéis mensais.'],
   ['usuarios-semana','Usuários únicos da semana','Pessoas diferentes que geraram pelo menos 1 voucher na semana.',''],
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
@@ -507,7 +526,7 @@ const GL=[
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
   ['premium','Benefícios Premium','Promoções exclusivas para sócios Premium: a descrição do benefício fala em sócios premium.',''],
-  ['contagem-antiga','Contagem antiga','Semanas de antes do primeiro envio pelo portal. Vieram do relatório antigo, que contava todas as linhas, inclusive a conta de testes e as farmácias; por isso podem ficar um pouco acima.','Essas semanas têm só os totais, sem os rankings.'],
+  ['contagem-antiga','Contagem antiga','Semanas de antes do primeiro envio pelo portal. Vieram do relatório antigo, que contava todas as linhas, inclusive a conta de testes; por isso podem ficar um pouco acima.','Essas semanas têm só os totais, sem os rankings.'],
   ['status-mes','Status do mês','Se, no ritmo das últimas 2 semanas, o mês tende a superar, ficar no limite ou ficar abaixo do mês anterior e do mesmo mês do ano anterior.','"No limite" = a diferença está dentro da margem de erro da projeção.'],
   ['projecao-fechamento','Projeção de fechamento','Usos do mês até a data (base do mês) mais o ritmo diário das últimas 2 semanas multiplicado pelos dias que faltam.','Para usuários únicos, a projeção usa quanto esse número costuma crescer a partir do mesmo dia do mês, porque quem já usou não conta de novo.'],
   ['margem-erro','Margem de erro','Erro médio que a projeção teve quando foi feita no mesmo ponto do mês em meses que já fecharam.','Margem de ±7% quer dizer que, em média, o mês fechou 7% acima ou abaixo do projetado.'],
@@ -562,8 +581,13 @@ const GL=[
   ['taxa-ativacao','Taxa de ativação','Pessoas que geraram o primeiro voucher no mês divididas por quem nunca tinha gerado no mês anterior.',''],
   ['taxa-reativacao','Taxa de reativação','Pessoas que voltaram a usar no mês divididas por quem estava parado (6 meses ou mais sem gerar) no mês anterior.',''],
  ]],
+ ['Acessos',[
+  ['visualizador','Visualizador','Acesso de leitura: vê todos os painéis e o glossário, mas não envia arquivos, não edita cadastro nem gera bases.','É o acesso de quem se cadastra pelo link de convite.'],
+  ['administrador','Administrador','Acesso completo: envia os arquivos do mês e da semana, edita o cadastro de parceiros, gera bases e gerencia os acessos.',''],
+  ['link-convite','Link de convite','Endereço do portal com um código no final. Só quem abre esse link consegue criar o próprio acesso, como visualizador.','Gerar um código novo invalida o link anterior. Quem já se cadastrou continua com acesso.'],
+ ]],
  ['Regras',[
-  ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora de todos os números, porque são gerados automaticamente.','Panvel continua contando.'],
+  ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora dos painéis mensais (Clube em números, Parceiros e Inativos), porque são gerados automaticamente.','Panvel continua contando. No Relatório semanal todas as farmácias contam.'],
   ['admin-c','ADMIN C','Conta de testes da equipe. Fica fora de todos os números.',''],
   ['ressalva','Mês com ressalva','Mês com problema conhecido nos dados. Aparece com ⚠ nos gráficos e nos números.',''],
  ]],
@@ -1368,7 +1392,7 @@ async function renderSemana(){const box=document.getElementById('wres');if(!box)
  if((location.hash||'').slice(1)==='semanal-tendencia'){renderTendencia(box,s);return}
  const D=painel(s);const rk=(location.hash||'').slice(1)==='semanal-rankings';
  box.innerHTML=`${s.so_total?`<div class="note">Semana da ${T('contagem-antiga','contagem antiga')}: só os totais; os rankings começam na primeira semana enviada pelo portal.</div>`:''}
- ${rk&&D.mtd?.antiga?`<div class="note">O ${T('bloco-mes','bloco do mês')} (${D.mesCurto.toLowerCase()}) veio do relatório original da semana, que contava todas as linhas (inclusive conta de testes e farmácias). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
+ ${rk&&D.mtd?.antiga?`<div class="note">O ${T('bloco-mes','bloco do mês')} (${D.mesCurto.toLowerCase()}) veio do relatório original da semana, que contava todas as linhas (inclusive a conta de testes). Para recontar pela regra do portal, envie a semana de novo junto com a base do mês.</div>`:''}
  <div class="jx${rk?' jx-rkpage':''}">${painelHtml(D,rk?'rank':'graf')}</div>${!rk?'':s.so_total?'<p class="hint">Semana da contagem antiga: sem as listas de parceiros, promoções, eventos, Laçador, Online e Premium.</p>':`<div class="card tablecard jx-abas"><div class="chips" role="tablist">${RANKS.map(([k,nome])=>`<button class="chip ${SEM.aba===k?'on':''}" data-aba="${k}" type="button">${nome}</button>`).join('')}</div><div id="waba">${abaHtml(s,SEM.aba)}</div></div>`}`;
  box.querySelectorAll('[data-aba]').forEach(b=>b.onclick=()=>{SEM.aba=b.dataset.aba;box.querySelectorAll('[data-aba]').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('waba').innerHTML=abaHtml(s,SEM.aba)});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
@@ -1579,7 +1603,7 @@ async function lerSemana(file){let linhas;
   // quantidade de vouchers da linha (exportação da plataforma traz a coluna Produtos; a base do relatório traz uma linha por voucher)
   const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
-  if(FARMACIAS.has(normL(marca))){farm+=q;continue}
+  if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
   const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
@@ -1608,10 +1632,10 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
  ${dd!==7?`<div class="note">O período tem ${dd} ${dd===1?'dia':'dias'}; a semana do relatório tem 7 (sexta a quinta).</div>`:''}
  ${sobre.length?`<div class="note">Vai substituir ${sobre.map(s=>`<b>${semLab(s)}</b>${s.so_total?' (contagem antiga)':''}`).join(', ')}.</div>`:''}
  <div class="label" style="margin-top:6px">Semana · ${esc(e.arquivo)}</div>
- <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Fora: farmácias')}</div>
+ <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Farmácias (incluídas)')}</div>
  <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>${(()=>{const nv=produtorasNovas(e.itens,mm?mm.itens:[]);return nv.length?`<p class="hint">Produtoras de eventos novas, reconhecidas pelo nome: <b>${nv.map(esc).join(', ')}</b>. Entram no ranking de Eventos ao salvar.</p>`:''})()}
  <div class="label" style="margin-top:14px">Mês até a data · ${mm?esc(mm.arquivo):'não enviada'}</div>
- ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Fora: farmácias')}</div>${avisoMes}
+ ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}</div>${avisoMes}
   <p class="hint">Vai para o bloco de <b>${mesLab}</b>. Top 5 parceiros do mês: ${resumoMes(mm).parceiros.map(p=>`${esc(p[0])} (${fmt(p[1])})`).join(', ')}.</p>`
   :`<p class="hint">Sem a base do mês, o bloco do mês fica ${sobre.some(s=>s.i===E.inicio&&s.mtd)?'com o que já estava salvo':'vazio'}. Dá para enviar depois: é só mandar a semana de novo com as duas bases.</p>`}
  <button class="btn" id="wsalvar" type="button">Salvar semana</button> <span class="hint" id="wsmsg"></span></div>`;
@@ -1622,7 +1646,7 @@ async function salvarSemana(){const E=SEM.envio,e=E.sem,b=document.getElementByI
  b.disabled=true;m.textContent='Salvando…';
  const nv=produtorasNovas(e.itens,E.mes?E.mes.itens:[]);
  if(nv.length){const r=await sb.rpc('salvar_produtoras',{p_lista:[...SEM.prod,...nv]});if(r.error){b.disabled=false;m.textContent='Não salvou: '+r.error.message;return}nv.forEach(x=>SEM.prod.add(x))}
- const {error}=await sb.rpc('salvar_semana',{p:{inicio:E.inicio,fim:E.fim,usos:e.usos,unicos:e.unicos,excluidos:e.admin+e.farm,itens:e.itens,mtd:E.mes?resumoMes(E.mes):null}});
+ const {error}=await sb.rpc('salvar_semana',{p:{inicio:E.inicio,fim:E.fim,usos:e.usos,unicos:e.unicos,excluidos:e.admin,itens:e.itens,mtd:E.mes?resumoMes(E.mes):null}});
  if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
  delete SEM.itens[E.inicio];const ini=E.inicio;SEM.envio={};await semCarregar(true);SEM.sel=ini;SEM.editando=!!ADMIN;
  location.hash='semanal'}
@@ -2486,6 +2510,7 @@ function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(h.startsWith('g-')){pending=h;location.hash='glossario';return}
  const area=areaOf(h);
  if(h==='carga'){location.hash='clube-enviar';return}
+ if(h==='acessos'){if(ADMIN)telaAcessos();else location.hash='home';return}
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
  else if(area==='semanal')rotaSemanal(h);
  else if(area==='parceiros')rotaParceiros(h);
@@ -2517,7 +2542,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')hidePop()});
 /* ---------- login e sessão ---------- */
 const telaLogin=document.getElementById('login'), telaPortal=document.getElementById('portal');
 const formLogin=document.getElementById('form-login'), msgLogin=document.getElementById('login-msg');
-function mostrarLogin(msg){telaPortal.hidden=true;telaLogin.hidden=false;msgLogin.textContent=msg||'';msgLogin.hidden=!msg;
+let CONVITE=null;try{CONVITE=new URLSearchParams(location.search).get('convite')}catch(_){}
+const formCad=document.getElementById('form-cadastro'), msgCad=document.getElementById('cad-msg'), subLogin=document.querySelector('.login-sub');
+function modoCadastro(on){formCad.hidden=!on;formLogin.hidden=on;
+ subLogin.textContent=on?'Você recebeu um convite. Cadastre seu e-mail e uma senha para acessar os painéis.':'Acesso restrito ao time do Clube do Assinante.'}
+function mostrarLogin(msg){telaPortal.hidden=true;telaLogin.hidden=false;msgLogin.textContent=msg||'';msgLogin.hidden=!msg;modoCadastro(!!CONVITE&&!msg);
  const b=formLogin.querySelector('button');b.disabled=false;b.textContent='Entrar'}
 async function carregarDados(silencioso){
  if(!silencioso)app.innerHTML='<div class="wrap"><p class="carregando">Carregando os números…</p></div>';
@@ -2530,8 +2559,9 @@ async function carregarDados(silencioso){
 }
 async function entrarNoPortal(sessao){
  telaLogin.hidden=true;telaPortal.hidden=false;
+ if(CONVITE){CONVITE=null;history.replaceState(null,'',location.pathname+location.hash)}
  document.getElementById('usuario').textContent=sessao.user?.email||'';
- try{await carregarDados();route()}
+ try{await carregarDados();document.getElementById('lnk-acessos').hidden=!ADMIN;route()}
  catch(e){app.innerHTML=`<div class="wrap"><div class="note" style="margin-top:24px">Não foi possível carregar os dados: ${esc(e.message||e)}. Tente sair e entrar de novo.</div></div>`}
 }
 formLogin.addEventListener('submit',async e=>{e.preventDefault();
@@ -2540,8 +2570,55 @@ formLogin.addEventListener('submit',async e=>{e.preventDefault();
  const {data,error}=await sb.auth.signInWithPassword({email,password:senha});
  if(error){mostrarLogin(/invalid/i.test(error.message)?'E-mail ou senha incorretos.':'Não foi possível entrar: '+error.message);return}
  formLogin.senha.value='';entrarNoPortal(data.session)});
+document.getElementById('ir-login').addEventListener('click',()=>modoCadastro(false));
+formCad.addEventListener('submit',async e=>{e.preventDefault();
+ const erro=t=>{msgCad.textContent=t;msgCad.hidden=false;b.disabled=false;b.textContent='Criar meu acesso'};
+ const b=formCad.querySelector('button[type=submit]');msgCad.hidden=true;
+ const email=formCad.email.value.trim().toLowerCase(), senha=formCad.senha.value;
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return erro('Informe um e-mail válido.');
+ if(senha.length<8)return erro('A senha precisa ter pelo menos 8 caracteres.');
+ if(senha!==formCad.senha2.value)return erro('As duas senhas não são iguais.');
+ b.disabled=true;b.textContent='Criando acesso…';
+ const {error}=await sb.rpc('cadastrar_visualizador',{p_email:email,p_senha:senha,p_codigo:CONVITE});
+ if(error)return erro(error.message.replace(/^.*?: /,'')||'Não foi possível criar o acesso.');
+ const r=await sb.auth.signInWithPassword({email,password:senha});
+ if(r.error)return erro('Acesso criado. Agora entre com seu e-mail e senha.');
+ formCad.reset();entrarNoPortal(r.data.session)});
 document.getElementById('sair').addEventListener('click',async()=>{await sb.auth.signOut();RAW=null;location.hash='';mostrarLogin()});
 (async()=>{const {data}=await sb.auth.getSession();if(data.session)entrarNoPortal(data.session);else mostrarLogin()})();
+
+/* ---------- acessos (só administradores) ---------- */
+const URL_PORTAL=location.origin+location.pathname;
+const dataBR=d=>d?new Date(d).toLocaleDateString('pt-BR'):'—';
+async function telaAcessos(){
+ app.innerHTML=`<div class="page-head"><div class="in wrap"><div class="crumb"><a href="#home">Portal</a> › Acessos</div><h1 class="title">Quem acessa <em>o portal</em></h1></div></div>
+ <div class="wrap content" id="acc"><p class="carregando">Carregando…</p></div>`;
+ const box=document.getElementById('acc');
+ const [c,l]=await Promise.all([sb.rpc('convite_atual'),sb.rpc('lista_acessos')]);
+ if(c.error||l.error){box.innerHTML=`<div class="note">Não foi possível carregar os acessos: ${esc((c.error||l.error).message)}. Confira se o arquivo 16_cadastro_convite.sql já foi rodado no Supabase.</div>`;return}
+ const link=c.data?`${URL_PORTAL}?convite=${c.data}`:'';
+ const us=l.data||[], nA=us.filter(u=>u.papel==='admin').length;
+ box.innerHTML=`<div class="card"><h3>${T('link-convite')}</h3>
+  <p class="sub">Mande este link para quem precisa ver os painéis. A pessoa cadastra e-mail e senha e entra como ${T('visualizador','visualizador')}.</p>
+  <div class="acc-link"><input id="acc-url" readonly value="${esc(link)}"><button class="btn" id="acc-copiar" type="button">Copiar link</button><button class="btn-sec" id="acc-novo" type="button">Gerar link novo</button></div>
+  <p class="hint" id="acc-m">Gerar link novo desativa o anterior (use se o link circulou além do time). Quem já se cadastrou continua com acesso.</p></div>
+ <div class="card"><h3>Pessoas com acesso <span class="hint">${fmt(us.length)} no total · ${fmt(nA)} ${nA===1?'administrador':'administradores'}</span></h3>
+  <div class="tw"><table class="acc-tab"><thead><tr><th>E-mail</th><th>Acesso</th><th>Criado em</th><th>Último acesso</th><th>Origem</th><th></th></tr></thead><tbody>
+  ${us.map(u=>`<tr data-id="${u.id}"><td>${esc(u.email||'')}${u.eu?' <span class="hint">(você)</span>':''}</td>
+   <td>${u.eu?(u.papel==='admin'?T('administrador'):T('visualizador')):`<select class="acc-papel"><option value="visualizador"${u.papel!=='admin'?' selected':''}>Visualizador</option><option value="admin"${u.papel==='admin'?' selected':''}>Administrador</option></select>`}</td>
+   <td>${dataBR(u.criado)}</td><td>${dataBR(u.ultimo)}</td><td>${u.convite?'Link de convite':'Criado no Supabase'}</td>
+   <td>${u.eu?'':'<button class="rem" type="button">Remover</button>'}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p class="hint">Remover apaga o login da pessoa: ela não entra mais (pode se cadastrar de novo pelo link, se ainda tiver o link válido).</p></div>`;
+ const msg=document.getElementById('acc-m');
+ document.getElementById('acc-copiar').onclick=async()=>{const i=document.getElementById('acc-url');try{await navigator.clipboard.writeText(i.value);msg.textContent='Link copiado.'}catch(_){i.select();msg.textContent='Selecione e copie o link (Ctrl+C).'}};
+ document.getElementById('acc-novo').onclick=async()=>{if(!confirm('Gerar um link novo? O link atual deixa de funcionar.'))return;
+  const r=await sb.rpc('novo_convite');if(r.error){msg.textContent='Erro: '+r.error.message;return}telaAcessos()};
+ box.querySelectorAll('.acc-papel').forEach(sel=>sel.onchange=async()=>{const id=sel.closest('tr').dataset.id;
+  const r=await sb.rpc('mudar_acesso',{p_user:id,p_papel:sel.value});if(r.error){alert(r.error.message);}telaAcessos()});
+ box.querySelectorAll('.rem').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');if(!confirm(`Remover o acesso de ${tr.cells[0].textContent.trim()}?`))return;
+  const r=await sb.rpc('mudar_acesso',{p_user:tr.dataset.id,p_papel:'remover'});if(r.error){alert(r.error.message);}telaAcessos()});
+}
 </script>
 </body>
 </html>
