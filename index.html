@@ -1343,10 +1343,10 @@ const MESN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agost
 const MES3=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const diasNoMes=(y,m)=>new Date(y,m,0).getDate();
 function plat(y,m){return (SEM.dados.plataforma||[]).find(r=>r.m===`${y}-${pad2(m)}`)||{}}
-/* números mensais: totais da plataforma (Clube em números › Enviar mês › Uso na plataforma); se faltar, o Clube em números; se faltar, a última base do mês enviada no semanal */
+/* números mensais do relatório: totais da plataforma (arquivo Uso na plataforma); se faltar, a última base do mês enviada no próprio semanal.
+   Não usa os números do Clube em números, que seguem outras regras (sem farmácias). */
 function mtdDoMes(y,m){const k=`${y}-${pad2(m)}`;let r=null;for(const w of SEM.dados.semanas){const t=w.mtd;if(t&&!t.antiga&&(t.mes||w.f.slice(0,7))===k&&(!r||w.f>r.f))r={f:w.f,usos:t.usos,unicos:t.unicos}}return r}
 function mesNum(y,m,k,soFechado){const P=plat(y,m);const v=P[k==='usos'?'usos':'usuarios'];if(v!=null)return v;
- const r=(typeof M!=='undefined'?M:[]).find(x=>x.m===`${y}-${pad2(m)}`);if(r)return k==='usos'?r.vou:r.ger;
  const t=soFechado?null:mtdDoMes(y,m);return t?(k==='usos'?t.usos:t.unicos):null}
 function carteiraMes(y,m){const c=plat(y,m).carteira;if(c)return c;const r=(typeof M!=='undefined'?M:[]).find(x=>x.m===`${y}-${pad2(m)}`);return r&&r.pessoas||null}
 function carteira(y,m){for(let k=m;k>=1;k--){const c=carteiraMes(y,k);if(c)return c}for(let k=12;k>=1;k--){const c=carteiraMes(y-1,k);if(c)return c}return null}
