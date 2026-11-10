@@ -637,8 +637,8 @@ const GL=[
   ['usuarios-semana','Usuários únicos da semana','Pessoas diferentes que geraram pelo menos 1 voucher na semana.',''],
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
-  ['cortesia','Usos de cortesia','Vouchers da marca Clube do Assinante cuja descrição do cupom tem uma destas palavras: ação, ação especial, presente, presentear ou presentar. O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. O mês fechado é atualizado ao enviar os vouchers do mês em Clube em números.'],
-  ['acoes-clube','Ações do Clube','No Relatório semanal, só as ações de cortesia da marca Clube do Assinante (mesma regra dos usos de cortesia). Dica de filme do mês, lojas online e outros benefícios da marca aparecem à parte, como "Clube (outros benefícios)".','Nos painéis mensais (Parceiros), Ações do Clube continua sendo a marca inteira.'],
+  ['cortesia','Usos de cortesia','Vouchers das ações do Clube: marca Clube do Assinante (até ago/2025, "GZH") com título ou descrição falando de ação, presente/presentear, cortesia, grátis, ganhar, sorteio/concorra, convidado, "por conta do Clube", "o Clube te leva/paga" ou "par de ingressos" (no título, também "acompanhante" e "sessão especial/exclusiva"). Dica de filme do mês não conta (é desconto). O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. O mês fechado é atualizado ao enviar os vouchers do mês em Clube em números.'],
+  ['acoes-clube','Ações do Clube','No Relatório semanal, só as ações de cortesia da marca Clube do Assinante (mesma regra dos usos de cortesia), em todas as semanas desde 2023. Dica de filme do mês, Planeta Atlântida, lojas online e outros benefícios da marca aparecem à parte, como "Clube (outros benefícios)".','Nos painéis mensais (Parceiros), Ações do Clube continua sendo a marca inteira.'],
   ['eventos','Eventos','Promoções das produtoras de eventos.','A lista de produtoras fica na página Enviar semana e pode ser editada pelos administradores.'],
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
@@ -1142,9 +1142,15 @@ const pad2=n=>String(n).padStart(2,'0');
 const semAcento=s=>String(s??'').normalize('NFKD').replace(/[̀-ͯ]/g,'');
 const normU=s=>semAcento(s).toUpperCase().replace(/\s+/g,' ').trim();
 const normL=s=>semAcento(s).toLowerCase().replace(/\s+/g,' ').trim();
-/* cortesia: marca Clube do Assinante e, na descrição do cupom, ação / ação especial / presente / presentear / presentar (sem acento, palavra inteira) */
-const CORT_RE=/\b(acao|acoes|presente|presentes|presentear|presentar)\b/;
-const ehCortesia=(marca,desc)=>normL(marca)==='clube do assinante'&&CORT_RE.test(normL(desc));
+/* cortesia (ação do Clube): marca Clube do Assinante (antes de set/2025, "GZH") e, no título ou na descrição do cupom,
+   ação, presente/presentear/presentar, cortesia, grátis/gratuito, ganhar/ganhadores, concorra/sorteio/selecionar, convidado,
+   "por conta do Clube", "por nossa conta", "o Clube te leva", "o Clube paga", "par de ingressos"; no título, "acompanhante" ou "sessão especial/exclusiva".
+   Dica de filme do mês é desconto (não é cortesia). Sem acento, palavra inteira. Mesma regra do histórico (arquivo 28). */
+const CORT_RE=/\b(acao|acoes|presente|presentes|presentao|presentinho|presentear|presentar|cortesia|cortesias|gratis|gratuito|gratuitos|gratuita|gratuitas|ganhar|ganharem|ganhador|ganhadores|ganhadora|concorra|concorrer|concorrem|concurso|sorteio|sorteados|selecionar|convidado|convidados|convidada|convida)\b|socios selecionados|serao selecionados|por conta do clube|por conta da casa|por nossa conta|clube te leva|clube vai levar|clube paga|pares? de ingressos/;
+const CORT_TIT=/acompanhante|sessao (especial|exclusiva)/, CORT_NEG=/frete gratis|dias gratuitos|beneficios para presentear|o presente certo|produtos selecionados/g;
+const ehMarcaClube=m=>{const x=normL(m);return x==='clube do assinante'||x==='gzh'};
+const ehCortesia=(marca,desc,titulo)=>{if(!ehMarcaClube(marca))return false;const t=normL(titulo);if(t.startsWith('dica de filme'))return false;
+ const s=(t+' || '+normL(desc)).replace(CORT_NEG,' ');return CORT_RE.test(s)||CORT_TIT.test(t.replace(CORT_NEG,' '))};
 const FARMACIAS=new Set(['Droga Raia','Farmácia Pague Menos','Farmácias Pague Menos','Drogaria Araujo','Drogarias Pacheco','Drogaria Pacheco','Drogaria São Paulo','Farmácias Droga Raia e Drogasil','Farmácias Raia e Drogasil'].map(normL));
 const ATIVAS=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
 const PRODUTO={'DIGITAL':'Digital','IMPRESSO':'Impresso','IMP+DIG':'Impresso + Digital'};
@@ -1226,23 +1232,23 @@ async function lerCarteira(file,mes){
  linhas=null;return out}
 
 function colunasVoucher(campos,nome){const f=(campos||[]).map(x=>[x,normU(x)]);const ach=t=>(f.find(t)||[])[0];
- const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD'),desc:ach(x=>x[1].startsWith('DESCRI')),nome:ach(x=>x[1].startsWith('NOME'))}; // quantidade de vouchers da linha: nunca ignorar
+ const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD'),desc:ach(x=>x[1].startsWith('DESCRI')),tit:ach(x=>x[1].startsWith('TITULO')),nome:ach(x=>x[1].startsWith('NOME'))}; // quantidade de vouchers da linha: nunca ignorar
  if(!c.cpf||!c.marca||!c.data)throw new Error(`${nome} não parece um arquivo de vouchers (precisa das colunas CPF, Marca e Data).`);return c}
-function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
+function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
  let marca=String(marcaRaw??'').trim();if(/^\d+\.0+$/.test(marca))marca=marca.replace(/\.0+$/,'');
  if(FARMACIAS.has(normL(marca))){est.farm++;return}
  const c=cpf11(cpfRaw);if(!c){est.semCpf++;return}
  let p=parseInt(prodRaw,10);if(!(p>0))p=1;
  const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0,cort:descRaw===undefined?null:0};CG.vou.set(m,g)}
- if(g.cort!=null&&ehCortesia(marca,descRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
+ if(g.cort!=null&&ehCortesia(marca,descRaw,titRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
  const k=c+'\t'+marca;g.mapa.set(k,(g.mapa.get(k)||0)+p);g.linhas++;est.ok++}
 function lerVouchers(file,prog){const est={ok:0,farm:0,semCpf:0,semData:0};
  if(/\.xlsx?$/i.test(file.name))return file.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array',dense:true});
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:true,defval:null});const c=colunasVoucher(Object.keys(rows[0]||{}),file.name);
-  for(const r of rows)somarVoucher(r[c.cpf],r[c.marca],r[c.data],c.prod?r[c.prod]:1,est,c.desc?r[c.desc]:undefined,c.nome?r[c.nome]:'');prog(est);return est});
+  for(const r of rows)somarVoucher(r[c.cpf],r[c.marca],r[c.data],c.prod?r[c.prod]:1,est,c.desc?r[c.desc]:undefined,c.nome?r[c.nome]:'',c.tit?r[c.tit]:'');prog(est);return est});
  return new Promise((res,rej)=>{let c=null;
   Papa.parse(file,{header:true,skipEmptyLines:true,chunkSize:4*1024*1024,
-   chunk:(r,parser)=>{try{if(!c)c=colunasVoucher(r.meta.fields,file.name);for(const x of r.data)somarVoucher(x[c.cpf],x[c.marca],x[c.data],c.prod?x[c.prod]:1,est,c.desc?x[c.desc]:undefined,c.nome?x[c.nome]:'');prog(est)}catch(e){parser.abort();rej(e)}},
+   chunk:(r,parser)=>{try{if(!c)c=colunasVoucher(r.meta.fields,file.name);for(const x of r.data)somarVoucher(x[c.cpf],x[c.marca],x[c.data],c.prod?x[c.prod]:1,est,c.desc?x[c.desc]:undefined,c.nome?x[c.nome]:'',c.tit?x[c.tit]:'');prog(est)}catch(e){parser.abort();rej(e)}},
    complete:()=>res(est),error:e=>rej(e)})})}
 
 /* código do CPF: SHA-256(chave:cpf), 13 primeiros dígitos hexadecimais (igual à função codigo_cpf do banco) */
@@ -1723,7 +1729,7 @@ async function lerSemana(file){let linhas;
   if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
   if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
   // marca Clube do Assinante: só as ações de cortesia ficam como "Clube"; dica de filme, lojas etc. viram "Clube do Assinante (outros)"
-  if(normL(marca)===normL(CLUBE_MARCA)){if(iD>=0&&ehCortesia(marca,L[iD])){cort+=q;marca=CLUBE_MARCA}else marca=CLUBE_OUTROS}
+  if(ehMarcaClube(marca)){if(ehCortesia(marca,iD>=0?L[iD]:'',L[iT])){cort+=q;marca=CLUBE_MARCA}else marca=CLUBE_OUTROS}
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
   const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
@@ -2802,7 +2808,7 @@ function coGeral(h){const L=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);
  app.innerHTML=shell(h,`${coFiltroCanal()}
  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${Object.entries(por).map(([k,a])=>`<div class="kpi"><div class="k">${esc(k)} · ${fmt(a.n)} ${a.n===1?'comunicação':'comunicações'}</div><div class="v">${coPct(a.ba,a.bn)}</div><div class="d">${k==='In-app'?'de quem viu':'de quem clicou'} gerou ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')} · ${coPct(a.bd,a.bn)} do ${T('beneficio-divulgado','benefício divulgado')}${a.rn?` · ${coPct(a.rd,a.rn)} ${k==='In-app'?'de quem não recebeu':'de quem não abriu'}`:''}</div></div>`).join('')}</div>
  <div class="card"><h3>Comunicações analisadas</h3><p class="sub">Clique no assunto para ver o detalhe. Taxas sobre quem tem CPF identificado.</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th><th>Canal</th><th>Assunto</th><th class="n">Enviados</th><th class="n">Abertura</th><th class="n">Clique</th><th class="n">Clicou e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">Não abriu</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
+ <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th><th>Canal</th><th style="min-width:230px">Assunto</th><th class="n">Enviados</th><th class="n">Abertura</th><th class="n">Clique</th><th class="n">Clicou e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">Não abriu</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
  ${R.map(x=>`<tr><td>${coDia(coIsoDia(x.c.envio))}</td><td>${esc(x.c.canal)}</td><td><a href="#comunicacoes-detalhe" data-co="${x.c.id}">${esc(x.c.assunto||x.c.lista||'(sem assunto)')}</a></td><td class="n">${fmt(x.f.enviados)}</td><td class="n">${x.c.canal==='In-app'?'—':coPct(x.f.abriram,x.f.enviados)}</td><td class="n">${coPct(x.f.clicaram,x.f.enviados)}</td><td class="n"><b>${x.tx!=null?fmt(100*x.tx,1)+'%':'—'}</b></td><td class="n">${x.txd!=null?fmt(100*x.txd,1)+'%':'—'}</td><td class="n">${x.tx7!=null?fmt(100*x.tx7,1)+'%':'—'}</td><td class="n">${x.txr!=null?fmt(100*x.txr,1)+'%':'—'}</td><td class="n">${x.lift!=null?fmt(x.lift,1)+'×':'—'}</td></tr>`).join('')}
  </tbody></table></div></div>
  <p class="hint">Regras: ${T('prazo-oficial','prazo oficial')} de cada canal (até 3 dias depois do clique em e-mail e WhatsApp, mesmo dia no push, período no ar no in-app), conta de testes e resgates "CPF no Balcão" das farmácias fora, e o e-mail de teste da equipe fora dos relatórios.</p>`);
