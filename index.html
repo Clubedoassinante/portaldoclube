@@ -1100,7 +1100,7 @@ const AREAS={
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
-  r:[['comunicacoes','Visão geral'],['comunicacoes-newsletter','Newsletter'],['comunicacoes-pontual','E-mail pontual'],['comunicacoes-inapp','In-app'],['comunicacoes-push','Push'],['comunicacoes-whatsapp','WhatsApp'],['comunicacoes-detalhe','Por comunicação'],['comunicacoes-beneficios','Benefícios divulgados'],['comunicacoes-analisar','Analisar comunicação',1]]},
+  r:[['comunicacoes','Canais'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp']},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
   r:GL.map(([g],i)=>['glossario-'+i,g])},
 };
@@ -2634,7 +2634,7 @@ async function renderChurn(){const box=document.getElementById('ic-res');if(!box
 /* ================= Desempenho das comunicações ================= */
 /* O cálculo é feito aqui no navegador: relatório da comunicação + base de vouchers (+ carteira, opcional).
    Para o banco vão só os totais (funil, grupos e benefícios divulgados). Regras: doc "Janelas de atribuição". */
-const CO={d:null,env:null,sel:null,canal:'',fixo:false};
+const CO={d:null,env:null,sel:null,canal:''};
 const CO_CANAIS=['Newsletter','E-mail pontual','WhatsApp','Push','In-app'];
 const CO_PRAZO={'Newsletter':3,'E-mail pontual':3,'WhatsApp':3,'Push':0};   // dias depois do clique (In-app: exposição)
 const CO_EMAIL_TESTE=['stelafelixcampos@gmail.com'];
@@ -2656,11 +2656,11 @@ const coN=s=>normL(String(s??'').replace(/\s*\(\?\)\s*$/,''));
 /* ---------- carga ---------- */
 async function coCarregar(){const {data,error}=await sb.rpc('dados_comunicacoes');if(error)throw error;CO.d=data||[]}
 async function rotaComunicacoes(h){if(h==='comunicacoes-analisar'&&!ADMIN){location.hash='comunicacoes';return}
- if(!CO_PAGES[h]){location.hash='comunicacoes';return}
- if(!CO.d){app.innerHTML=shell(h,'<p class="carregando">Carregando as comunicações…</p>');
-  try{await coCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar as comunicações: ${esc(e.message||e)}. Confira se o arquivo 25_comunicacoes.sql já foi rodado no Supabase.</div>`);return}
+ const pg=coPagina(h);if(!pg){location.hash='comunicacoes';return}
+ if(!CO.d){app.innerHTML=coShell(h,'<p class="carregando">Carregando as comunicações…</p>');
+  try{await coCarregar()}catch(e){app.innerHTML=coShell(h,`<div class="note">Não foi possível carregar as comunicações: ${esc(e.message||e)}. Confira se o arquivo 25_comunicacoes.sql já foi rodado no Supabase.</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
- CO_PAGES[h](h)}
+ pg(h)}
 
 /* ---------- leitura de arquivos ---------- */
 async function coTabela(file){
@@ -2802,30 +2802,27 @@ const coA=s=>s.atr??s.qualquer??0,coA7=s=>s.atr7??s.div7??0; // análises antiga
 function coLinhaGeral(c){const r=c.r,f=r.funil,g=r.grupos;const base=g.clicou||g.exposto;const ref=g.naoabriu||g.naorec;
  const tx=base&&base.n?coA(base)/base.n:null,txr=ref&&ref.n?coA(ref)/ref.n:null;
  return {c,f,tx,txd:base&&base.n?base.div/base.n:null,tx7:base&&base.n?coA7(base)/base.n:null,txr,lift:tx!=null&&txr?tx/txr:null}}
-function coFiltroCanal(){const cs=[...new Set((CO.d||[]).map(c=>c.canal))];
- return `<div class="chips" style="margin-bottom:12px"><button class="chip ${!CO.canal?'on':''}" data-cc="" type="button">Todos os canais</button>${CO_CANAIS.filter(c=>cs.includes(c)).map(c=>`<button class="chip ${CO.canal===c?'on':''}" data-cc="${esc(c)}" type="button">${esc(c)}</button>`).join('')}</div>`}
-function coBindFiltro(h){document.querySelectorAll('[data-cc]').forEach(b=>b.onclick=()=>{CO.canal=b.dataset.cc;CO_PAGES[h](h)})}
-function coVazio(h){app.innerHTML=shell(h,`<p class="answer">Ainda não há comunicações analisadas no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':'<p class="hint">Peça a um administrador para analisar as comunicações.</p>'}`)}
+function coVazio(h){app.innerHTML=coShell(h,`<p class="answer">Ainda não há comunicações analisadas no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':'<p class="hint">Peça a um administrador para analisar as comunicações.</p>'}`)}
 function coGeral(h){const L=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);if(!(CO.d||[]).length)return coVazio(h);
- if(CO.fixo&&!L.length){app.innerHTML=shell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}<p><a href="#comunicacoes">← Todos os canais</a></p>`);return}
+ if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}<p><a href="#comunicacoes">← Todos os canais</a></p>`);return}
  const R=L.map(coLinhaGeral);const por={};
  R.forEach(x=>{const k=x.c.canal;const a=por[k]=por[k]||{n:0,env:0,ab:0,cl:0,bn:0,bd:0,rn:0,rd:0};a.ba=a.ba||0;a.n++;a.env+=x.f.enviados;a.ab+=x.f.abriram;a.cl+=x.f.clicaram;
   const g=x.c.r.grupos;const b=g.clicou||g.exposto,r=g.naoabriu||g.naorec;if(b){a.bn+=b.n;a.ba+=coA(b);a.bd+=b.div}if(r){a.rn+=r.n;a.rd+=coA(r)}});
- app.innerHTML=shell(h,`${CO.fixo?'':coFiltroCanal()}
+ app.innerHTML=coShell(h,`
  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${Object.entries(por).map(([k,a])=>`<div class="kpi"><div class="k">${esc(k)} · ${fmt(a.n)} ${a.n===1?'comunicação':'comunicações'}</div><div class="v">${coPct(a.ba,a.bn)}</div><div class="d">${k==='In-app'?'de quem viu':'de quem clicou'} gerou ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')} · ${coPct(a.bd,a.bn)} do ${T('beneficio-divulgado','benefício divulgado')}${a.rn?` · ${coPct(a.rd,a.rn)} ${k==='In-app'?'de quem não recebeu':'de quem não abriu'}`:''}</div></div>`).join('')}</div>
  <div class="card"><h3>Comunicações analisadas</h3><p class="sub">Clique no assunto para ver o detalhe. Taxas sobre quem tem CPF identificado.</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th>${CO.fixo?'':'<th>Canal</th>'}<th style="min-width:230px">Assunto</th><th class="n">Enviados</th><th class="n">Abertura</th><th class="n">Clique</th><th class="n">Clicou e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">Não abriu</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
- ${R.map(x=>`<tr><td>${coDia(coIsoDia(x.c.envio))}</td>${CO.fixo?'':`<td>${esc(x.c.canal)}</td>`}<td><a href="#comunicacoes-detalhe" data-co="${x.c.id}">${esc(x.c.assunto||x.c.lista||'(sem assunto)')}</a></td><td class="n">${fmt(x.f.enviados)}</td><td class="n">${x.c.canal==='In-app'?'—':coPct(x.f.abriram,x.f.enviados)}</td><td class="n">${coPct(x.f.clicaram,x.f.enviados)}</td><td class="n"><b>${x.tx!=null?fmt(100*x.tx,1)+'%':'—'}</b></td><td class="n">${x.txd!=null?fmt(100*x.txd,1)+'%':'—'}</td><td class="n">${x.tx7!=null?fmt(100*x.tx7,1)+'%':'—'}</td><td class="n">${x.txr!=null?fmt(100*x.txr,1)+'%':'—'}</td><td class="n">${x.lift!=null?fmt(x.lift,1)+'×':'—'}</td></tr>`).join('')}
+ <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th><th style="min-width:230px">Assunto</th><th class="n">Enviados</th><th class="n">Abertura</th><th class="n">Clique</th><th class="n">Clicou e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">Não abriu</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
+ ${R.map(x=>`<tr><td>${coDia(coIsoDia(x.c.envio))}</td><td><a href="#${coLinkCanal(x.c.canal)}-detalhe" data-co="${x.c.id}">${esc(x.c.assunto||x.c.lista||'(sem assunto)')}</a></td><td class="n">${fmt(x.f.enviados)}</td><td class="n">${x.c.canal==='In-app'?'—':coPct(x.f.abriram,x.f.enviados)}</td><td class="n">${coPct(x.f.clicaram,x.f.enviados)}</td><td class="n"><b>${x.tx!=null?fmt(100*x.tx,1)+'%':'—'}</b></td><td class="n">${x.txd!=null?fmt(100*x.txd,1)+'%':'—'}</td><td class="n">${x.tx7!=null?fmt(100*x.tx7,1)+'%':'—'}</td><td class="n">${x.txr!=null?fmt(100*x.txr,1)+'%':'—'}</td><td class="n">${x.lift!=null?fmt(x.lift,1)+'×':'—'}</td></tr>`).join('')}
  </tbody></table></div></div>
  <p class="hint">Regras: ${T('prazo-oficial','prazo oficial')} de cada canal (até 3 dias depois do clique em e-mail e WhatsApp, mesmo dia no push, período no ar no in-app), conta de testes e resgates "CPF no Balcão" das farmácias fora, e o e-mail de teste da equipe fora dos relatórios.</p>`);
- coBindFiltro(h);document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co})}
-function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);const sel0=CO.d.find(x=>x.id===CO.sel);if(sel0&&CO.canal&&sel0.canal!==CO.canal)CO.canal=sel0.canal;CO.fixo=false;
- const L=CO.d.filter(x=>!CO.canal||x.canal===CO.canal);if(!L.length){CO.canal='';return coDetalhe(h)}const c=L.find(x=>x.id===CO.sel)||L[0];CO.sel=c.id;const r=c.r,f=r.funil,g=r.grupos,q=r.qualidade||{};
+ document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co})}
+function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);
+ const L=CO.d.filter(x=>x.canal===CO.canal);if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}`);return}const c=L.find(x=>x.id===CO.sel)||L[0];CO.sel=c.id;const r=c.r,f=r.funil,g=r.grupos,q=r.qualidade||{};
  const inapp=c.canal==='In-app';const base=g.clicou||g.exposto,ref=g.naoabriu||g.naorec;
  const lift=base&&ref&&base.n&&ref.n&&coA(ref)?(coA(base)/base.n)/(coA(ref)/ref.n):null;
  const prazo=inapp?`período no ar (${fmt(r.prazo)} dias a partir do envio)`:r.prazo?`até ${r.prazo} dias depois do clique`:'mesmo dia do clique';
  const lbl=x=>!x.titulos||!x.titulos.length?'<br><small><span class="hint">não encontrado na base de vouchers</span></small>':x.titulos.length===1&&coN(x.titulos[0])===coN(x.beneficio)?'':`<br><small>${esc(x.titulos.length===1?x.titulos[0]:x.titulos.length+' benefícios da marca')}</small>`;
- app.innerHTML=shell(h,`${coFiltroCanal()}<div class="bar"><label class="fld" style="min-width:min(100%,520px)"><span>Comunicação</span><select id="co-sel">${L.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${coDia(coIsoDia(x.envio))} · ${esc(x.canal)} · ${esc(x.assunto||x.lista||'(sem assunto)')}</option>`).join('')}</select></label></div>
+ app.innerHTML=coShell(h,`<div class="bar"><label class="fld" style="min-width:min(100%,520px)"><span>Comunicação</span><select id="co-sel">${L.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${coDia(coIsoDia(x.envio))} · ${esc(x.canal)} · ${esc(x.assunto||x.lista||'(sem assunto)')}</option>`).join('')}</select></label></div>
  <div class="card"><h3>${esc(c.assunto||'(sem assunto)')}</h3><p class="sub">${esc(c.canal)} · envio em ${coDia(coIsoDia(c.envio))}${c.lista?` · lista ${esc(c.lista)}`:''}${c.preheader?`<br>Pré-cabeçalho: ${esc(c.preheader)}`:''}</p>
  <p class="hint">${T('prazo-oficial')}: ${prazo}. Coluna complementar: ${T('ate-7-dias','até 7 dias')}.</p></div>
  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
@@ -2851,20 +2848,20 @@ function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);const sel0=CO.d.fi
   <li>Base de vouchers: ${esc(q.vouArq||'')} · ${q.vMin!=null?coDia(q.vMin)+' a '+coDia(q.vMax):''} · ${fmt(q.vouchers)} vouchers (conta de testes e resgates "CPF no Balcão" das farmácias fora).${q.coberto?'':' <b>A base não cobre todo o prazo da comunicação: os números podem estar abaixo do real.</b>'}</li>
   ${q.cartArq?`<li>Carteira: ${esc(q.cartArq)}.</li>`:''}<li>Relatório(s): ${esc((q.arqs||[]).join(', '))}.</li></ul>
   ${ADMIN?`<p style="margin-top:10px"><button class="btn-sec" id="co-del" type="button">Excluir esta comunicação</button> <span class="hint" id="co-delm"></span></p>`:''}</div>`);
- document.getElementById('co-sel').onchange=e=>{CO.sel=e.target.value;coDetalhe(h)};coBindFiltro(h);
+ document.getElementById('co-sel').onchange=e=>{CO.sel=e.target.value;coDetalhe(h)};
  const del=document.getElementById('co-del');if(del)del.onclick=async()=>{if(!confirm('Excluir esta comunicação do portal?'))return;const {error}=await sb.rpc('excluir_comunicacao',{p_id:c.id});if(error){document.getElementById('co-delm').textContent=error.message;return}CO.d=CO.d.filter(x=>x.id!==c.id);CO.sel=null;coDetalhe(h)}}
-function coBeneficios(h){if(!(CO.d||[]).length)return coVazio(h);const L=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);const A=new Map();
+function coBeneficios(h){if(!(CO.d||[]).length)return coVazio(h);const L=(CO.d||[]).filter(c=>c.canal===CO.canal);if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>`);return}const A=new Map();
  L.forEach(c=>{const base=c.r.grupos.clicou||c.r.grupos.exposto;c.r.linhas.forEach(x=>{const k=(x.marcaBase||x.marca)+'\t'+x.beneficio;const a=A.get(k)||{marca:x.marcaBase||x.marca,ben:x.beneficio,n:0,pos:0,dest:0,ger:0,ger7:0,vou:0,canais:new Set()};
   a.n++;a.pos+=x.pos;if(x.pos===1)a.dest++;a.ger+=x.cl[0];a.ger7+=x.cl[2];a.vou+=x.cl[1];a.canais.add(c.canal);A.set(k,a)})});
  const R=[...A.values()].sort((a,b)=>b.ger-a.ger||b.n-a.n);
- app.innerHTML=shell(h,`${coFiltroCanal()}<div class="card"><h3>Benefícios divulgados nas comunicações</h3><p class="sub">Soma de todas as comunicações analisadas. "Clicou e gerou" = pessoas que clicaram (ou viram, no in-app) e geraram voucher daquele benefício no ${T('prazo-oficial','prazo oficial')}.</p>
+ app.innerHTML=coShell(h,`<div class="card"><h3>Benefícios divulgados nas comunicações</h3><p class="sub">Soma de todas as comunicações analisadas. "Clicou e gerou" = pessoas que clicaram (ou viram, no in-app) e geraram voucher daquele benefício no ${T('prazo-oficial','prazo oficial')}.</p>
  <div class="tw"><table class="cmp pa-t"><thead><tr><th>Marca</th><th>Benefício</th><th class="n">Vezes divulgado</th><th class="n">Como destaque</th><th class="n">Posição média</th><th class="n">Clicou e gerou</th><th class="n">Vouchers</th><th class="n">Até 7 dias</th><th>Canais</th></tr></thead><tbody>
  ${R.map(a=>`<tr><td>${esc(a.marca)}</td><td>${esc(a.ben)}</td><td class="n">${fmt(a.n)}</td><td class="n">${fmt(a.dest)}</td><td class="n">${fmt(a.pos/a.n,1)}</td><td class="n"><b>${fmt(a.ger)}</b></td><td class="n">${fmt(a.vou)}</td><td class="n">${fmt(a.ger7)}</td><td>${esc([...a.canais].join(', '))}</td></tr>`).join('')}
- </tbody></table></div></div>`);coBindFiltro(h)}
+ </tbody></table></div></div>`)}
 
 /* ---------- analisar (admin) ---------- */
 function coAnalisar(h){libs();CO.env=CO.env||{arqs:[],vou:null,cart:null,meta:null,linhas:[],res:null};
- app.innerHTML=shell(h,`<p class="answer">Cole a lista de benefícios da comunicação, envie o relatório de envio (quem recebeu, abriu e clicou) e a base de vouchers do período. Os arquivos são lidos aqui no navegador; para o banco vão só os totais.</p>
+ app.innerHTML=coShell(h,`<p class="answer">Cole a lista de benefícios da comunicação, envie o relatório de envio (quem recebeu, abriu e clicou) e a base de vouchers do período. Os arquivos são lidos aqui no navegador; para o banco vão só os totais.</p>
  <div class="card"><h3>1. Lista de benefícios</h3><p class="sub">Cole o bloco que o chat de leitura de comunicações devolveu (formato do doc "Instruções — Leitura de comunicações para o painel").</p>
   <textarea id="co-lista" rows="9" placeholder="Canal: Newsletter | Envio: 24/09/2026 | Lista: clube_interesse-news&#10;Assunto: …&#10;Pré-cabeçalho: …&#10;Posição | Marca | Benefício | Chamada&#10;1 | Little John Entretenimento | Fuerza Bruta Aven: &quot;Un lugar sin piso&quot; | Fuerza Bruta chegou!">${esc(CO.env.txt||'')}</textarea>
   <div id="co-meta"></div></div>
@@ -2939,25 +2936,33 @@ function coDesenhaRes(){const box=document.getElementById('co-res');const R=CO.e
  <p style="margin-top:12px"><button class="btn" id="co-salvar" type="button">Salvar no portal</button> <span class="hint" id="co-msg">Se já existir uma análise com o mesmo canal, envio, lista e assunto, ela é substituída.</span></p></div>`;
  document.getElementById('co-salvar').onclick=async()=>{const b=document.getElementById('co-salvar'),m=document.getElementById('co-msg');b.disabled=true;m.textContent='Salvando…';
   const {data,error}=await sb.rpc('salvar_comunicacao',{p:R});if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
-  await coCarregar();CO.sel=data;CO.env=null;location.hash='comunicacoes-detalhe'}}
+  await coCarregar();CO.sel=data;CO.env=null;location.hash=coLinkCanal(R.canal)+'-detalhe'}}
 
-/* espaço de cada canal (menu secundário em cartões, no formato da home) */
-const CO_ROTA=[['comunicacoes-newsletter','Newsletter','var(--vinho)','News do Clube: envio semanal para a lista de interesse. Funil, conversão e benefícios de cada edição.'],
- ['comunicacoes-pontual','E-mail pontual','var(--laranja)','E-mails avulsos de campanha, parceiro ou ação do Clube, cada um com seu funil.'],
- ['comunicacoes-inapp','In-app','var(--verde)','Mensagens dentro do app de GZH: quem viu a mensagem enquanto estava no ar e quem gerou voucher.'],
- ['comunicacoes-push','Push','var(--verde-esc)','Notificações no celular: clique e voucher gerado no mesmo dia.'],
- ['comunicacoes-whatsapp','WhatsApp','var(--vinho-esc)','Disparos de WhatsApp: clique e voucher gerado até 3 dias depois.']];
-const coRotaCanal=h=>(CO_ROTA.find(r=>r[0]===h)||[])[1];
-function coCanal(h){CO.canal=coRotaCanal(h);CO.fixo=true;coGeral(h)}
-function coMenu(h){CO.canal='';CO.fixo=false;const D=CO.d||[];
+/* ---------- espaço de cada canal ----------
+   Comunicações abre com cartões (um por canal), no formato da home. Ao abrir um canal, o menu lateral mostra os
+   relatórios daquele canal (Visão geral, Por comunicação, Benefícios divulgados), como os menus das áreas do portal. */
+const CO_ROTA=[['newsletter','Newsletter','var(--vinho)','News do Clube: envio semanal para a lista de interesse. Funil, conversão e benefícios de cada edição.'],
+ ['pontual','E-mail pontual','var(--laranja)','E-mails avulsos de campanha, parceiro ou ação do Clube, cada um com seu funil.'],
+ ['inapp','In-app','var(--verde)','Mensagens dentro do app de GZH: quem viu a mensagem enquanto estava no ar e quem gerou voucher.'],
+ ['push','Push','var(--verde-esc)','Notificações no celular: clique e voucher gerado no mesmo dia.'],
+ ['whatsapp','WhatsApp','var(--vinho-esc)','Disparos de WhatsApp: clique e voucher gerado até 3 dias depois.']];
+const CO_SUB=[['','Visão geral'],['detalhe','Por comunicação'],['beneficios','Benefícios divulgados']];
+const coRota=h=>{const m=/^comunicacoes-(newsletter|pontual|inapp|push|whatsapp)(?:-(detalhe|beneficios))?$/.exec(h);if(!m)return null;
+ const r=CO_ROTA.find(x=>x[0]===m[1]);return {slug:m[1],canal:r[1],cor:r[2],sub:m[2]||'',base:'comunicacoes-'+m[1]}};
+const coLinkCanal=c=>'comunicacoes-'+(CO_ROTA.find(x=>x[1]===c)||CO_ROTA[0])[0];
+function coShell(h,body){const R=coRota(h);if(!R)return shell(h,body);
+ const itens=CO_SUB.map(([s,l])=>[R.base+(s?'-'+s:''),l]);const cur=itens.find(x=>x[0]===h)||itens[0];
+ return `<div class="shell${MENU_MINI?' mini':''}"><nav class="side" aria-label="Relatórios de ${esc(R.canal)}">${botaoMenu()}<a href="#comunicacoes" class="back">← Comunicações</a><div class="grp">${esc(R.canal)}</div>${itens.map(([r,l])=>`<a href="#${r}" class="${r===cur[0]?'on':''}">${l}</a>`).join('')}${ADMIN?'<a href="#comunicacoes-analisar">Analisar comunicação</a>':''}</nav>
+ <div class="main"><div class="page-head"><div class="in"><div class="crumb"><a href="#home">Portal</a> › <a href="#comunicacoes">Comunicações</a> › <a href="#${R.base}">${esc(R.canal)}</a> › ${cur[1]}</div><h1 class="title">${esc(R.canal)} <em>${cur[1].toLowerCase()}</em></h1></div></div><div class="content">${body}</div></div></div>`}
+function coMenu(h){CO.canal='';const D=CO.d||[];
  const resumo=c=>{const L=D.filter(x=>x.canal===c);if(!L.length)return null;let bn=0,ba=0,bd=0;L.forEach(x=>{const g=x.r.grupos;const b=g.clicou||g.exposto;if(b){bn+=b.n;ba+=coA(b);bd+=b.div}});
   const ult=L.reduce((m,x)=>x.envio>m?x.envio:m,'');return {n:L.length,ult,conv:coPct(ba,bn),div:coPct(bd,bn)}};
  app.innerHTML=shell(h,`<p class="answer">Escolha o canal para ver o desempenho de cada comunicação.</p>
- <div class="areas">${CO_ROTA.map(([r,c,cor,d])=>{const x=resumo(c);return `<a class="area" href="#${r}" style="--c:${cor}"><div class="row"><h3>${esc(c)}</h3><span class="status s-${x?'ok':'dep'}">${x?fmt(x.n)+' '+(x.n===1?'análise':'análises'):'Sem análises'}</span></div><p>${d}</p>
-  <div class="subs">${x?`<span>Última: ${coDia(coIsoDia(x.ult))}</span><span>${c==='In-app'?'Viu':'Clicou'} e gerou voucher: ${x.conv}</span><span>Do divulgado: ${x.div}</span>`:`<span>${ADMIN?'Analise em Analisar comunicação':'Ainda sem comunicações analisadas'}</span>`}</div><span class="go">Abrir →</span></a>`}).join('')}</div>
- ${ADMIN?'<p style="margin-top:16px"><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}
+ <div class="areas">${CO_ROTA.map(([r,c,cor,d])=>{const x=resumo(c);return `<a class="area" href="#comunicacoes-${r}" style="--c:${cor}"><div class="row"><h3>${esc(c)}</h3><span class="status s-${x?'ok':'dep'}">${x?fmt(x.n)+' '+(x.n===1?'análise':'análises'):'Sem análises'}</span></div><p>${d}</p>
+  <div class="subs">${CO_SUB.map(s=>`<span>${s[1]}</span>`).join('')}</div>${x?`<p class="hint" style="margin:0">Última: ${coDia(coIsoDia(x.ult))} · ${c==='In-app'?'viu':'clicou'} e gerou voucher: ${x.conv} · do divulgado: ${x.div}</p>`:''}<span class="go">Abrir →</span></a>`}).join('')}</div>
  <p class="hint" style="margin-top:12px">Conversão = de quem ${T('clique','clicou')} (no in-app, de quem viu), quantos geraram ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')}, somando todas as comunicações do canal.</p>`)}
-const CO_PAGES={'comunicacoes':coMenu,'comunicacoes-newsletter':coCanal,'comunicacoes-pontual':coCanal,'comunicacoes-inapp':coCanal,'comunicacoes-push':coCanal,'comunicacoes-whatsapp':coCanal,'comunicacoes-detalhe':coDetalhe,'comunicacoes-beneficios':coBeneficios,'comunicacoes-analisar':coAnalisar};
+function coPagina(h){if(h==='comunicacoes')return coMenu;if(h==='comunicacoes-analisar')return coAnalisar;
+ const R=coRota(h);if(!R)return null;return x=>{CO.canal=R.canal;({'':coGeral,detalhe:coDetalhe,beneficios:coBeneficios})[R.sub](x)}}
 
 
 /* ---------- telas gerais ---------- */
@@ -2965,7 +2970,7 @@ function semDados(){return `<p class="answer">Ainda não há meses carregados no
 function home(){return `<div class="wrap">
  <section class="block" style="padding-block:28px 40px">
  ${M.length?'':`<div class="note" style="margin-bottom:16px">Ainda não há meses carregados no portal.${ADMIN?' Envie os arquivos em <a href="#clube-enviar">Clube em números › Enviar mês</a>.':''}</div>`}
- <div class="areas" id="areas">${Object.entries(AREAS).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${a.r.filter(r=>!r[2]||ADMIN).map(r=>`<span>${r[1]}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
+ <div class="areas" id="areas">${Object.entries(AREAS).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${(a.subs||a.r.filter(r=>!r[2]||ADMIN).map(r=>r[1])).map(x=>`<span>${x}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
  </div>`}
 function shell(h,body){const id=areaOf(h),a=AREAS[id];const rs=a.r.filter(r=>!r[2]||ADMIN);const cur=rs.find(r=>r[0]===h)||rs[0];
  return `<div class="shell${MENU_MINI?' mini':''}${id==='clube'?' compacto':''}"><nav class="side" aria-label="Relatórios de ${a.n}">${botaoMenu()}<a href="#home" class="back">← Portal</a><div class="grp">${a.n}</div>${rs.map(r=>`<a href="#${r[0]}" class="${r[0]===cur[0]?'on':''}">${r[1]}</a>`).join('')}</nav>
