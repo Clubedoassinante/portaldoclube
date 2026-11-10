@@ -638,7 +638,7 @@ const GL=[
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
   ['cortesia','Usos de cortesia','Vouchers das ações do Clube: marca Clube do Assinante (até ago/2025, "GZH") com título ou descrição falando de ação, presente/presentear, cortesia, grátis, ganhar, sorteio/concorra, convidado, "por conta do Clube", "o Clube te leva/paga" ou "par de ingressos" (no título, também "acompanhante" e "sessão especial/exclusiva"). Dica de filme do mês não conta (é desconto). O portal conta sozinho a partir das bases de vouchers, sem a conta de testes.','No mês em andamento, vale até a data da última base do mês enviada. O mês fechado é atualizado ao enviar os vouchers do mês em Clube em números.'],
-  ['acoes-clube','Ações do Clube','No Relatório semanal, só as ações de cortesia da marca Clube do Assinante (mesma regra dos usos de cortesia), em todas as semanas desde 2023. Dica de filme do mês, Planeta Atlântida, lojas online e outros benefícios da marca aparecem à parte, como "Clube (outros benefícios)".','Nos painéis mensais (Parceiros), Ações do Clube continua sendo a marca inteira.'],
+  ['acoes-clube','Ações do Clube','No Relatório semanal, só as ações de cortesia da marca Clube do Assinante (mesma regra dos usos de cortesia), em todas as semanas desde 2023. O desconto no ingresso do Planeta Atlântida vai para Eventos (marca "Planeta Atlântida"); a ação de ingresso cortesia do Planeta continua no Clube. Dica de filme do mês, lojas online e outros benefícios da marca aparecem à parte, como "Clube (outros benefícios)".','Nos painéis mensais (Parceiros), Ações do Clube continua sendo a marca inteira, menos o desconto no Planeta Atlântida, que aparece como "Planeta Atlântida" em Eventos e shows.'],
   ['eventos','Eventos','Promoções das produtoras de eventos.','A lista de produtoras fica na página Enviar semana e pode ser editada pelos administradores.'],
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
@@ -1151,6 +1151,10 @@ const CORT_TIT=/acompanhante|sessao (especial|exclusiva)/, CORT_NEG=/frete grati
 const ehMarcaClube=m=>{const x=normL(m);return x==='clube do assinante'||x==='gzh'};
 const ehCortesia=(marca,desc,titulo)=>{if(!ehMarcaClube(marca))return false;const t=normL(titulo);if(t.startsWith('dica de filme'))return false;
  const s=(t+' || '+normL(desc)).replace(CORT_NEG,' ');return CORT_RE.test(s)||CORT_TIT.test(t.replace(CORT_NEG,' '))};
+/* Planeta Atlântida dentro da marca do Clube: ação de ingresso (cortesia) fica no Clube; o desconto no ingresso vai para eventos/espetáculos,
+   com a marca "Planeta Atlântida" (cadastrada em Produtoras de eventos). Vale no Relatório semanal e em Clube em números. */
+const PLANETA='Planeta Atlântida';
+const ehPlanetaDesconto=(marca,desc,titulo)=>ehMarcaClube(marca)&&normL(titulo).includes('planeta atlantida')&&!ehCortesia(marca,desc,titulo);
 const FARMACIAS=new Set(['Droga Raia','Farmácia Pague Menos','Farmácias Pague Menos','Drogaria Araujo','Drogarias Pacheco','Drogaria Pacheco','Drogaria São Paulo','Farmácias Droga Raia e Drogasil','Farmácias Raia e Drogasil'].map(normL));
 const ATIVAS=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
 const PRODUTO={'DIGITAL':'Digital','IMPRESSO':'Impresso','IMP+DIG':'Impresso + Digital'};
@@ -1241,6 +1245,7 @@ function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw
  let p=parseInt(prodRaw,10);if(!(p>0))p=1;
  const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0,cort:descRaw===undefined?null:0};CG.vou.set(m,g)}
  if(g.cort!=null&&ehCortesia(marca,descRaw,titRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
+ if(ehPlanetaDesconto(marca,descRaw,titRaw))marca=PLANETA;
  const k=c+'\t'+marca;g.mapa.set(k,(g.mapa.get(k)||0)+p);g.linhas++;est.ok++}
 function lerVouchers(file,prog){const est={ok:0,farm:0,semCpf:0,semData:0};
  if(/\.xlsx?$/i.test(file.name))return file.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array',dense:true});
@@ -1397,7 +1402,7 @@ function semLab(s,curto){const a=dt(s.i),b=dt(s.f);const da=pad2(a.getDate()),db
 async function semCarregar(forcar){if(SEM.dados&&!forcar)return;
  const {data,error}=await sb.rpc('dados_semanal');if(error)throw error;
  data.semanas.forEach((s,k)=>{s.k=k;s.dias=dias(s.i,s.f);s.upu=s.unicos?s.usos/s.unicos:null;s.dia=s.usos/s.dias});
- SEM.dados=data;SEM.prod=new Set(data.produtoras);
+ SEM.dados=data;SEM.prod=new Set([...(data.produtoras||[]),PLANETA]);
  if(!SEM.sel||!data.semanas.some(s=>s.i===SEM.sel)){const ult=[...data.semanas].reverse();SEM.sel=(ult.find(s=>!s.so_total)||ult[0]||{}).i||null}}
 async function semItens(lista){const falta=lista.filter(i=>i&&!SEM.itens[i]);if(!falta.length)return;
  const {data,error}=await sb.rpc('itens_semana',{p_inicios:falta});if(error)throw error;
@@ -1728,8 +1733,8 @@ async function lerSemana(file){let linhas;
   const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(iN>=0&&normU(L[iN]).startsWith('ADMIN C')){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
   if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
-  // marca Clube do Assinante: só as ações de cortesia ficam como "Clube"; dica de filme, lojas etc. viram "Clube do Assinante (outros)"
-  if(ehMarcaClube(marca)){if(ehCortesia(marca,iD>=0?L[iD]:'',L[iT])){cort+=q;marca=CLUBE_MARCA}else marca=CLUBE_OUTROS}
+  // marca Clube do Assinante: só as ações de cortesia ficam como "Clube"; desconto no Planeta Atlântida vai para eventos; dica de filme, lojas etc. viram "Clube do Assinante (outros)"
+  if(ehMarcaClube(marca)){const dd=iD>=0?L[iD]:'';if(ehCortesia(marca,dd,L[iT])){cort+=q;marca=CLUBE_MARCA}else marca=ehPlanetaDesconto(marca,dd,L[iT])?PLANETA:CLUBE_OUTROS}
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
   const titulo=lim(L[iT])||marca;const k=marca+'\t'+titulo;const g=itens.get(k)||{marca,titulo,premium:false,usos:0};g.usos+=q;
   if(iD>=0&&normL(L[iD]).includes('premium'))g.premium=true;itens.set(k,g)}
@@ -1991,7 +1996,7 @@ const moda=a=>{const m=new Map();a.filter(Boolean).forEach(x=>m.set(x,(m.get(x)|
 
 /* ---------- dados ---------- */
 async function paCarregar(forcar){if(PA.d&&!forcar)return;const {data,error}=await sb.rpc('dados_parceiros');if(error)throw error;
- const D={meses:[...new Set(data.meses.map(r=>r[0]))].sort(),uso:new Map(),cad:data.cadastro||[],aj:new Map((data.ajustes||[]).map(a=>[a.marca,a])),prod:new Set(data.produtoras||[])};
+ const D={meses:[...new Set(data.meses.map(r=>r[0]))].sort(),uso:new Map(),cad:data.cadastro||[],aj:new Map((data.ajustes||[]).map(a=>[a.marca,a])),prod:new Set([...(data.produtoras||[]),PLANETA])};
  data.meses.forEach(([m,marca,v,p])=>{marca=conserta(marca);let u=D.uso.get(marca);if(!u){u={};D.uso.set(marca,u)}const x=u[m]||(u[m]={v:0,p:0});x.v+=v;x.p+=p});
  D.idx=new Map();D.cad.forEach(c=>{[nk(c.parceiro),nk(baseNome(c.parceiro))].forEach(k=>{if(!k)return;const l=D.idx.get(k)||[];if(!l.includes(c))l.push(c);D.idx.set(k,l)})});
  D.info=new Map();[...D.uso.keys()].forEach(m=>D.info.set(m,infoMarca(D,m)));
