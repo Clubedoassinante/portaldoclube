@@ -486,6 +486,9 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 :root[data-theme="dark"] .td-k.lim b{color:#f0c46a}
 :root[data-theme="dark"] .td-k.pr b{color:#ff9a6b}
 :root[data-theme="dark"] .td-k.ok b{color:#6fd6a8}
+
+/* comunicações: títulos de coluna ordenáveis */
+.co-ord th.co-th{cursor:pointer;user-select:none;white-space:nowrap}.co-ord th.co-th::after{content:' ↕';opacity:.35;font-size:.85em}.co-ord th[data-o=desc]::after{content:' ↓';opacity:1}.co-ord th[data-o=asc]::after{content:' ↑';opacity:1}
 </style>
 </head>
 <body>
@@ -1100,7 +1103,7 @@ const AREAS={
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
-  r:[['comunicacoes','Canais'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp']},
+  r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
   r:GL.map(([g],i)=>['glossario-'+i,g])},
 };
@@ -2634,7 +2637,7 @@ async function renderChurn(){const box=document.getElementById('ic-res');if(!box
 /* ================= Desempenho das comunicações ================= */
 /* O cálculo é feito aqui no navegador: relatório da comunicação + base de vouchers (+ carteira, opcional).
    Para o banco vão só os totais (funil, grupos e benefícios divulgados). Regras: doc "Janelas de atribuição". */
-const CO={d:null,env:null,sel:null,canal:''};
+const CO={d:null,env:null,sel:null,canal:'',mes:'',fca:null,fcaEd:null};
 const CO_CANAIS=['Newsletter','E-mail pontual','WhatsApp','Push','In-app'];
 const CO_PRAZO={'Newsletter':3,'E-mail pontual':3,'WhatsApp':3,'Push':0};   // dias depois do clique (In-app: exposição)
 const CO_EMAIL_TESTE=['stelafelixcampos@gmail.com'];
@@ -2654,7 +2657,23 @@ const coVerdade=v=>{if(v==null)return false;if(typeof v==='boolean')return v;if(
 const coN=s=>normL(String(s??'').replace(/\s*\(\?\)\s*$/,''));
 
 /* ---------- carga ---------- */
-async function coCarregar(){const {data,error}=await sb.rpc('dados_comunicacoes');if(error)throw error;CO.d=data||[]}
+async function coCarregar(){const {data,error}=await sb.rpc('dados_comunicacoes');if(error)throw error;CO.d=data||[];
+ const f=await sb.rpc('dados_fca_comunicacoes');CO.fca=f.error?null:(f.data||{})}
+/* ---------- ordenação das tabelas: clique no título da coluna (1º clique: maior → menor; 2º: menor → maior) ---------- */
+function coValor(td){const v=td.dataset.v;if(v!=null&&v!=='')return +v;const t=td.textContent.trim();
+ const d=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(t);if(d)return +(d[3]+d[2]+d[1]);
+ const n=t.replace(/[%×\s]/g,'').replace(/\./g,'').replace(',','.');if(/^[-−+]?\d+(\.\d+)?$/.test(n))return parseFloat(n.replace('−','-'));
+ if(t==='—'||t==='')return null;return t.toLowerCase()}
+function coOrdena(root){(root||document).querySelectorAll('table.co-ord').forEach(tb=>{const ths=[...tb.tHead.rows[0].cells];
+ ths.forEach((th,i)=>{th.classList.add('co-th');th.title='Ordenar';th.onclick=e=>{if(e.target.closest('.term'))return;
+  const desc=th.dataset.o!=='desc';ths.forEach(x=>{delete x.dataset.o});th.dataset.o=desc?'desc':'asc';
+  const body=tb.tBodies[0];const rows=[...body.rows];
+  rows.sort((a,b)=>{const x=coValor(a.cells[i]),y=coValor(b.cells[i]);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+   const r=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'pt-BR');return desc?-r:r});
+  rows.forEach(r=>body.appendChild(r))}})})}
+const coMesDe=c=>String(c.envio).slice(0,7);
+function coSelMes(L,id,todos){const M=[...new Set(L.map(coMesDe))].sort().reverse();
+ return `<label class="fld"><span>Mês</span><select id="${id}">${todos?`<option value="">Todos os meses</option>`:''}${M.map(m=>`<option value="${m}" ${m===CO.mes?'selected':''}>${lab(m)}</option>`).join('')}</select></label>`}
 async function rotaComunicacoes(h){if(h==='comunicacoes-analisar'&&!ADMIN){location.hash='comunicacoes';return}
  const pg=coPagina(h);if(!pg){location.hash='comunicacoes';return}
  if(!CO.d){app.innerHTML=coShell(h,'<p class="carregando">Carregando as comunicações…</p>');
@@ -2811,19 +2830,21 @@ function coLinhaGeral(c){const r=c.r,f=r.funil,g=r.grupos;const base=g.clicou||g
  const tx=base&&base.n?coA(base)/base.n:null,txr=ref&&ref.n?coA(ref)/ref.n:null;
  return {c,f,tx,txd:base&&base.n?base.div/base.n:null,tx7:base&&base.n?coA7(base)/base.n:null,txr,lift:tx!=null&&txr?tx/txr:null}}
 function coVazio(h){app.innerHTML=coShell(h,`<p class="answer">Ainda não há comunicações analisadas no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':'<p class="hint">Peça a um administrador para analisar as comunicações.</p>'}`)}
-function coGeral(h){const L=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);if(!(CO.d||[]).length)return coVazio(h);
- if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}<p><a href="#comunicacoes">← Todos os canais</a></p>`);return}
+function coGeral(h){const L0=(CO.d||[]).filter(c=>!CO.canal||c.canal===CO.canal);if(!(CO.d||[]).length)return coVazio(h);
+ if(CO.mes&&!L0.some(c=>coMesDe(c)===CO.mes))CO.mes='';const L=L0.filter(c=>!CO.mes||coMesDe(c)===CO.mes);
+ if(!L0.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}<p><a href="#comunicacoes">← Todos os canais</a></p>`);return}
  const R=L.map(coLinhaGeral);const por={};
  R.forEach(x=>{const k=x.c.canal;const a=por[k]=por[k]||{n:0,env:0,ab:0,cl:0,bn:0,bd:0,rn:0,rd:0};a.ba=a.ba||0;a.n++;a.env+=x.f.enviados;a.ab+=x.f.abriram;a.cl+=x.f.clicaram;
   const g=x.c.r.grupos;const b=g.clicou||g.leu||g.exposto,r=g.naoabriu||g.entregue||g.naorec;if(b){a.bn+=b.n;a.ba+=coA(b);a.bd+=b.div}if(r){a.rn+=r.n;a.rd+=coA(r)}});
- app.innerHTML=coShell(h,`
+ app.innerHTML=coShell(h,`<div class="bar">${coSelMes(L0,'co-mes',true)}<span class="hint">${fmt(L.length)} ${L.length===1?'comunicação':'comunicações'}${CO.mes?' em '+lab(CO.mes):''}</span></div>
  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">${Object.entries(por).map(([k,a])=>`<div class="kpi"><div class="k">${esc(k)} · ${fmt(a.n)} ${a.n===1?'comunicação':'comunicações'}</div><div class="v">${coPct(a.ba,a.bn)}</div><div class="d">de quem ${k==='In-app'?'viu':L.some(x=>x.canal===k&&x.r.grupos.leu)?'leu':'clicou'} gerou ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')} · ${coPct(a.bd,a.bn)} do ${T('beneficio-divulgado','benefício divulgado')}${a.rn?` · ${coPct(a.rd,a.rn)} ${k==='In-app'?'de quem não recebeu':L.some(x=>x.canal===k&&x.r.grupos.entregue)?'de quem não leu':'de quem não abriu'}`:''}</div></div>`).join('')}</div>
- <div class="card"><h3>Comunicações analisadas</h3><p class="sub">Clique no assunto para ver o detalhe. Taxas sobre quem tem CPF identificado.</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th>Envio</th><th style="min-width:230px">Assunto</th><th class="n">Enviados</th><th class="n">${L.some(x=>x.r.modo==='leitura')?'Leitura':'Abertura'}</th><th class="n">Clique</th><th class="n">${L.some(x=>x.r.grupos.leu)?'Leu':'Clicou'} e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">${L.some(x=>x.r.grupos.entregue)?'Não leu':'Não abriu'}</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
+ <div class="card"><h3>Comunicações analisadas</h3><p class="sub">Clique no assunto para ver o detalhe e no título da coluna para ordenar (maior → menor; clique de novo para inverter). Taxas sobre quem tem CPF identificado.</p>
+ <div class="tw"><table class="cmp pa-t co-ord"><thead><tr><th>Envio</th><th style="min-width:230px">Assunto</th><th class="n">Enviados</th><th class="n">${L.some(x=>x.r.modo==='leitura')?'Leitura':'Abertura'}</th><th class="n">Clique</th><th class="n">${L.some(x=>x.r.grupos.leu)?'Leu':'Clicou'} e gerou ${T('voucher-atribuido','voucher')}</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th><th class="n">${L.some(x=>x.r.grupos.entregue)?'Não leu':'Não abriu'}</th><th class="n">${T('lift','Lift')}</th></tr></thead><tbody>
  ${R.map(x=>`<tr><td>${coDia(coIsoDia(x.c.envio))}</td><td><a href="#${coLinkCanal(x.c.canal)}-detalhe" data-co="${x.c.id}">${esc(x.c.assunto||x.c.lista||'(sem assunto)')}</a></td><td class="n">${fmt(x.f.enviados)}</td><td class="n">${x.c.canal==='In-app'?'—':coPct(x.f.abriram,x.f.enviados)}</td><td class="n">${x.c.r.modo==='leitura'?'—':coPct(x.f.clicaram,x.f.enviados)}</td><td class="n"><b>${x.tx!=null?fmt(100*x.tx,1)+'%':'—'}</b></td><td class="n">${x.txd!=null?fmt(100*x.txd,1)+'%':'—'}</td><td class="n">${x.tx7!=null?fmt(100*x.tx7,1)+'%':'—'}</td><td class="n">${x.txr!=null?fmt(100*x.txr,1)+'%':'—'}</td><td class="n">${x.lift!=null?fmt(x.lift,1)+'×':'—'}</td></tr>`).join('')}
  </tbody></table></div></div>
  <p class="hint">Regras: ${T('prazo-oficial','prazo oficial')} de cada canal (até 3 dias depois do clique em e-mail e WhatsApp, mesmo dia no push, período no ar no in-app), conta de testes e resgates "CPF no Balcão" das farmácias fora, e o e-mail de teste da equipe fora dos relatórios.</p>`);
- document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co})}
+ document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co});
+ document.getElementById('co-mes').onchange=e=>{CO.mes=e.target.value;coGeral(h)};coOrdena()}
 function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);
  const L=CO.d.filter(x=>x.canal===CO.canal);if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>${ADMIN?'<p><a class="btn" href="#comunicacoes-analisar">Analisar uma comunicação</a></p>':''}`);return}const c=L.find(x=>x.id===CO.sel)||L[0];CO.sel=c.id;const r=c.r,f=r.funil,g=r.grupos,q=r.qualidade||{};
  const inapp=c.canal==='In-app',vb=coVerbo(c),lt=r.modo==='leitura';const base=g.clicou||g.leu||g.exposto,ref=g.naoabriu||g.entregue||g.naorec;
@@ -2842,11 +2863,11 @@ function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);
   ${KPI('','lift',lift!=null?fmt(lift,1)+'×':'—',ref?`comparado com ${esc(CO_GRUPO[g.naoabriu?'naoabriu':g.entregue?'entregue':'naorec'].toLowerCase())}`:'sem grupo de comparação','','Lift')}
  </div>
  <div class="card"><h3>${T('grupos-comunicacao','Grupos')}: quem gerou voucher no prazo</h3><p class="sub">Para quem não ${vb}, o prazo conta a partir do envio, com o mesmo número de dias.${g.naorec?'':' Para ver quem não recebeu, envie a carteira do mês junto na análise.'}</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th>Grupo</th><th class="n">Pessoas</th><th class="n">Geraram ${T('voucher-atribuido','voucher')}</th><th class="n">%</th><th class="n">Vouchers</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('efeito-lembrete','Só outro benefício')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th></tr></thead><tbody>
+ <div class="tw"><table class="cmp pa-t co-ord"><thead><tr><th>Grupo</th><th class="n">Pessoas</th><th class="n">Geraram ${T('voucher-atribuido','voucher')}</th><th class="n">%</th><th class="n">Vouchers</th><th class="n">Do ${T('beneficio-divulgado','divulgado')}</th><th class="n">${T('efeito-lembrete','Só outro benefício')}</th><th class="n">${T('ate-7-dias','Até 7 dias')}</th></tr></thead><tbody>
  ${coGrupos(g).map(([k,s])=>`<tr><td>${CO_GRUPO[k]}</td><td class="n">${fmt(s.n)}</td><td class="n">${fmt(coA(s))}</td><td class="n"><b>${coPct(coA(s),s.n,2)}</b></td><td class="n">${s.vatr!=null?fmt(s.vatr):'—'}</td><td class="n">${coPct(s.div,s.n,2)}</td><td class="n">${coPct(s.outro,s.n,2)}</td><td class="n">${coPct(coA7(s),s.n,2)}</td></tr>`).join('')}
  </tbody></table></div></div>
  <div class="card"><h3>Benefícios divulgados</h3><p class="sub">Na ordem em que aparecem na comunicação. "${vb[0].toUpperCase()+vb.slice(1)} e gerou" = pessoas que geraram voucher daquele benefício dentro do prazo.</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th class="n">Posição</th><th>Marca</th><th>Benefício</th><th>Chamada</th><th class="n">${vb[0].toUpperCase()+vb.slice(1)} e gerou</th><th class="n">Vouchers</th><th class="n">Até 7 dias</th>${inapp?'':'<th class="n">Todos que receberam</th>'}</tr></thead><tbody>
+ <div class="tw"><table class="cmp pa-t co-ord"><thead><tr><th class="n">Posição</th><th>Marca</th><th>Benefício</th><th>Chamada</th><th class="n">${vb[0].toUpperCase()+vb.slice(1)} e gerou</th><th class="n">Vouchers</th><th class="n">Até 7 dias</th>${inapp?'':'<th class="n">Todos que receberam</th>'}</tr></thead><tbody>
  ${r.linhas.map(x=>`<tr><td class="n">${x.pos}</td><td>${esc(x.marca)}</td><td>${esc(x.beneficio)}${lbl(x)}${x.evento?`<br><small>evento em ${coDia(coIsoDia(x.evento))}</small>`:''}</td><td>${esc(x.chamada||'')}</td><td class="n"><b>${fmt(x.cl[0])}</b></td><td class="n">${fmt(x.cl[1])}</td><td class="n">${fmt(x.cl[2])}</td>${inapp?'':`<td class="n">${fmt(x.rec[0])}</td>`}</tr>`).join('')}
  </tbody></table></div></div>
  ${r.outros&&r.outros.length?`<div class="card"><h3>${T('efeito-lembrete')}: outros benefícios de quem ${vb}</h3><p class="sub">Benefícios fora da comunicação que essas pessoas geraram no prazo (também atribuídos à comunicação). Os 10 mais gerados.</p><div class="tw"><table class="cmp pa-t"><thead><tr><th>Marca</th><th>Benefício</th><th class="n">Pessoas</th></tr></thead><tbody>${r.outros.map(o=>`<tr><td>${esc(o[0])}</td><td>${esc(o[1])}</td><td class="n">${fmt(o[2])}</td></tr>`).join('')}</tbody></table></div></div>`:''}
@@ -2856,16 +2877,16 @@ function coDetalhe(h){if(!(CO.d||[]).length)return coVazio(h);
   <li>Base de vouchers: ${esc(q.vouArq||'')} · ${q.vMin!=null?coDia(q.vMin)+' a '+coDia(q.vMax):''} · ${fmt(q.vouchers)} vouchers (conta de testes e resgates "CPF no Balcão" das farmácias fora).${q.coberto?'':' <b>A base não cobre todo o prazo da comunicação: os números podem estar abaixo do real.</b>'}</li>
   ${q.cartArq?`<li>Carteira: ${esc(q.cartArq)}.</li>`:''}<li>Relatório(s): ${esc((q.arqs||[]).join(', '))}.</li></ul>
   ${ADMIN?`<p style="margin-top:10px"><button class="btn-sec" id="co-del" type="button">Excluir esta comunicação</button> <span class="hint" id="co-delm"></span></p>`:''}</div>`);
- document.getElementById('co-sel').onchange=e=>{CO.sel=e.target.value;coDetalhe(h)};
+ document.getElementById('co-sel').onchange=e=>{CO.sel=e.target.value;coDetalhe(h)};coOrdena();
  const del=document.getElementById('co-del');if(del)del.onclick=async()=>{if(!confirm('Excluir esta comunicação do portal?'))return;const {error}=await sb.rpc('excluir_comunicacao',{p_id:c.id});if(error){document.getElementById('co-delm').textContent=error.message;return}CO.d=CO.d.filter(x=>x.id!==c.id);CO.sel=null;coDetalhe(h)}}
 function coBeneficios(h){if(!(CO.d||[]).length)return coVazio(h);const L=(CO.d||[]).filter(c=>c.canal===CO.canal);if(!L.length){app.innerHTML=coShell(h,`<p class="answer">Ainda não há ${esc(CO.canal)} analisado no portal.</p>`);return}const A=new Map();
  L.forEach(c=>{const base=c.r.grupos.clicou||c.r.grupos.leu||c.r.grupos.exposto;c.r.linhas.forEach(x=>{const k=(x.marcaBase||x.marca)+'\t'+x.beneficio;const a=A.get(k)||{marca:x.marcaBase||x.marca,ben:x.beneficio,n:0,pos:0,dest:0,ger:0,ger7:0,vou:0,canais:new Set()};
   a.n++;a.pos+=x.pos;if(x.pos===1)a.dest++;a.ger+=x.cl[0];a.ger7+=x.cl[2];a.vou+=x.cl[1];a.canais.add(c.canal);A.set(k,a)})});
  const R=[...A.values()].sort((a,b)=>b.ger-a.ger||b.n-a.n);
  app.innerHTML=coShell(h,`<div class="card"><h3>Benefícios divulgados nas comunicações</h3><p class="sub">Soma de todas as comunicações analisadas. "Clicou e gerou" = pessoas que clicaram (ou viram, no in-app) e geraram voucher daquele benefício no ${T('prazo-oficial','prazo oficial')}.</p>
- <div class="tw"><table class="cmp pa-t"><thead><tr><th>Marca</th><th>Benefício</th><th class="n">Vezes divulgado</th><th class="n">Como destaque</th><th class="n">Posição média</th><th class="n">Clicou e gerou</th><th class="n">Vouchers</th><th class="n">Até 7 dias</th><th>Canais</th></tr></thead><tbody>
+ <div class="tw"><table class="cmp pa-t co-ord"><thead><tr><th>Marca</th><th>Benefício</th><th class="n">Vezes divulgado</th><th class="n">Como destaque</th><th class="n">Posição média</th><th class="n">Clicou e gerou</th><th class="n">Vouchers</th><th class="n">Até 7 dias</th><th>Canais</th></tr></thead><tbody>
  ${R.map(a=>`<tr><td>${esc(a.marca)}</td><td>${esc(a.ben)}</td><td class="n">${fmt(a.n)}</td><td class="n">${fmt(a.dest)}</td><td class="n">${fmt(a.pos/a.n,1)}</td><td class="n"><b>${fmt(a.ger)}</b></td><td class="n">${fmt(a.vou)}</td><td class="n">${fmt(a.ger7)}</td><td>${esc([...a.canais].join(', '))}</td></tr>`).join('')}
- </tbody></table></div></div>`)}
+ </tbody></table></div></div>`);coOrdena()}
 
 /* ---------- analisar (admin) ---------- */
 function coAnalisar(h){libs();CO.env=CO.env||{arqs:[],vou:null,cart:null,meta:null,linhas:[],res:null};
@@ -2954,6 +2975,7 @@ const CO_ROTA=[['newsletter','Newsletter','var(--vinho)','News do Clube: envio s
  ['inapp','In-app','var(--verde)','Mensagens dentro do app de GZH: quem viu a mensagem enquanto estava no ar e quem gerou voucher.'],
  ['push','Push','var(--verde-esc)','Notificações no celular: clique e voucher gerado no mesmo dia.'],
  ['whatsapp','WhatsApp','var(--vinho-esc)','Disparos de WhatsApp: clique e voucher gerado até 3 dias depois.']];
+const CO_MES=['mes','Visão geral mês a mês','var(--laranja-esc, #c65911)','Todas as comunicações do mês: top benefícios, mais abertura, mais clique, mais conversão e FCA para o próximo mês.'];
 const CO_SUB=[['','Visão geral'],['detalhe','Por comunicação'],['beneficios','Benefícios divulgados']];
 const coRota=h=>{const m=/^comunicacoes-(newsletter|pontual|inapp|push|whatsapp)(?:-(detalhe|beneficios))?$/.exec(h);if(!m)return null;
  const r=CO_ROTA.find(x=>x[0]===m[1]);return {slug:m[1],canal:r[1],cor:r[2],sub:m[2]||'',base:'comunicacoes-'+m[1]}};
@@ -2967,10 +2989,90 @@ function coMenu(h){CO.canal='';const D=CO.d||[];
   const ult=L.reduce((m,x)=>x.envio>m?x.envio:m,'');return {n:L.length,ult,conv:coPct(ba,bn),div:coPct(bd,bn)}};
  app.innerHTML=shell(h,`<p class="answer">Escolha o canal para ver o desempenho de cada comunicação.</p>
  <div class="areas">${CO_ROTA.map(([r,c,cor,d])=>{const x=resumo(c);return `<a class="area" href="#comunicacoes-${r}" style="--c:${cor}"><div class="row"><h3>${esc(c)}</h3><span class="status s-${x?'ok':'dep'}">${x?fmt(x.n)+' '+(x.n===1?'análise':'análises'):'Sem análises'}</span></div><p>${d}</p>
-  <div class="subs">${CO_SUB.map(s=>`<span>${s[1]}</span>`).join('')}</div>${x?`<p class="hint" style="margin:0">Última: ${coDia(coIsoDia(x.ult))} · ${c==='In-app'?'viu':D.some(y=>y.canal===c&&y.r.grupos.leu)?'leu':'clicou'} e gerou voucher: ${x.conv} · do divulgado: ${x.div}</p>`:''}<span class="go">Abrir →</span></a>`}).join('')}</div>
+  <div class="subs">${CO_SUB.map(s=>`<span>${s[1]}</span>`).join('')}</div>${x?`<p class="hint" style="margin:0">Última: ${coDia(coIsoDia(x.ult))} · ${c==='In-app'?'viu':D.some(y=>y.canal===c&&y.r.grupos.leu)?'leu':'clicou'} e gerou voucher: ${x.conv} · do divulgado: ${x.div}</p>`:''}<span class="go">Abrir →</span></a>`}).join('')}
+ <a class="area" href="#comunicacoes-mes" style="--c:${CO_MES[2]}"><div class="row"><h3>${CO_MES[1]}</h3><span class="status s-${D.length?'ok':'dep'}">${D.length?fmt(new Set(D.map(coMesDe)).size)+' meses':'Sem análises'}</span></div><p>${CO_MES[3]}</p>
+  <div class="subs"><span>Top benefícios</span><span>Rankings</span><span>FCA</span></div><span class="go">Abrir →</span></a></div>
  <p class="hint" style="margin-top:12px">Conversão = de quem ${T('clique','clicou')} (no in-app, de quem viu), quantos geraram ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')}, somando todas as comunicações do canal.</p>`)}
-function coPagina(h){if(h==='comunicacoes')return coMenu;if(h==='comunicacoes-analisar')return coAnalisar;
+function coPagina(h){if(h==='comunicacoes')return coMenu;if(h==='comunicacoes-mes')return coMes;if(h==='comunicacoes-analisar')return coAnalisar;
  const R=coRota(h);if(!R)return null;return x=>{CO.canal=R.canal;({'':coGeral,detalhe:coDetalhe,beneficios:coBeneficios})[R.sub](x)}}
+
+/* ---------- visão geral mês a mês (todos os canais) ---------- */
+const coBase=c=>c.r.grupos.clicou||c.r.grupos.leu||c.r.grupos.exposto;
+const coRef=c=>c.r.grupos.naoabriu||c.r.grupos.entregue||c.r.grupos.naorec;
+const coConv=c=>{const b=coBase(c);return b&&b.n?coA(b)/b.n:null};
+const coTemAcao=c=>c.r.linhas.some(x=>normL(x.marcaBase||x.marca)==='clube do assinante');
+const CO_MIN=20; // mínimo de pessoas no grupo principal para entrar no ranking de conversão
+function coResumoMes(m){const L=(CO.d||[]).filter(c=>coMesDe(c)===m);const S={L,n:L.length,env:0,bn:0,ba:0,bd:0,bv:0,out:0,por:{}};
+ L.forEach(c=>{const f=c.r.funil,b=coBase(c);S.env+=f.enviados;S.por[c.canal]=(S.por[c.canal]||0)+1;if(b){S.bn+=b.n;S.ba+=coA(b);S.bd+=b.div;S.bv+=b.vatr||0;S.out+=b.outro||0}});
+ const B=new Map();L.forEach(c=>{c.r.linhas.forEach(x=>{const k=(x.marcaBase||x.marca)+'\t'+x.beneficio;const a=B.get(k)||{marca:x.marcaBase||x.marca,ben:x.beneficio,ger:0,vou:0,n:0,com:new Set()};a.ger+=x.cl[0];a.vou+=x.cl[1];a.n++;a.com.add(c.assunto||c.lista);B.set(k,a)})});
+ S.ben=[...B.values()].filter(a=>a.ger>0).sort((a,b)=>b.ger-a.ger||b.vou-a.vou);
+ const O=new Map();L.forEach(c=>(c.r.outros||[]).forEach(o=>{const k=o[0]+'\t'+o[1];O.set(k,(O.get(k)||0)+o[2])}));
+ S.outros=[...O.entries()].map(([k,v])=>[...k.split('\t'),v]).sort((a,b)=>b[2]-a[2]);
+ const em=L.filter(c=>c.canal==='Newsletter'||c.canal==='E-mail pontual');
+ S.ab=em.map(c=>({c,v:c.r.funil.abriram/c.r.funil.enviados})).sort((a,b)=>b.v-a.v);
+ S.cl=L.filter(c=>c.r.modo!=='leitura'&&c.canal!=='In-app').map(c=>({c,v:c.r.funil.clicaram/c.r.funil.enviados})).sort((a,b)=>b.v-a.v);
+ S.cv=L.filter(c=>{const b=coBase(c);return b&&b.n>=CO_MIN}).map(c=>({c,v:coConv(c)})).sort((a,b)=>b.v-a.v);
+ S.inc=L.filter(c=>c.r.qualidade&&c.r.qualidade.coberto===false);
+ return S}
+function coFcaAuto(m){const S=coResumoMes(m);const M=[...new Set((CO.d||[]).map(coMesDe))].sort();const ant=M[M.indexOf(m)-1];const A=ant?coResumoMes(ant):null;
+ const nx=(()=>{const [y,mm]=m.split('-').map(Number);return lab(mm===12?`${y+1}-01`:`${y}-${String(mm+1).padStart(2,'0')}`)})();
+ const nome=c=>`${c.canal} ${coDia(coIsoDia(c.envio))} "${c.assunto||c.lista||''}"`;const pc=v=>v==null?'—':fmt(100*v,1)+'%';
+ const rows=[];const cv=S.bn?S.ba/S.bn:null,cvA=A&&A.bn?A.ba/A.bn:null;
+ rows.push({f:`**${fmt(S.n)} comunicações** em ${lab(m)} (${Object.entries(S.por).map(([k,v])=>`${v} ${k}`).join(', ')}), para ${fmt(S.env)} envios. **${pc(cv)}** de quem clicou (ou leu) gerou voucher no prazo${cvA!=null?` (${pc(cvA)} em ${lab(ant)})`:''}.`,
+  c:`- ${fmt(S.ba)} pessoas geraram voucher no prazo, ${fmt(S.bv)} vouchers\n- ${pc(S.bn?S.bd/S.bn:null)} geraram o benefício divulgado; ${pc(S.bn?S.out/S.bn:null)} só outro benefício (efeito lembrete)${A?`\n- ${lab(ant)}: ${fmt(A.n)} comunicações e ${fmt(A.env)} envios`:''}`,
+  a:cvA!=null&&cv<cvA?`Em ${nx}, rever o peso de agenda e serviços nas comunicações e repetir o formato das que mais converteram (ver próximas linhas).`:`Em ${nx}, manter o formato das comunicações que mais converteram e o mesmo ritmo de envios.`});
+ if(S.cv.length){const t=S.cv[0],u=S.cv[S.cv.length-1];const ca=S.cv.filter(x=>coTemAcao(x.c)),sa=S.cv.filter(x=>!coTemAcao(x.c));const md=a=>a.length?a.reduce((t,x)=>t+x.v,0)/a.length:null;
+  rows.push({f:`**Maior conversão:** ${nome(t.c)}, ${pc(t.v)} de quem clicou gerou voucher.${S.cv.length>1?` Menor: ${nome(u.c)}, ${pc(u.v)}.`:''}`,
+   c:`- Benefícios em destaque na melhor: ${t.c.r.linhas.slice(0,3).map(x=>x.beneficio).join('; ')}${ca.length&&sa.length?`\n- Com ação do Clube (cortesia, sorteio): média ${pc(md(ca))} em ${ca.length}; sem ação do Clube: ${pc(md(sa))} em ${sa.length}`:''}${S.cv.length>1?`\n- Na menor, os destaques eram: ${u.c.r.linhas.slice(0,3).map(x=>x.beneficio).join('; ')||'sem benefício específico'}`:''}`,
+   a:ca.length&&sa.length&&md(ca)>md(sa)?`Em ${nx}, abrir cada comunicação com uma ação do Clube (cortesia ou sorteio) e deixar agenda e descontos depois.`:`Em ${nx}, repetir no destaque o tipo de benefício da comunicação que mais converteu.`})}
+ if(S.ab.length){const t=S.ab[0];const md=S.ab.reduce((x,y)=>x+y.v,0)/S.ab.length;
+  rows.push({f:`**Maior abertura (e-mail):** ${nome(t.c)}, ${pc(t.v)} (média dos e-mails do mês: ${pc(md)}).`,
+   c:`- Assunto: "${t.c.assunto||''}"${t.c.preheader?`\n- Pré-cabeçalho: "${t.c.preheader}"`:''}${S.ab.length>1?`\n- Menor abertura: ${nome(S.ab[S.ab.length-1].c)}, ${pc(S.ab[S.ab.length-1].v)}`:''}`,
+   a:`Em ${nx}, testar assuntos no mesmo estilo do mais aberto (A/B de assunto em uma newsletter).`})}
+ if(S.cl.length){const t=S.cl[0];const md=S.cl.reduce((x,y)=>x+y.v,0)/S.cl.length;
+  rows.push({f:`**Maior clique:** ${nome(t.c)}, ${fmt(100*t.v,2)}% dos envios (média do mês: ${fmt(100*md,2)}%).`,
+   c:`- Primeiro benefício da comunicação: ${t.c.r.linhas[0]?t.c.r.linhas[0].beneficio:'—'}\n- Clique alto com conversão ${pc(coConv(t.c))}`,
+   a:coConv(t.c)!=null&&cv!=null&&coConv(t.c)<cv?`O clique não virou voucher: em ${nx}, deixar mais claro no e-mail como gerar o voucher desse tipo de benefício.`:`Em ${nx}, usar esse benefício (ou um do mesmo tipo) como destaque de novo.`})}
+ if(S.ben.length){const T5=S.ben.slice(0,5);
+  rows.push({f:`**Benefícios divulgados mais gerados:** ${T5.slice(0,3).map(a=>`${a.ben} (${fmt(a.ger)})`).join(', ')}.`,
+   c:T5.map(a=>`- ${a.marca} · ${a.ben}: ${fmt(a.ger)} pessoas, ${fmt(a.vou)} vouchers, em ${a.n} ${a.n===1?'comunicação':'comunicações'}`).join('\n')+(S.outros.length?`\n- Fora da comunicação, os mais gerados por quem clicou: ${S.outros.slice(0,3).map(o=>o[1]).join(', ')}`:''),
+   a:`Em ${nx}, reservar espaço fixo para os benefícios que mais geraram${S.outros.length?` e testar ${S.outros[0][1]} como destaque, já que é gerado mesmo sem estar na comunicação`:''}.`})}
+ if(S.inc.length)rows.push({f:`**${S.inc.length} ${S.inc.length===1?'comunicação está':'comunicações estão'} com cobertura incompleta** da base de vouchers.`,c:S.inc.map(c=>`- ${nome(c)}`).join('\n'),a:`Reprocessar essas comunicações em ${nx} com a base de vouchers mais recente.`});
+ return rows}
+function coMes(h){if(!(CO.d||[]).length)return coVazio(h);const M=[...new Set(CO.d.map(coMesDe))].sort();if(!CO.mes||!M.includes(CO.mes))CO.mes=M[M.length-1];const m=CO.mes;
+ const S=coResumoMes(m);const salvo=(CO.fca||{})[m];const rows=CO.fcaEd||(salvo?salvo.rows:coFcaAuto(m));const ed=CO.fcaEd!=null;
+ const link=c=>`<a href="#${coLinkCanal(c.canal)}-detalhe" data-co="${c.id}">${esc(c.assunto||c.lista||'(sem assunto)')}</a>`;
+ const rank=(tit,A,fv,nota)=>`<div class="card"><h3>${tit}</h3>${nota?`<p class="sub">${nota}</p>`:''}${A.length?`<div class="tw"><table class="cmp pa-t co-ord" style="min-width:0;width:100%"><thead><tr><th class="n">#</th><th>Comunicação</th><th class="n">Taxa</th></tr></thead><tbody>${A.slice(0,5).map((x,i)=>`<tr><td class="n">${i+1}</td><td style="white-space:normal">${link(x.c)}<br><small class="hint">${esc(x.c.canal)} · ${coDia(coIsoDia(x.c.envio))}</small></td><td class="n" data-v="${x.v}"><b>${fv(x.v)}</b></td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Sem comunicações com esse dado no mês.</p>'}</div>`;
+ app.innerHTML=shell(h,`<div class="bar">${coSelMes(CO.d,'co-mesm',false)}<span class="hint">Todas as comunicações analisadas no mês, de todos os canais.</span></div>
+ <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+  ${KPI('','enviados',fmt(S.n),Object.entries(S.por).map(([k,v])=>`${v} ${k}`).join(' · '),'','Comunicações')}
+  ${KPI('','enviados',fmt(S.env),'soma dos envios','','Envios')}
+  ${KPI('','voucher-atribuido',coPct(S.ba,S.bn),`${fmt(S.ba)} pessoas · ${fmt(S.bv)} vouchers no prazo`,'','Conversão')}
+  ${KPI('','beneficio-divulgado',coPct(S.bd,S.bn),'geraram o benefício divulgado','','Do benefício divulgado')}
+ </div>
+ <div class="card"><h3>Top benefícios mais gerados</h3><p class="sub">Benefícios divulgados nas comunicações do mês, somando quem clicou (ou leu) e gerou voucher daquele benefício no prazo.</p>
+ ${S.ben.length?`<div class="tw"><table class="cmp pa-t co-ord"><thead><tr><th class="n">#</th><th>Marca</th><th>Benefício</th><th class="n">Pessoas</th><th class="n">Vouchers</th><th class="n">Vezes divulgado</th></tr></thead><tbody>${S.ben.slice(0,10).map((a,i)=>`<tr><td class="n">${i+1}</td><td>${esc(a.marca)}</td><td>${esc(a.ben)}</td><td class="n"><b>${fmt(a.ger)}</b></td><td class="n">${fmt(a.vou)}</td><td class="n">${fmt(a.n)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Nenhum benefício divulgado gerado no prazo.</p>'}
+ ${S.outros.length?`<p class="sub" style="margin-top:12px"><b>Fora da comunicação</b> (${T('efeito-lembrete','efeito lembrete')}): ${S.outros.slice(0,5).map(o=>`${esc(o[1])} (${fmt(o[2])})`).join(' · ')}</p>`:''}</div>
+ <div class="grid2">${rank('Mais abertura',S.ab,v=>fmt(100*v,1)+'%','Só e-mails (newsletter e pontual).')}${rank('Mais clique',S.cl,v=>fmt(100*v,2)+'%','Cliques ÷ envios. WhatsApp sem clique e in-app ficam de fora.')}</div>
+ ${rank('Mais conversão',S.cv,v=>fmt(100*v,1)+'%',`De quem clicou (ou leu, no WhatsApp), quantos geraram ${T('voucher-atribuido','voucher')} no ${T('prazo-oficial','prazo oficial')}. Só comunicações com pelo menos ${CO_MIN} pessoas no grupo.`)}
+ <div class="card td-card td-fca"><div class="row-head"><div><h3>${T('fca','FCA')} de ${lab(m)}, para usar no mês seguinte</h3><p class="sub">${ed?'Edite fato, causa e ação. Use **texto** para negrito; comece a linha com - para virar tópico.':salvo?'Versão revisada pelo time.':'Gerado automaticamente a partir das comunicações do mês. Revise as ações antes de compartilhar.'}</p></div>
+ ${ADMIN&&CO.fca!=null?`<div class="acoes">${ed?`<button class="btn" id="cf-ok" type="button">Salvar FCA</button><button class="chip" id="cf-add" type="button">Adicionar linha</button><button class="chip" id="cf-x" type="button">Cancelar</button>`:`<button class="chip" id="cf-ed" type="button">Editar FCA</button>${salvo?'<button class="chip" id="cf-auto" type="button">Voltar ao automático</button>':''}`}<span class="hint" id="cf-msg"></span></div>`:''}</div>
+ <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th>${ed?'<th></th>':''}</tr></thead><tbody>
+ ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button">×</button></td></tr>`
+  :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')}</tbody></table></div>
+ ${CO.fca==null&&ADMIN?'<p class="hint">Para salvar a versão revisada do FCA, rode o arquivo 35_fca_comunicacoes.sql no Supabase.</p>':''}</div>`);
+ document.getElementById('co-mesm').onchange=e=>{CO.mes=e.target.value;CO.fcaEd=null;coMes(h)};
+ document.querySelectorAll('[data-co]').forEach(a=>a.onclick=()=>{CO.sel=a.dataset.co});coOrdena();
+ const box=document.querySelector('.td-fca');const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+ const ler=()=>[...box.querySelectorAll('tr[data-j]')].map(tr=>{const o={};tr.querySelectorAll('textarea').forEach(t=>o[t.dataset.c]=t.value.trim());return o}).filter(o=>o.f||o.c||o.a);
+ on('cf-ed',()=>{CO.fcaEd=(salvo?salvo.rows:coFcaAuto(m)).map(x=>({...x}));coMes(h)});
+ on('cf-x',()=>{CO.fcaEd=null;coMes(h)});
+ on('cf-add',()=>{CO.fcaEd=ler();CO.fcaEd.push({f:'',c:'',a:''});coMes(h)});
+ box.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const v=ler();v.splice(+b.dataset.del,1);CO.fcaEd=v;coMes(h)});
+ const salvar=async v=>{const msg=document.getElementById('cf-msg');msg.textContent='Salvando…';const {error}=await sb.rpc('salvar_fca_comunicacoes',{p_mes:m,p:v});
+  if(error){msg.textContent='Não salvou: '+error.message;return}if(v)CO.fca[m]=v;else delete CO.fca[m];CO.fcaEd=null;coMes(h)};
+ on('cf-ok',()=>salvar({rows:ler(),em:new Date().toISOString()}));
+ on('cf-auto',()=>{if(confirm('Descartar a versão revisada e voltar ao FCA automático?'))salvar(null)})}
 
 
 /* ---------- telas gerais ---------- */
