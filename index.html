@@ -3401,7 +3401,7 @@ function cuTempo(venda){const v=new Date(venda+'T12:00:00'),h=new Date();let mes
 const cuData=d=>{const [y,m,dd]=d.split('-');return `${dd}/${m}/${y}`};
 function cuCobertura(){const U=CA.d.uso||[];if(!U.length)return '';const ms=U.map(u=>u.mes);return `Histórico de uso carregado de ${lab(ms[0])} a ${lab(ms[ms.length-1])}${ms.length<(()=>{const [a,b]=[ms[0],ms[ms.length-1]].map(x=>x.split('-').map(Number));return (b[0]-a[0])*12+b[1]-a[1]+1})()?' (com meses faltando)':''}`}
 function cuPagina(){const U=CA.d.uso||[];
- if(!U.length)return shell('calculadora-uso',`<div class="note">Ainda não há histórico de uso carregado.${ADMIN?' Ele entra sozinho a cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a>; o histórico anterior entra uma vez só, pela <a href="#calculadora-historico">carga única do histórico</a>.':' Peça a um administrador para carregar.'}</div>`);
+ if(!U.length)return shell('calculadora-uso',`<div class="note">Ainda não há histórico de uso carregado.${ADMIN?' Ele entra sozinho a cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a>;':' Peça a um administrador para carregar.'}</div>`);
  return shell('calculadora-uso',`<p class="answer">Digite o CPF do sócio para ver a retrospectiva de uso do Clube: há quanto tempo é assinante, quantos vouchers gerou e o que mais usa.</p>
  <div class="card ca-box"><div class="ca-linha">
   <label class="fld ca-cpf"><span>CPF do sócio</span><input id="cu-cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" value="${esc(CU.cpf)}"></label>
@@ -3443,32 +3443,10 @@ function cuBind(){const i=document.getElementById('cu-cpf');if(!i)return;
  document.getElementById('cu-clr').onclick=()=>{CU.cpf='';CU.res=null;i.value='';document.getElementById('cu-res').innerHTML='';i.focus()};
  cuBindTabela();i.focus()}
 
-/* ---------- Histórico de uso (admin): arquivos de vouchers antigos ---------- */
-const CUH={arqs:null,lendo:false,msg:null};
-function cuHistoricoCard(){const U=CA.d.uso||[];const sit=CUH.lendo?`<p class="carregando" id="cuh-st">Lendo…</p>`:'';
- const meses=CUH.det?[...CUH.det.keys()].sort():[];
- return `<div class="card"><h3>Carga única do histórico de uso</h3><p class="sub">Página temporária, fora do menu: serve só para carregar uma vez o detalhe dos vouchers dos meses enviados antes da Calculadora uso existir (jul/2023 a out/2026). Daqui para frente, cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a> já guarda esse detalhe sozinho. Suba os arquivos de vouchers (.csv da plataforma, podem ter vários meses). Cada mês do arquivo substitui o detalhe que já havia daquele mês. Farmácias de resgate automático no balcão ficam fora, como no Clube em números.</p>
-  <label class="drop"><b>Arquivos de vouchers</b><input type="file" id="cuh-up" accept=".csv,.xlsx" multiple></label>${sit}
-  ${CUH.msg?`<p class="${CUH.msg.ok?'adm-ok':'adm-err'}" style="margin-top:10px">${CUH.msg.t}</p>`:''}
-  ${meses.length?`<div class="tw" style="margin-top:12px"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Linhas</th><th class="n">Vouchers</th><th>Já carregado</th></tr></thead><tbody>${meses.map(m=>{const d=CUH.det.get(m);let v=0;d.forEach(p=>v+=p);return `<tr><td>${lab(m)}</td><td class="n">${fmt(d.size)}</td><td class="n">${fmt(v)}</td><td>${U.some(u=>u.mes===m)?'sim (será substituído)':'não'}</td></tr>`}).join('')}</tbody></table></div>
-   <div class="ca-salvar"><button class="btn" id="cuh-salvar" type="button">Salvar ${meses.length===1?'1 mês':meses.length+' meses'}</button> <span class="hint" id="cuh-prog"></span></div>`:''}
-  <h4 style="margin:16px 0 6px">Meses com histórico de uso <small class="hint">${fmt(U.length)}</small></h4>
-  ${U.length?`<div class="mes-chips">${U.map(u=>`<span title="${fmt(u.vouchers)} vouchers de ${fmt(u.pessoas)} pessoas · enviado em ${new Date(u.enviado_em).toLocaleDateString('pt-BR')}">${lab(u.mes)}</span>`).join('')}</div>`:'<p class="hint">Nenhum mês ainda.</p>'}</div>`}
-function cuhBind(){const up=document.getElementById('cuh-up');if(!up)return;
- up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CUH.lendo=true;CUH.msg=null;CUH.det=null;caRender('calculadora-historico');
-  const vouAnt=CG.vou,detAnt=CG.det;CG.vou=new Map();CG.det=new Map();
-  try{libs();for(const f of fs)await lerVouchers(f,est=>{const el=document.getElementById('cuh-st');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers…`});CUH.det=CG.det}
-  catch(err){CUH.msg={t:esc(err.message||err)}}finally{CG.vou=vouAnt;CG.det=detAnt;CUH.lendo=false;caRender('calculadora-historico')}};
- const sv=document.getElementById('cuh-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('cuh-prog');const ms=[...CUH.det.keys()].sort();
-  try{PEPPER=PEPPER||await rpc('pepper');for(let k=0;k<ms.length;k++){const m=ms[k];await enviarUsoMes(m,CUH.det.get(m),(a,b)=>{pr.textContent=`${lab(m)} (${k+1} de ${ms.length}): ${fmt(Math.round(100*a/b))}%`})}
-   CUH.det=null;CUH.msg={ok:1,t:`Histórico salvo: ${fmt(ms.length)} ${ms.length===1?'mês':'meses'}.`};await caCarregar(true);caRender('calculadora-historico')}
-  catch(err){sv.disabled=false;pr.textContent='Não salvou: '+(err.message||err)}}}
-
-function cuHistPagina(){return shell('calculadora-historico',cuHistoricoCard())}
 /* ---------- roteamento ---------- */
-const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar,'calculadora-historico':cuHistPagina};
-function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else if(h==='calculadora-historico')cuhBind();else caBindEnviar()}
-async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if((h==='calculadora-enviar'||h==='calculadora-historico')&&!ADMIN){location.hash='calculadora';return}
+const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar};
+function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else caBindEnviar()}
+async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if(h==='calculadora-enviar'&&!ADMIN){location.hash='calculadora';return}
  if(!CA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');
   try{await caCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar a calculadora: ${esc(e.message||e)}${/function|does not exist|schema cache/i.test(e.message||'')?'. Confira se o arquivo 41_calculadora_farmacias.sql já foi rodado no Supabase.':''}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
@@ -3483,7 +3461,10 @@ const AC={d:null,cache:new Map(),series:[],q:'',marcados:null,de:'',ate:'',gr:'a
 const AC_CORES=['#721a50','#2f7fb8','#e07b24','#3f9a3a','#8d5bc1','#c23b56'];
 const AC_CANAL={'Newsletter':'N','E-mail pontual':'E','WhatsApp':'W','Push':'P','In-app':'I'};
 async function acCarregar(){if(AC.d)return;const {data,error}=await sb.rpc('dados_acoes');if(error)throw error;
- const B=(data.beneficios||[]).map(([id,marca,titulo,v,ini,fim])=>({id,marca,titulo,v,ini,fim,cat:acCatDe(marca,titulo),txt:normL(cuMarcaAc(marca)+' '+titulo)}));
+ /* só ações da marca Clube do Assinante (mesma regra do Relatório semanal: cortesias, sorteios, convites) + tudo de Uber */
+ const CORT=new Set((data.cortesias||[]).map(coN));
+ const ehAcao=(marca,titulo)=>(ehMarcaClube(marca)&&(CORT.has(coN(titulo))||ehCortesia(marca,'',titulo)))||/\buber\b/.test(normL(marca+' '+titulo));
+ const B=(data.beneficios||[]).filter(([id,marca,titulo])=>ehAcao(marca,titulo)).map(([id,marca,titulo,v,ini,fim])=>({id,marca,titulo,v,ini,fim,cat:/\buber\b/.test(normL(marca))?'Uber':'Ações do Clube',txt:normL(cuMarcaAc(marca)+' '+titulo)}));
  const porChave=new Map();B.forEach(b=>porChave.set(coN(b.marca)+'|'+coN(b.titulo),b));
  const C=(data.comunicacoes||[]).map(c=>({...c,envio:String(c.envio).slice(0,10),linhas:(c.linhas||[]).map(([mb,tits,cham,cl,ev])=>({mb,tits:tits||[],cham,cl:cl||[],ev,ids:(tits||[]).map(t=>porChave.get(coN(mb)+'|'+coN(t))).filter(Boolean).map(b=>b.id)}))}));
  AC.d={meses:data.meses||[],B,byId:new Map(B.map(b=>[b.id,b])),C};
@@ -3492,7 +3473,7 @@ const cuMarcaAc=m=>m==='GZH'?'Clube do Assinante':m;
 const AC_CAT=new Map();function acCatDe(marca,titulo){let m=marcaDoClube(marca,'',titulo);if(m==='GZH')m=CLUBE_MARCA;if(!AC_CAT.has(m))AC_CAT.set(m,(PA.d.info.get(m)||infoMarca(PA.d,m)).cat);return AC_CAT.get(m)}
 const acCat=b=>b.cat||'—';
 function acBusca(q){const t=normL(q).split(/\s+/).filter(Boolean);if(!t.length)return [];
- return AC.d.B.filter(b=>t.every(x=>b.txt.includes(x))&&(AC.so==='todas'||(AC.so==='acoes'?acCat(b)==='Ações do Clube':acCat(b)!=='Ações do Clube')))}
+ if(t[0]==='*')return AC.d.B.slice();return AC.d.B.filter(b=>t.every(x=>b.txt.includes(x)))}
 /* baldes de tempo */
 const acDia=d=>new Date(d+'T12:00:00');const acIso=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 function acGr(){if(AC.gr!=='auto')return AC.gr;const n=mesesEntre(AC.de,AC.ate).length;return n<=2?'dia':n<=9?'semana':'mes'}
@@ -3516,21 +3497,20 @@ const acSomaDias=(dias,a,b)=>{let s=0;dias.forEach((v,d)=>{if(d>=a&&d<=b)s+=v});
 const acMais=(d,n)=>{const x=acDia(d);x.setDate(x.getDate()+n);return acIso(x)};
 
 function acPagina(){const D=AC.d;
- if(!D.meses.length)return shell('parceiros-acoes',`<div class="note">Ainda não há vouchers por dia carregados. Eles entram a cada mês enviado em Clube em números › Enviar mês; os meses anteriores entram uma vez só pela carga única do histórico${ADMIN?'':' (peça a um administrador)'}.</div>`);
+ if(!D.meses.length)return shell('parceiros-acoes',`<div class="note">Ainda não há vouchers por dia carregados. Eles entram a cada mês enviado em Clube em números › Enviar mês${ADMIN?'':' (peça a um administrador)'}.</div>`);
  const res=AC.q?acBusca(AC.q):[];if(AC.marcados==null||AC.marcadosQ!==AC.q){AC.marcados=new Set(res.filter(b=>b.v>0).slice(0,40).map(b=>b.id));AC.marcadosQ=AC.q}
  const opt=v=>D.meses.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
- const sug=['Cineminha','GNC','Uber','Capital Inicial','Hard Rock','Netshoes'].filter(s=>acBusca(s).length);
+ const sug=['Cineminha','Uber','GNC','Capital Inicial','Planeta','Hard Rock','Show'].filter(s=>acBusca(s).length).concat(['*']);
  const gr=acGr();
- return shell('parceiros-acoes',`<p class="answer">Compare a geração de vouchers de ações e benefícios e veja quais comunicações (canais e datas) aconteceram perto de cada pico.</p>
+ return shell('parceiros-acoes',`<p class="answer">Compare a geração de vouchers das ações do Clube (cortesias, sorteios e convites da marca Clube do Assinante, mesma regra do Relatório semanal) e do Uber, e veja quais comunicações (canais e datas) aconteceram perto de cada pico.</p>
  <div class="card"><h3>1. Buscar ações</h3>
-  <div class="ca-linha"><label class="fld" style="flex:1 1 260px"><span>Palavra-chave</span><input id="ac-q" value="${esc(AC.q)}" placeholder="Ex.: GNC, Uber, Capital Inicial"></label>
-   <label class="fld"><span>Mostrar</span><select id="ac-so"><option value="todas"${AC.so==='todas'?' selected':''}>Todos os benefícios</option><option value="acoes"${AC.so==='acoes'?' selected':''}>Só ações do Clube (cortesias)</option><option value="parc"${AC.so==='parc'?' selected':''}>Só benefícios de parceiros</option></select></label>
+  <div class="ca-linha"><label class="fld" style="flex:1 1 260px"><span>Palavra-chave</span><input id="ac-q" value="${esc(AC.q==='*'?'':AC.q)}" placeholder="Ex.: Cineminha, Uber, Capital Inicial"></label>
    <div class="ca-bts"><button class="btn" id="ac-buscar" type="button">Buscar</button></div></div>
-  ${!AC.q&&sug.length?`<div class="chips" style="margin-top:10px">${sug.map(s=>`<button class="chip" type="button" data-ac-sug="${esc(s)}">${esc(s)}</button>`).join('')}</div>`:''}
-  ${AC.q?(res.length?`<div class="ac-res"><p class="hint">${fmt(res.length)} ${res.length===1?'benefício encontrado':'benefícios encontrados'} para "${esc(AC.q)}". Marque o que entra na comparação (os números são de todo o histórico carregado).</p>
+  ${!AC.q&&sug.length?`<div class="chips" style="margin-top:10px">${sug.map(s=>`<button class="chip" type="button" data-ac-sug="${esc(s)}">${s==='*'?'Ver todas as ações':esc(s)}</button>`).join('')}</div>`:''}
+  ${AC.q?(res.length?`<div class="ac-res"><p class="hint">${fmt(res.length)} ${res.length===1?'ação encontrada':'ações encontradas'}${AC.q==='*'?'':` para "${esc(AC.q)}"`}. Marque o que entra na comparação (os números são de todo o histórico carregado).</p>
    <div class="tw ac-tw"><table class="cmp"><thead><tr><th><input type="checkbox" id="ac-all"${res.every(b=>AC.marcados.has(b.id))?' checked':''} aria-label="Marcar todos"></th><th>Marca</th><th>Benefício</th><th>Categoria</th><th class="n">Vouchers</th><th>Período de uso</th></tr></thead><tbody>
    ${res.slice(0,200).map(b=>`<tr><td><input type="checkbox" data-ac-b="${b.id}"${AC.marcados.has(b.id)?' checked':''}></td><td>${esc(cuMarcaAc(b.marca))}</td><td>${esc(b.titulo)}</td><td>${esc(acCat(b))}</td><td class="n">${fmt(b.v)}</td><td><small>${cuData(String(b.ini).slice(0,10))} a ${cuData(String(b.fim).slice(0,10))}</small></td></tr>`).join('')}</tbody></table></div>
-   <div class="ca-salvar"><label class="fld" style="min-width:220px"><span>Nome na comparação</span><input id="ac-nome" value="${esc(AC.q)}"></label><button class="btn" id="ac-add" type="button"${AC.series.length>=6?' disabled':''}>Adicionar à comparação</button>${AC.series.length>=6?'<span class="hint">Máximo de 6 séries.</span>':''}</div></div>`:`<p class="hint" style="margin-top:10px">Nenhum benefício com "${esc(AC.q)}" no histórico carregado.</p>`):''}</div>
+   <div class="ca-salvar"><label class="fld" style="min-width:220px"><span>Nome na comparação</span><input id="ac-nome" value="${esc(AC.q==='*'?'Ações do Clube':AC.q)}"></label><button class="btn" id="ac-add" type="button"${AC.series.length>=6?' disabled':''}>Adicionar à comparação</button>${AC.series.length>=6?'<span class="hint">Máximo de 6 séries.</span>':''}</div></div>`:`<p class="hint" style="margin-top:10px">Nenhuma ação do Clube ou do Uber com "${esc(AC.q)}" no histórico carregado.</p>`):''}</div>
  ${AC.series.length?`<div class="card"><h3>2. Comparação</h3>
   <div class="chips ac-ser">${AC.series.map((S,i)=>`<span class="chip on" style="background:${S.cor};border-color:${S.cor}">${esc(S.nome)} <small>(${fmt(S.ids.size)})</small> <button type="button" class="ac-x" data-ac-rm="${i}" aria-label="Remover ${esc(S.nome)}">×</button></span>`).join('')}</div>
   <div class="ca-linha" style="margin-top:12px"><label class="fld"><span>De</span><select id="ac-de">${opt(AC.de)}</select></label><label class="fld"><span>Até</span><select id="ac-ate">${opt(AC.ate)}</select></label>
@@ -3577,7 +3557,6 @@ async function acDesenha(){const out=document.getElementById('ac-out');if(!out)r
 function acBind(){const q=document.getElementById('ac-q');if(!q)return;
  const buscar=()=>{AC.q=q.value.trim();paRender('parceiros-acoes')};
  document.getElementById('ac-buscar').onclick=buscar;q.onkeydown=e=>{if(e.key==='Enter')buscar()};
- document.getElementById('ac-so').onchange=e=>{AC.so=e.target.value;AC.marcadosQ=null;paRender('parceiros-acoes')};
  document.querySelectorAll('[data-ac-sug]').forEach(b=>b.onclick=()=>{AC.q=b.dataset.acSug;paRender('parceiros-acoes')});
  document.querySelectorAll('[data-ac-b]').forEach(c=>c.onchange=()=>{const id=+c.dataset.acB;c.checked?AC.marcados.add(id):AC.marcados.delete(id)});
  const all=document.getElementById('ac-all');if(all)all.onchange=()=>{acBusca(AC.q).forEach(b=>all.checked?AC.marcados.add(b.id):AC.marcados.delete(b.id));document.querySelectorAll('[data-ac-b]').forEach(c=>c.checked=all.checked)};
