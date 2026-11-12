@@ -1197,6 +1197,12 @@ const ehCortesia=(marca,desc,titulo)=>{if(!ehMarcaClube(marca))return false;cons
 /* Planeta Atlântida dentro da marca do Clube: ação de ingresso (cortesia) fica no Clube; o desconto no ingresso vai para eventos/espetáculos,
    com a marca "Planeta Atlântida" (cadastrada em Produtoras de eventos). Vale no Relatório semanal e em Clube em números. */
 const PLANETA='Planeta Atlântida';
+/* Marca do Clube no painel de parceiros e em Clube em números (mesma regra do Relatório semanal): ações do Clube = só cortesias;
+   Espaçolaser e Magalu viram marcas próprias; o resto (dica de filme, descontos em eventos etc.) vai para "Clube do Assinante (outros)". */
+const CLUBE_OUTROS_M='Clube do Assinante (outros)';
+function marcaDoClube(marca,desc,titulo){if(!ehMarcaClube(marca))return marca;const t=normL(titulo).replace(/\s+/g,'');
+ if(t.includes('espacolaser'))return 'Espaçolaser';if(t.includes('magalu'))return 'Magalu';
+ if(ehCortesia(marca,desc,titulo))return marca;if(ehPlanetaDesconto(marca,desc,titulo))return PLANETA;return CLUBE_OUTROS_M}
 const ehPlanetaDesconto=(marca,desc,titulo)=>ehMarcaClube(marca)&&normL(titulo).includes('planeta atlantida')&&!ehCortesia(marca,desc,titulo);
 const FARMACIAS=new Set(['Droga Raia','Farmácia Pague Menos','Farmácias Pague Menos','Drogaria Araujo','Drogarias Pacheco','Drogaria Pacheco','Drogaria São Paulo','Farmácias Droga Raia e Drogasil','Farmácias Raia e Drogasil'].map(normL));
 const ATIVAS=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
@@ -1288,7 +1294,7 @@ function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw
  let p=parseInt(prodRaw,10);if(!(p>0))p=1;
  const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0,cort:descRaw===undefined?null:0};CG.vou.set(m,g)}
  if(g.cort!=null&&ehCortesia(marca,descRaw,titRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
- if(ehPlanetaDesconto(marca,descRaw,titRaw))marca=PLANETA;
+ marca=marcaDoClube(marca,descRaw,titRaw);
  const k=c+'\t'+marca;g.mapa.set(k,(g.mapa.get(k)||0)+p);g.linhas++;est.ok++}
 function lerVouchers(file,prog){const est={ok:0,farm:0,semCpf:0,semData:0};
  if(/\.xlsx?$/i.test(file.name))return file.arrayBuffer().then(buf=>{const wb=XLSX.read(buf,{type:'array',dense:true});
@@ -2026,7 +2032,7 @@ const baseNome=s=>String(s||'').split(/\s[|–-]\s/)[0].trim();
 const CAT_FIX={'para seu pet':'Para seu Pet','bem-estar':'Saúde e Beleza','bem estar':'Saúde e Beleza'};
 const catsDe=s=>String(s||'').split(/[;,]/).map(x=>x.trim()).filter(Boolean).map(x=>CAT_FIX[x.toLowerCase()]||x);
 const AGREG=new Set(['Proxy Media','Hubconn','SponsorB','Integrada Comunicação e Marketing']);
-const TIPOS=['Parceiros diretos','Eventos e shows','Ações do Clube','Laçador de Ofertas','Agregadores online'];
+const TIPOS=['Parceiros diretos','Eventos e shows','Ações do Clube','Outros benefícios do Clube','Laçador de Ofertas','Agregadores online'];
 const SERRA=['caxias','gramado','canela','bento','farroupilha','nova petropolis','garibaldi','cambara','sao francisco de paula','flores da cunha','vacaria'];
 const METRO=['porto alegre','canoas','esteio','gravatai','cachoeirinha','viamao','sao leopoldo','novo hamburgo','guaiba','alvorada','sapucaia'];
 function grupoLocal(l){const t=semAcento(String(l||'')).toLowerCase().trim();if(!t)return 'Não informado';
@@ -2040,7 +2046,7 @@ const moda=a=>{const m=new Map();a.filter(Boolean).forEach(x=>m.set(x,(m.get(x)|
 /* ---------- dados ---------- */
 async function paCarregar(forcar){if(PA.d&&!forcar)return;const {data,error}=await sb.rpc('dados_parceiros');if(error)throw error;
  const D={cadEm:data.cadastro_em||null,meses:[...new Set(data.meses.map(r=>r[0]))].sort(),uso:new Map(),cad:data.cadastro||[],aj:new Map((data.ajustes||[]).map(a=>[a.marca,a])),prod:new Set([...(data.produtoras||[]),PLANETA])};
- data.meses.forEach(([m,marca,v,p])=>{marca=conserta(marca);let u=D.uso.get(marca);if(!u){u={};D.uso.set(marca,u)}const x=u[m]||(u[m]={v:0,p:0});x.v+=v;x.p+=p});
+ data.meses.forEach(([m,marca,v,p])=>{marca=conserta(marca);if(marca==='GZH')marca=CLUBE_MARCA; /* GZH = nome da marca do Clube até ago/2025 */let u=D.uso.get(marca);if(!u){u={};D.uso.set(marca,u)}const x=u[m]||(u[m]={v:0,p:0});x.v+=v;x.p+=p});
  D.idx=new Map();D.cad.forEach(c=>{[nk(c.parceiro),nk(baseNome(c.parceiro))].forEach(k=>{if(!k)return;const l=D.idx.get(k)||[];if(!l.includes(c))l.push(c);D.idx.set(k,l)})});
  D.info=new Map();[...D.uso.keys()].forEach(m=>D.info.set(m,infoMarca(D,m)));
  D.cats=[...new Set(D.cad.flatMap(c=>catsDe(c.categoria)))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
@@ -2050,10 +2056,11 @@ function cadDe(D,m){const aj=D.aj.get(m);if(aj&&aj.parceiro){const l=D.idx.get(n
  if(k.length>=5){const ks=[...D.idx.keys()].filter(x=>x.length>=5&&(x.startsWith(k)||k.startsWith(x)));if(ks.length===1)return D.idx.get(ks[0])}
  return []}
 function infoMarca(D,m){const aj=D.aj.get(m)||{};const rows=cadDe(D,m);
- const tipo=m===CLUBE_MARCA?'Ações do Clube':m===LACADOR?'Laçador de Ofertas':AGREG.has(m)?'Agregadores online':(D.prod.has(m)||(!rows.length&&PROD_RE.test(semAcento(m))))&&!aj.categoria?'Eventos e shows':'Parceiros diretos';
+ const tipo=m===CLUBE_MARCA?'Ações do Clube':m===CLUBE_OUTROS_M?'Outros benefícios do Clube':m===LACADOR?'Laçador de Ofertas':AGREG.has(m)?'Agregadores online':(D.prod.has(m)||(!rows.length&&PROD_RE.test(semAcento(m))))&&!aj.categoria?'Eventos e shows':'Parceiros diretos';
  let cat,sub;
  if(aj.categoria){cat=aj.categoria;sub=aj.subcategoria||''}
- else if(tipo==='Ações do Clube'){cat='Ações do Clube';sub=''}
+ else if(tipo==='Ações do Clube'){cat='Ações do Clube';sub='Cortesias e sorteios'}
+ else if(tipo==='Outros benefícios do Clube'){cat='Outros benefícios do Clube';sub=''}
  else if(tipo==='Laçador de Ofertas'){cat='Laçador (vários)';sub=''}
  else if(tipo==='Agregadores online'){cat='Lojas online (vários)';sub=''}
  else if(tipo==='Eventos e shows'){cat='Agenda cultural';sub=''}
