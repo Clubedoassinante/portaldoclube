@@ -3333,14 +3333,23 @@ async function caLerArquivo(f){libs();let rows;
  let iVal=ach(x=>/ACUMUL/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/ECONOMI/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESC/.test(x)&&/VAL|R\$|VLR/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESCONTO/.test(x)&&nVal(x));if(iVal<0&&cab.length>=3)iVal=2;
  const iRede=ach(x=>/REDE|BANDEIRA|FARMACIA|EMPRESA/.test(x));
  const nome=normL(f.name);const rede=/panvel/.test(nome)?'Panvel':/raia|drogasil|rd ?saude/.test(nome)?'Droga Raia':'';
- return {arq:f.name,cab,linhas:rows.slice(hi+1),iCpf,iData,iVal,iRede,rede,mdy:true,mesFixo:caMesDe(f.name.replace(/[_.]/g,' ').match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\s*\d{2,4}|\d{1,2}[\-\/]\d{4}/i)?.[0]||'')}}
-function caResumoArq(A){const por=new Map();const est={ok:0,semCpf:0,semValor:0,semMes:0,neg:0};
+ return {arq:f.name,cab,linhas:rows.slice(hi+1),iCpf,iData,iVal,iRede,rede,mdy:true,mesNome:caMesNome(f.name),mesFixo:caMesDe(f.name.replace(/[_.]/g,' ').match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\s*\d{2,4}|\d{1,2}[\-\/]\d{4}/i)?.[0]||'')}}
+/* mês do relatório pelo nome do arquivo (ex.: "02. Fev - Raia.xlsx"); o ano vem das datas da própria planilha */
+function caMesNome(n){const t=normL(n);if((t.match(/(?:^|[^a-z])(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*/g)||[]).length!==1)return 0; // vários meses no nome (ex.: jan-jun): usa a data
+ const m=t.match(/(?:^|[^a-z])(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*/);return m?['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].indexOf(m[1])+1:0}
+function caResumoArq(A){const por=new Map();const est={ok:0,semCpf:0,cpfInv:0,semValor:0,semMes:0,neg:0,zero:0};
+ // mês do relatório: o arquivo de um mês costuma trazer compras do começo do mês seguinte (ex.: 6/fev a 5/mar). Por padrão, tudo do arquivo vai para o mês do relatório.
+ if(A.modo==null)A.modo=A.mesNome?'rel':'data';
+ if(A.modo==='rel'&&!A.mesFixo&&A.mesNome){const anos=new Map();for(const L of A.linhas){const m=L&&A.iData>=0?caMesDe(L[A.iData],A.mdy):null;if(m)anos.set(m.slice(0,4),(anos.get(m.slice(0,4))||0)+1)}
+  const ano=[...anos].sort((a,b)=>b[1]-a[1])[0]?.[0];if(ano)A.mesFixo=`${ano}-${pad2(A.mesNome)}`}
  for(const L of A.linhas){if(!L||!L.some(x=>x!==''&&x!=null))continue;
   const c=cpf11(L[A.iCpf]);if(!c){est.semCpf++;continue}
+  if(!caCpfValido(c)){est.cpfInv++;continue}
   const v=caNum(L[A.iVal]);if(!isFinite(v)){est.semValor++;continue}
-  const m=A.iData>=0?caMesDe(L[A.iData],A.mdy)||A.mesFixo:A.mesFixo;if(!m){est.semMes++;continue}
+  const m=A.modo==='rel'?A.mesFixo:(A.iData>=0?caMesDe(L[A.iData],A.mdy)||A.mesFixo:A.mesFixo);if(!m){est.semMes++;continue}
   if(v<0)est.neg++;
   let g=por.get(m);if(!g){g=new Map();por.set(m,g)}const x=g.get(c)||[0,0];x[0]+=Math.round(Math.abs(v)*100);x[1]++;g.set(c,x);est.ok++}
+ por.forEach(g=>g.forEach((x,c)=>{if(!x[0]){g.delete(c);est.zero++}}));[...por].forEach(([m,g])=>{if(!g.size)por.delete(m)});
  A.por=por;A.est=est;return A}
 function caEnviar(){const D=CA.d;const U=CA.up;
  const sel=(id,i,A)=>`<select data-ca-col="${id}">${id==='iData'?'<option value="-1">— (usar o mês abaixo)</option>':''}${A.cab.map((c,j)=>`<option value="${j}"${j===i?' selected':''}>${esc(c||'(coluna '+(j+1)+')')}</option>`).join('')}</select>`;
@@ -3352,10 +3361,11 @@ function caEnviar(){const D=CA.d;const U=CA.up;
     <label class="fld"><span>Coluna do valor economizado</span>${A.iVal<0?'<select data-ca-col="iVal"><option value="-1">— escolha —</option>'+A.cab.map((c,j)=>`<option value="${j}">${esc(c)}</option>`).join('')+'</select>':sel('iVal',A.iVal,A)}</label>
     <label class="fld"><span>Coluna da data</span>${sel('iData',A.iData,A)}</label>
     <label class="fld"><span>Formato da data</span><select data-ca-mdy><option value="1"${A.mdy?' selected':''}>mês/dia/ano (padrão das farmácias)</option><option value="0"${A.mdy?'':' selected'}>dia/mês/ano</option></select></label>
-    <label class="fld"><span>Mês (se não houver data)</span><select data-ca-mes>${mesOpts(A.mesFixo)}</select></label></div>
+    <label class="fld"><span>Mês de cada linha</span><select data-ca-modo><option value="rel"${A.modo==='rel'?' selected':''}>Mês do relatório (nome do arquivo)</option><option value="data"${A.modo==='data'?' selected':''}>Data competência de cada linha</option></select></label>
+    <label class="fld"><span>Mês do relatório</span><select data-ca-mes>${mesOpts(A.mesFixo)}</select></label></div>
    ${A.iVal<0?'<p class="note">Não achei a coluna do valor economizado. Escolha acima.</p>':`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Pessoas</th><th class="n">Linhas</th><th class="n">Desconto</th><th></th></tr></thead><tbody>
     ${ms.map(m=>{const g=A.por.get(m);let c=0,n=0;g.forEach(x=>{c+=x[0];n+=x[1]});const ja=D.env.find(x=>x.mes===m&&x.rede===A.rede);return `<tr><td>${lab(m)}</td><td class="n">${fmt(g.size)}</td><td class="n">${fmt(n)}</td><td class="n">${brl(c)}</td><td>${ja?'<small class="hint">substitui o que já está carregado</small>':''}</td></tr>`}).join('')||'<tr><td colspan="5" class="hint">Nenhuma linha válida.</td></tr>'}</tbody></table></div>
-    <p class="hint">${fmt(e.ok)} linhas válidas${e.semCpf?` · ${fmt(e.semCpf)} sem CPF válido`:''}${e.semValor?` · ${fmt(e.semValor)} sem valor`:''}${e.semMes?` · ${fmt(e.semMes)} sem mês (escolha o mês)`:''}${e.neg?` · ${fmt(e.neg)} com valor negativo (contado como positivo)`:''}.</p>`}</div>`}).join(''):'';
+    <p class="hint">${fmt(e.ok)} linhas válidas${e.semCpf?` · ${fmt(e.semCpf)} sem CPF`:''}${e.cpfInv?` · ${fmt(e.cpfInv)} com CPF inválido (fora)`:''}${e.zero?` · ${fmt(e.zero)} ${e.zero===1?'pessoa':'pessoas'} com desconto zero (fora)`:''}${e.semValor?` · ${fmt(e.semValor)} sem valor`:''}${e.semMes?` · ${fmt(e.semMes)} sem mês (escolha o mês)`:''}${e.neg?` · ${fmt(e.neg)} com valor negativo (contado como positivo)`:''}.</p>`}</div>`}).join(''):'';
  const pode=U&&U.length&&U.every(A=>A.iVal>=0&&A.rede&&A.por.size);
  return shell('calculadora-enviar',`<p class="answer"><b>Calculadora farmácia:</b> suba os relatórios das farmácias (um arquivo por farmácia; pode ter vários meses). Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
  <div class="card"><h3>Enviar bases das farmácias</h3><p class="sub">Arquivos .xlsx ou .csv no padrão das farmácias: coluna A = CPF do sócio (CPFs com menos de 11 dígitos são completados com zeros à esquerda), coluna B = data competência (mês/dia/ano) e coluna C = desconto acumulado. O portal reconhece as colunas e você confere antes de salvar. O CPF vira código antes de sair do seu computador.</p>
@@ -3373,6 +3383,7 @@ function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
  document.querySelectorAll('.ca-arq').forEach(card=>{const A=CA.up[+card.dataset.k];
   card.querySelectorAll('[data-ca-col]').forEach(s=>s.onchange=()=>{A[s.dataset.caCol]=+s.value;caResumoArq(A);caRender('calculadora-enviar')});
   card.querySelector('[data-ca-mdy]').onchange=ev=>{A.mdy=ev.target.value==='1';caResumoArq(A);caRender('calculadora-enviar')};
+  card.querySelector('[data-ca-modo]').onchange=ev=>{A.modo=ev.target.value;caResumoArq(A);caRender('calculadora-enviar')};
   card.querySelector('[data-ca-mes]').onchange=ev=>{A.mesFixo=ev.target.value;caResumoArq(A);caRender('calculadora-enviar')};
   card.querySelector('[data-ca-rede]').onchange=ev=>{A.rede=ev.target.value.trim();caRender('calculadora-enviar')}});
  const sv=document.getElementById('ca-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('ca-prog');
