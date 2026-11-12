@@ -592,7 +592,9 @@ License: MIT
    ===================================================================== */
 const SUPABASE_URL = 'https://pzpwpqnomqrcdhelueee.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_kRn6HhR5mN6u-pVnEc8Kgg_XjUxceaE'; // chave pública: só funciona com login
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// sessão só na memória da aba: toda vez que o portal abre, pede login de novo
+try{Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(_){} // apaga login guardado por versões antigas
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:false, autoRefreshToken:true, detectSessionInUrl:false}});
 
 const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const lab=m=>{const [y,mm]=m.split('-');return MESES[+mm-1]+'/'+y};
