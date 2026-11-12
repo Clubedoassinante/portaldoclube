@@ -489,6 +489,28 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 
 /* comunicações: títulos de coluna ordenáveis */
 .co-ord th.co-th{cursor:pointer;user-select:none;white-space:nowrap}.co-ord th.co-th::after{content:' ↕';opacity:.35;font-size:.85em}.co-ord th[data-o=desc]::after{content:' ↓';opacity:1}.co-ord th[data-o=asc]::after{content:' ↑';opacity:1}
+.login-card textarea{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font:inherit;font-size:15px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--ink);resize:vertical;min-height:72px}
+.login-card input[readonly]{color:var(--muted)}
+.login-alt{margin:14px 0 0;font-size:13.5px;color:var(--muted);text-align:center}
+.login-link{background:none;border:0;padding:0;color:var(--vinho);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
+.login-ok{display:flex;flex-direction:column;gap:10px;font-size:14.5px;line-height:1.5}
+.login-ok p{margin:0;padding:14px;border-radius:12px;background:var(--bg)}
+/* área do administrador */
+.adm-ped{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0;display:grid;gap:10px}
+.adm-ped .quem{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.adm-ped .quem b{font-size:15px}
+.adm-ped .mot{margin:0;font-size:13.5px;color:var(--ink-2,var(--ink));background:var(--bg);border-radius:10px;padding:8px 10px}
+.adm-chk{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.adm-chk label{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;user-select:none;background:var(--surface)}
+.adm-chk label:has(input:checked){border-color:var(--vinho);background:color-mix(in srgb,var(--vinho) 9%,var(--surface))}
+.adm-chk label.off{opacity:.55;cursor:default}
+.adm-chk select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:13px}
+.adm-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.adm-acoes .rem,.acc-tab .rem{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:12.5px;color:var(--bad);cursor:pointer}
+.adm-ok{color:var(--good,#2e7d32);font-size:12.5px}
+.adm-err{color:var(--bad);font-size:12.5px}
+.acc-tab td.pn{min-width:280px}
+.adm-msg{font-size:12.5px;color:var(--muted);white-space:pre-wrap;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -504,14 +526,28 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
     <p id="login-msg" class="login-msg" role="alert" hidden></p>
     <button class="btn" type="submit">Entrar</button>
    </form>
+   <p class="login-alt" id="alt-pedido">Não tem acesso ainda? <button class="login-link" type="button" id="ir-pedido">Solicitar acesso</button></p>
+   <form id="form-pedido" novalidate hidden>
+    <label>Nome completo<input name="nome" type="text" autocomplete="name" maxlength="120" required></label>
+    <label>E-mail corporativo<input name="email" type="email" autocomplete="email" maxlength="200" required></label>
+    <label>Área e motivo<textarea name="motivo" rows="3" maxlength="500" placeholder="Ex.: CRM — acompanhar o desempenho das comunicações" required></textarea></label>
+    <p class="login-dica">Use seu e-mail corporativo do Grupo RBS. Quando o pedido for aprovado, você recebe um link para criar sua senha.</p>
+    <p id="ped-msg" class="login-msg" role="alert" hidden></p>
+    <button class="btn" type="submit">Enviar pedido</button>
+    <button class="login-troca" type="button" data-ir-login>Já tenho acesso · Entrar</button>
+   </form>
+   <div id="pedido-ok" class="login-ok" hidden>
+    <p><b>Pedido enviado.</b> A administradora do portal vai conferir e, se aprovado, te mandar um link para criar sua senha.</p>
+    <button class="login-troca" type="button" data-ir-login>Voltar para o login</button>
+   </div>
    <form id="form-cadastro" novalidate hidden>
-    <label>E-mail<input name="email" type="email" autocomplete="username" required></label>
+    <label>E-mail<input name="email" type="email" autocomplete="username" readonly></label>
     <label>Crie uma senha<input name="senha" type="password" autocomplete="new-password" minlength="8" required></label>
     <label>Repita a senha<input name="senha2" type="password" autocomplete="new-password" minlength="8" required></label>
-    <p class="login-dica">Mínimo de 8 caracteres. O acesso é de visualização: você vê todos os painéis, sem enviar dados.</p>
+    <p class="login-dica">Mínimo de 8 caracteres. Este link vale uma vez só.</p>
     <p id="cad-msg" class="login-msg" role="alert" hidden></p>
     <button class="btn" type="submit">Criar meu acesso</button>
-    <button class="login-troca" type="button" id="ir-login">Já tenho acesso · Entrar</button>
+    <button class="login-troca" type="button" data-ir-login>Já tenho acesso · Entrar</button>
    </form>
   </div>
   <p class="login-pe">Esqueceu a senha? Fale com a administradora do portal.</p>
@@ -522,7 +558,7 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
   <a class="brand" href="#home"><img src="data:image/webp;base64,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" alt="Clube do Assinante"><b>Portal do Clube</b></a>
   <span class="sp"></span>
   <span class="info" id="atualizado"></span>
-  <a class="lnk" id="lnk-acessos" href="#acessos" hidden>Acessos</a>
+  <a class="lnk" id="lnk-acessos" href="#admin" hidden>Área do administrador</a>
   <span class="user" id="usuario"></span>
   <button class="btn-sair" id="sair" type="button">Sair</button>
  </div></header>
@@ -702,9 +738,9 @@ const GL=[
   ['taxa-reativacao','Taxa de reativação','Pessoas que voltaram a usar no mês divididas por quem estava parado (6 meses ou mais sem gerar) no mês anterior.',''],
  ]],
  ['Acessos',[
-  ['visualizador','Visualizador','Acesso de leitura: vê todos os painéis e o glossário, mas não envia arquivos, não edita cadastro nem gera bases.','É o acesso de quem se cadastra pelo link de convite.'],
-  ['administrador','Administrador','Acesso completo: envia os arquivos do mês e da semana, edita o cadastro de parceiros, gera bases e gerencia os acessos.',''],
-  ['link-convite','Link de convite','Endereço do portal com um código no final. Só quem abre esse link consegue criar o próprio acesso, como visualizador.','Gerar um código novo invalida o link anterior. Quem já se cadastrou continua com acesso.'],
+  ['visualizador','Visualizador','Acesso de leitura: vê só os painéis liberados para ele e o glossário. Não envia arquivos, não edita cadastro nem gera bases.','Os painéis de cada pessoa são marcados na Área do administrador › Acessos.'],
+  ['administrador','Administrador','Acesso completo: envia os arquivos do mês e da semana, edita o cadastro de parceiros, gera bases e gerencia os acessos na Área do administrador. Vê todos os painéis.',''],
+  ['link-convite','Link de cadastro','Quem não tem acesso pede pela tela de login (Solicitar acesso). Um administrador confere o e-mail, marca os painéis e aprova; o portal gera um link de cadastro, que o administrador manda à pessoa para ela criar a senha.','O link vale 7 dias e uma vez só. Gerar um link novo invalida o anterior.'],
  ]],
  ['Regras',[
   ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora dos painéis mensais (Clube em números, Parceiros e Inativos), porque são gerados automaticamente.','Panvel continua contando. No Relatório semanal todas as farmácias contam.'],
@@ -1106,6 +1142,8 @@ const AREAS={
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
   r:GL.map(([g],i)=>['glossario-'+i,g])},
+ admin:{n:'Área do administrador',t:'Área do',s:'administrador',d:'Pedidos de acesso ao portal, quem tem login e quais painéis cada pessoa vê.',c:'var(--ink)',st:['ok','Só admin'],adm:1,
+  r:[['admin','Acessos']]},
 };
 const PLANO={
  'clube-engajamento':['Engajamento',[['Quantas pessoas usam',`${T('usuarios-unicos')} e ${T('penetracao')} mês a mês.`],['Quantos vouchers cada pessoa gera',`Distribuição por faixa: 1, 2, 3 a 5 e 6 ou mais vouchers no período.`],['Novos, recorrentes e de volta','Quem gerou pela primeira vez, quem gerou também no mês anterior e quem voltou depois de um tempo parado.'],['Ativação de quem acabou de assinar','Quanto de cada mês de entrada gera o primeiro voucher em até 6 meses.']]],
@@ -3077,10 +3115,11 @@ function coMes(h){if(!(CO.d||[]).length)return coVazio(h);const M=[...new Set(CO
 
 /* ---------- telas gerais ---------- */
 function semDados(){return `<p class="answer">Ainda não há meses carregados no portal.</p>${ADMIN?`<p><a class="btn" href="#clube-enviar">Enviar dados do mês</a></p>`:'<p class="hint">Peça a um administrador para carregar os arquivos.</p>'}`}
+function semAcesso(id){const a=AREAS[id];return `<div class="wrap"><div class="note" style="margin-top:28px">${a.adm?'A área do administrador é só para administradores do portal.':`Você ainda não tem acesso ao painel <b>${a.n}</b>. Peça a um administrador do portal para liberar.`} <a href="#home">Voltar ao portal</a></div></div>`}
 function home(){return `<div class="wrap">
  <section class="block" style="padding-block:28px 40px">
- ${M.length?'':`<div class="note" style="margin-bottom:16px">Ainda não há meses carregados no portal.${ADMIN?' Envie os arquivos em <a href="#clube-enviar">Clube em números › Enviar mês</a>.':''}</div>`}
- <div class="areas" id="areas">${Object.entries(AREAS).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${(a.subs||a.r.filter(r=>!r[2]||ADMIN).map(r=>r[1])).map(x=>`<span>${x}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
+ ${M.length||!temPainel('clube')?'':`<div class="note" style="margin-bottom:16px">Ainda não há meses carregados no portal.${ADMIN?' Envie os arquivos em <a href="#clube-enviar">Clube em números › Enviar mês</a>.':''}</div>`}
+ <div class="areas" id="areas">${Object.entries(AREAS).filter(([id])=>temPainel(id)).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${(a.subs||a.r.filter(r=>!r[2]||ADMIN).map(r=>r[1])).map(x=>`<span>${x}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
  </div>`}
 function shell(h,body){const id=areaOf(h),a=AREAS[id];const rs=a.r.filter(r=>!r[2]||ADMIN);const cur=rs.find(r=>r[0]===h)||rs[0];
  return `<div class="shell${MENU_MINI?' mini':''}${id==='clube'?' compacto':''}"><nav class="side" aria-label="Relatórios de ${a.n}">${botaoMenu()}<a href="#home" class="back">← Portal</a><div class="grp">${a.n}</div>${rs.map(r=>`<a href="#${r[0]}" class="${r[0]===cur[0]?'on':''}">${r[1]}</a>`).join('')}</nav>
@@ -3096,10 +3135,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('.side-tog');if(!
 const app=document.getElementById('app');let pending=null;
 function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(!RAW)return;
+ conferePaineis();
  if(h.startsWith('g-')){pending=h;location.hash='glossario';return}
  const area=areaOf(h);
  if(h==='carga'){location.hash='clube-enviar';return}
- if(h==='acessos'){if(ADMIN)telaAcessos();else location.hash='home';return}
+ if(h==='acessos'){location.hash='admin';return}
+ if(area&&!temPainel(area)){app.innerHTML=semAcesso(area);window.scrollTo(0,0);return}
+ if(area==='admin'){telaAcessos(h);window.scrollTo(0,0);return}
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
  else if(area==='semanal')rotaSemanal(h);
  else if(area==='parceiros')rotaParceiros(h);
@@ -3129,27 +3171,43 @@ let lp;document.addEventListener('touchstart',e=>{const el=e.target.closest('.t'
 document.addEventListener('click',e=>{if(!pop.hidden&&!pop.contains(e.target))hidePop()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')hidePop()});
 
-/* ---------- login e sessão ---------- */
+/* ---------- login, pedido de acesso e cadastro pelo link ---------- */
 const telaLogin=document.getElementById('login'), telaPortal=document.getElementById('portal');
 const formLogin=document.getElementById('form-login'), msgLogin=document.getElementById('login-msg');
-let CONVITE=null;try{CONVITE=new URLSearchParams(location.search).get('convite')}catch(_){}
+const formPed=document.getElementById('form-pedido'), msgPed=document.getElementById('ped-msg'), pedOk=document.getElementById('pedido-ok'), altPed=document.getElementById('alt-pedido');
 const formCad=document.getElementById('form-cadastro'), msgCad=document.getElementById('cad-msg'), subLogin=document.querySelector('.login-sub');
-function modoCadastro(on){formCad.hidden=!on;formLogin.hidden=on;
- subLogin.textContent=on?'Você recebeu um convite. Cadastre seu e-mail e uma senha para acessar os painéis.':'Acesso restrito ao time do Clube do Assinante.'}
-function mostrarLogin(msg){telaPortal.hidden=true;telaLogin.hidden=false;msgLogin.textContent=msg||'';msgLogin.hidden=!msg;modoCadastro(!!CONVITE&&!msg);
+let CAD_TOKEN=null;try{CAD_TOKEN=new URLSearchParams(location.search).get('cadastro')}catch(_){}
+const SUB_LOGIN='Acesso restrito ao time do Clube do Assinante.';
+function modoLogin(m,sub){formLogin.hidden=m!=='login';altPed.hidden=m!=='login';formPed.hidden=m!=='pedido';pedOk.hidden=m!=='ok';formCad.hidden=m!=='cadastro';
+ subLogin.textContent=sub||(m==='pedido'?'Conte quem você é e para que precisa do portal. A administradora confere e libera os painéis.':SUB_LOGIN)}
+function limparLinkCadastro(){CAD_TOKEN=null;try{history.replaceState(null,'',location.pathname+location.hash)}catch(_){}}
+function mostrarLogin(msg){telaPortal.hidden=true;telaLogin.hidden=false;msgLogin.textContent=msg||'';msgLogin.hidden=!msg;modoLogin('login');
  const b=formLogin.querySelector('button');b.disabled=false;b.textContent='Entrar'}
+async function mostrarCadastro(){telaPortal.hidden=true;telaLogin.hidden=false;modoLogin('cadastro','Conferindo o link…');
+ const {data,error}=await sb.rpc('info_cadastro',{p_token:CAD_TOKEN});
+ if(error){limparLinkCadastro();mostrarLogin(error.message.replace(/^.*?: /,'')||'Link inválido.');return}
+ formCad.email.value=data.email;modoLogin('cadastro',`Olá, ${(data.nome||'').split(' ')[0]}! Seu acesso foi aprovado. Crie uma senha para entrar no portal.`)}
+let PAIN_T=0;
+async function conferePaineis(){ // mudança feita pelo admin chega sozinha: confere a cada troca de tela (no máximo 1x a cada 30 s)
+ if(!PAIN||ADMIN||Date.now()-PAIN_T<30000)return;PAIN_T=Date.now();
+ const {data,error}=await sb.rpc('meus_paineis');if(error||!Array.isArray(data))return;
+ const novo=new Set(data);if(novo.size===PAIN.size&&[...novo].every(x=>PAIN.has(x)))return;
+ const ganhouClube=novo.has('clube')&&!PAIN.has('clube');PAIN=novo;
+ if(ganhouClube){try{await carregarDados(true)}catch(_){}}route()}
+let PAIN=null; // painéis liberados para quem está logado (null = banco ainda sem o arquivo 37: tudo liberado)
+const temPainel=id=>{const a=AREAS[id];if(!a)return true;if(a.adm)return ADMIN;return id==='glossario'||!PAIN||PAIN.has(id)};
 async function carregarDados(silencioso){
  if(!silencioso)app.innerHTML='<div class="wrap"><p class="carregando">Carregando os números…</p></div>';
  const {data,error}=await sb.rpc('dados_portal');
  if(error)throw error;
- prepararDados(data);
+ prepararDados(data);PAIN=Array.isArray(data.paineis)?new Set(data.paineis):null;PAIN_T=Date.now();
  if(typeof PA!=='undefined')PA.d=null;if(typeof CO!=='undefined')CO.d=null;if(typeof INA!=='undefined')INA.d=null; // parceiros recarregam com os meses novos
  const at=document.getElementById('atualizado');
- at.textContent=M.length?`Dados até ${lab(LAST)}`:'Sem dados';
+ at.textContent=M.length?`Dados até ${lab(LAST)}`:(temPainel('clube')?'Sem dados':'');
 }
 async function entrarNoPortal(sessao){
  telaLogin.hidden=true;telaPortal.hidden=false;
- if(CONVITE){CONVITE=null;history.replaceState(null,'',location.pathname+location.hash)}
+ if(CAD_TOKEN)limparLinkCadastro();
  document.getElementById('usuario').textContent=sessao.user?.email||'';
  try{await carregarDados();document.getElementById('lnk-acessos').hidden=!ADMIN;route()}
  catch(e){app.innerHTML=`<div class="wrap"><div class="note" style="margin-top:24px">Não foi possível carregar os dados: ${esc(e.message||e)}. Tente sair e entrar de novo.</div></div>`}
@@ -3160,54 +3218,97 @@ formLogin.addEventListener('submit',async e=>{e.preventDefault();
  const {data,error}=await sb.auth.signInWithPassword({email,password:senha});
  if(error){mostrarLogin(/invalid/i.test(error.message)?'E-mail ou senha incorretos.':'Não foi possível entrar: '+error.message);return}
  formLogin.senha.value='';entrarNoPortal(data.session)});
-document.getElementById('ir-login').addEventListener('click',()=>modoCadastro(false));
+document.getElementById('ir-pedido').addEventListener('click',()=>{msgPed.hidden=true;modoLogin('pedido');formPed.nome.focus()});
+document.querySelectorAll('[data-ir-login]').forEach(b=>b.addEventListener('click',()=>{if(CAD_TOKEN)limparLinkCadastro();mostrarLogin()}));
+formPed.addEventListener('submit',async e=>{e.preventDefault();
+ const b=formPed.querySelector('button[type=submit]');const erro=t=>{msgPed.textContent=t;msgPed.hidden=false;b.disabled=false;b.textContent='Enviar pedido'};msgPed.hidden=true;
+ const nome=formPed.nome.value.trim().replace(/\s+/g,' '), email=formPed.email.value.trim().toLowerCase(), motivo=formPed.motivo.value.trim();
+ if(nome.split(' ').length<2)return erro('Informe seu nome completo (nome e sobrenome).');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return erro('Informe um e-mail válido.');
+ if(motivo.length<3)return erro('Conte em poucas palavras sua área e por que precisa do acesso.');
+ b.disabled=true;b.textContent='Enviando…';
+ const {error}=await sb.rpc('solicitar_acesso',{p_nome:nome,p_email:email,p_motivo:motivo});
+ if(error)return erro(error.message.replace(/^.*?: /,'')||'Não foi possível enviar o pedido.');
+ formPed.reset();b.disabled=false;b.textContent='Enviar pedido';modoLogin('ok','Pedido de acesso')});
 formCad.addEventListener('submit',async e=>{e.preventDefault();
  const erro=t=>{msgCad.textContent=t;msgCad.hidden=false;b.disabled=false;b.textContent='Criar meu acesso'};
  const b=formCad.querySelector('button[type=submit]');msgCad.hidden=true;
- const email=formCad.email.value.trim().toLowerCase(), senha=formCad.senha.value;
- if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return erro('Informe um e-mail válido.');
+ const email=formCad.email.value, senha=formCad.senha.value;
  if(senha.length<8)return erro('A senha precisa ter pelo menos 8 caracteres.');
  if(senha!==formCad.senha2.value)return erro('As duas senhas não são iguais.');
  b.disabled=true;b.textContent='Criando acesso…';
- const {error}=await sb.rpc('cadastrar_visualizador',{p_email:email,p_senha:senha,p_codigo:CONVITE});
+ const {error}=await sb.rpc('concluir_cadastro',{p_token:CAD_TOKEN,p_senha:senha});
  if(error)return erro(error.message.replace(/^.*?: /,'')||'Não foi possível criar o acesso.');
+ limparLinkCadastro();await sb.auth.signOut().catch(()=>{});
  const r=await sb.auth.signInWithPassword({email,password:senha});
- if(r.error)return erro('Acesso criado. Agora entre com seu e-mail e senha.');
- formCad.reset();entrarNoPortal(r.data.session)});
-document.getElementById('sair').addEventListener('click',async()=>{await sb.auth.signOut();RAW=null;location.hash='';mostrarLogin()});
-(async()=>{const {data}=await sb.auth.getSession();if(data.session)entrarNoPortal(data.session);else mostrarLogin()})();
+ formCad.reset();if(r.error){mostrarLogin('Acesso criado. Agora entre com seu e-mail e senha.');return}
+ location.hash='home';entrarNoPortal(r.data.session)});
+document.getElementById('sair').addEventListener('click',async()=>{await sb.auth.signOut();RAW=null;PAIN=null;location.hash='';mostrarLogin()});
+(async()=>{if(CAD_TOKEN)return mostrarCadastro();const {data}=await sb.auth.getSession();if(data.session)entrarNoPortal(data.session);else mostrarLogin()})();
 
-/* ---------- acessos (só administradores) ---------- */
+/* ---------- área do administrador › acessos ---------- */
 const URL_PORTAL=location.origin+location.pathname;
 const dataBR=d=>d?new Date(d).toLocaleDateString('pt-BR'):'—';
-async function telaAcessos(){
- app.innerHTML=`<div class="page-head"><div class="in wrap"><div class="crumb"><a href="#home">Portal</a> › Acessos</div><h1 class="title">Quem acessa <em>o portal</em></h1></div></div>
- <div class="wrap content" id="acc"><p class="carregando">Carregando…</p></div>`;
+const ACC={links:{}}; // links gerados nesta sessão (o banco guarda só o "hash"; depois de sair, gere um link novo)
+const nomePainel=k=>(AREAS[k]&&AREAS[k].n)||k;
+function accChecks(lista,marcados,off){return `<div class="adm-chk" role="group" aria-label="Painéis">${lista.map(k=>`<label class="${off?'off':''}"><input type="checkbox" value="${k}"${off||marcados.includes(k)?' checked':''}${off?' disabled':''}> ${nomePainel(k)}</label>`).join('')}</div>`}
+const accPapel=(p,cls)=>`<select class="${cls}" aria-label="Tipo de acesso"><option value="visualizador"${p!=='admin'?' selected':''}>Visualizador</option><option value="admin"${p==='admin'?' selected':''}>Administrador (tudo)</option></select>`;
+const accMsg=(nome,link)=>`Oi, ${(nome||'').split(' ')[0]}! Seu acesso ao Portal do Clube foi aprovado. Crie sua senha por este link (vale 7 dias e só pode ser usado uma vez): ${link}`;
+function accLinkBox(id,nome){const l=ACC.links[id];if(!l)return '';
+ return `<div class="acc-link"><input readonly value="${esc(l)}" aria-label="Link de cadastro"><button class="btn" type="button" data-copia="${esc(l)}">Copiar link</button><button class="btn-sec" type="button" data-copia="${esc(accMsg(nome,l))}">Copiar mensagem pronta</button></div>`}
+async function telaAcessos(h){
+ app.innerHTML=shell(h,`<div id="acc"><p class="carregando">Carregando…</p></div>`);
  const box=document.getElementById('acc');
- const [c,l]=await Promise.all([sb.rpc('convite_atual'),sb.rpc('lista_acessos')]);
- if(c.error||l.error){box.innerHTML=`<div class="note">Não foi possível carregar os acessos: ${esc((c.error||l.error).message)}. Confira se o arquivo 16_cadastro_convite.sql já foi rodado no Supabase.</div>`;return}
- const link=c.data?`${URL_PORTAL}?convite=${c.data}`:'';
- const us=l.data||[], nA=us.filter(u=>u.papel==='admin').length;
- box.innerHTML=`<div class="card"><h3>${T('link-convite')}</h3>
-  <p class="sub">Mande este link para quem precisa ver os painéis. A pessoa cadastra e-mail e senha e entra como ${T('visualizador','visualizador')}.</p>
-  <div class="acc-link"><input id="acc-url" readonly value="${esc(link)}"><button class="btn" id="acc-copiar" type="button">Copiar link</button><button class="btn-sec" id="acc-novo" type="button">Gerar link novo</button></div>
-  <p class="hint" id="acc-m">Gerar link novo desativa o anterior (use se o link circulou além do time). Quem já se cadastrou continua com acesso.</p></div>
+ const {data:D,error}=await sb.rpc('admin_acessos');
+ if(error){box.innerHTML=`<div class="note">Não foi possível carregar os acessos: ${esc(error.message)}. Confira se o arquivo 37_area_administrador_acessos.sql já foi rodado no Supabase.</div>`;return}
+ const PN=D.paineis||[], pend=D.pendentes||[], apr=D.aprovados||[], us=D.usuarios||[], nA=us.filter(u=>u.papel==='admin').length;
+ const quem=x=>`<div class="quem"><b>${esc(x.nome||'—')}</b><span>${esc(x.email)}</span><span class="hint">pedido em ${dataBR(x.criado||x.aprovado)}</span></div>`;
+ box.innerHTML=`<div class="card"><h3>Pedidos pendentes <span class="hint">${fmt(pend.length)}</span></h3>
+  <p class="sub">Confira se o e-mail é corporativo do Grupo RBS, marque os painéis que a pessoa vai ver e aprove. O portal gera um link de cadastro para você mandar à pessoa.</p>
+  ${pend.length?pend.map(x=>`<div class="adm-ped" data-id="${x.id}">${quem(x)}${x.motivo?`<p class="mot">${esc(x.motivo)}</p>`:''}
+   ${accChecks(PN,[])}
+   <div class="adm-acoes">${accPapel('visualizador','adm-papel')}<button class="btn" type="button" data-aprova>Aprovar e gerar link</button><button class="rem" type="button" data-recusa>Recusar</button><span class="adm-err" hidden></span></div></div>`).join(''):'<p class="hint">Nenhum pedido esperando aprovação.</p>'}</div>
+ ${apr.length?`<div class="card"><h3>Aprovados, aguardando cadastro <span class="hint">${fmt(apr.length)}</span></h3>
+  <p class="sub">A pessoa ainda não criou a senha. O link vale 7 dias e só uma vez; se ela perdeu o link ou ele venceu, gere um link novo (o anterior para de funcionar).</p>
+  ${apr.map(x=>`<div class="adm-ped" data-id="${x.id}">${quem(x)}
+   ${accChecks(PN,x.paineis||[],x.papel==='admin')}
+   <div class="adm-acoes">${accPapel(x.papel,'adm-papel')}<span class="hint">${x.vencido?'<b style="color:var(--bad)">Link vencido</b>':'Link vale até '+dataBR(x.expira)}</span><button class="btn-sec" type="button" data-aprova>Gerar link novo</button><button class="rem" type="button" data-recusa>Cancelar</button><span class="adm-err" hidden></span></div>
+   ${accLinkBox(x.id,x.nome)}</div>`).join('')}</div>`:''}
  <div class="card"><h3>Pessoas com acesso <span class="hint">${fmt(us.length)} no total · ${fmt(nA)} ${nA===1?'administrador':'administradores'}</span></h3>
-  <div class="tw"><table class="acc-tab"><thead><tr><th>E-mail</th><th>Acesso</th><th>Criado em</th><th>Último acesso</th><th>Origem</th><th></th></tr></thead><tbody>
-  ${us.map(u=>`<tr data-id="${u.id}"><td>${esc(u.email||'')}${u.eu?' <span class="hint">(você)</span>':''}</td>
-   <td>${u.eu?(u.papel==='admin'?T('administrador'):T('visualizador')):`<select class="acc-papel"><option value="visualizador"${u.papel!=='admin'?' selected':''}>Visualizador</option><option value="admin"${u.papel==='admin'?' selected':''}>Administrador</option></select>`}</td>
-   <td>${dataBR(u.criado)}</td><td>${dataBR(u.ultimo)}</td><td>${u.convite?'Link de convite':'Criado no Supabase'}</td>
+  <p class="sub">Marque ou desmarque painéis: salva na hora e chega sozinho na conta da pessoa, na próxima tela que ela abrir. Administrador vê todos os painéis e a área do administrador.</p>
+  <div class="tw"><table class="acc-tab"><thead><tr><th>Pessoa</th><th>Tipo</th><th>Painéis</th><th>Criado em</th><th>Último acesso</th><th></th></tr></thead><tbody>
+  ${us.map(u=>`<tr data-id="${u.id}" data-email="${esc(u.email||'')}"><td>${u.nome?`<b>${esc(u.nome)}</b><br>`:''}${esc(u.email||'')}${u.eu?' <span class="hint">(você)</span>':''}</td>
+   <td>${u.eu?(u.papel==='admin'?'Administrador':'Visualizador'):accPapel(u.papel,'acc-papel')}</td>
+   <td class="pn">${u.eu?'<span class="hint">Todos</span>':accChecks(PN,u.paineis||[],u.papel==='admin')}<span class="adm-ok" hidden></span></td>
+   <td>${dataBR(u.criado)}</td><td>${dataBR(u.ultimo)}</td>
    <td>${u.eu?'':'<button class="rem" type="button">Remover</button>'}</td></tr>`).join('')}
   </tbody></table></div>
-  <p class="hint">Remover apaga o login da pessoa: ela não entra mais (pode se cadastrar de novo pelo link, se ainda tiver o link válido).</p></div>`;
- const msg=document.getElementById('acc-m');
- document.getElementById('acc-copiar').onclick=async()=>{const i=document.getElementById('acc-url');try{await navigator.clipboard.writeText(i.value);msg.textContent='Link copiado.'}catch(_){i.select();msg.textContent='Selecione e copie o link (Ctrl+C).'}};
- document.getElementById('acc-novo').onclick=async()=>{if(!confirm('Gerar um link novo? O link atual deixa de funcionar.'))return;
-  const r=await sb.rpc('novo_convite');if(r.error){msg.textContent='Erro: '+r.error.message;return}telaAcessos()};
- box.querySelectorAll('.acc-papel').forEach(sel=>sel.onchange=async()=>{const id=sel.closest('tr').dataset.id;
-  const r=await sb.rpc('mudar_acesso',{p_user:id,p_papel:sel.value});if(r.error){alert(r.error.message);}telaAcessos()});
- box.querySelectorAll('.rem').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');if(!confirm(`Remover o acesso de ${tr.cells[0].textContent.trim()}?`))return;
-  const r=await sb.rpc('mudar_acesso',{p_user:tr.dataset.id,p_papel:'remover'});if(r.error){alert(r.error.message);}telaAcessos()});
+  <p class="hint">Remover apaga o login da pessoa: ela não entra mais. Para voltar, ela precisa pedir acesso de novo.</p></div>`;
+ const marcados=el=>[...el.querySelectorAll('.adm-chk input:checked:not(:disabled)')].map(i=>i.value);
+ // papel admin = todos os painéis (caixas travadas)
+ box.querySelectorAll('.adm-papel').forEach(sel=>sel.onchange=()=>{const c=sel.closest('.adm-ped');c.querySelectorAll('.adm-chk label').forEach(l=>{const i=l.querySelector('input');const ad=sel.value==='admin';l.classList.toggle('off',ad);i.disabled=ad;if(ad)i.checked=true})});
+ box.querySelectorAll('[data-aprova]').forEach(b=>b.onclick=async()=>{const c=b.closest('.adm-ped'),id=+c.dataset.id,papel=c.querySelector('.adm-papel').value,pn=marcados(c),err=c.querySelector('.adm-err');
+  err.hidden=true;if(papel!=='admin'&&!pn.length){err.textContent='Marque pelo menos um painel.';err.hidden=false;return}
+  if(b.textContent.includes('novo')&&!confirm('Gerar um link novo? O link enviado antes para de funcionar.'))return;
+  b.disabled=true;const r=await sb.rpc('aprovar_acesso',{p_id:id,p_papel:papel,p_paineis:papel==='admin'?[]:pn});
+  if(r.error){err.textContent=r.error.message;err.hidden=false;b.disabled=false;return}
+  ACC.links[id]=`${URL_PORTAL}?cadastro=${r.data}`;telaAcessos(h)});
+ box.querySelectorAll('[data-recusa]').forEach(b=>b.onclick=async()=>{const c=b.closest('.adm-ped');const nome=c.querySelector('.quem b').textContent;
+  if(!confirm(b.textContent==='Recusar'?`Recusar o pedido de ${nome}? O pedido é apagado.`:`Cancelar o acesso aprovado de ${nome}? O link enviado para de funcionar.`))return;
+  const r=await sb.rpc('recusar_acesso',{p_id:+c.dataset.id});if(r.error){alert(r.error.message);return}delete ACC.links[c.dataset.id];telaAcessos(h)});
+ box.addEventListener('click',async e=>{const b=e.target.closest('[data-copia]');if(!b)return;const t=b.dataset.copia;const o=b.textContent;
+  try{await navigator.clipboard.writeText(t);b.textContent='Copiado ✓'}catch(_){const i=b.parentNode.querySelector('input');i.select();b.textContent='Use Ctrl+C'}setTimeout(()=>b.textContent=o,1800)});
+ // pessoas com acesso: salva na hora
+ const salvaUser=async tr=>{const sel=tr.querySelector('.acc-papel'),ok=tr.querySelector('.adm-ok'),papel=sel.value;
+  tr.querySelectorAll('.adm-chk label').forEach(l=>{const i=l.querySelector('input');const ad=papel==='admin';if(ad)i.checked=true;i.disabled=ad;l.classList.toggle('off',ad)});
+  const pn=papel==='admin'?[]:marcados(tr);ok.hidden=false;ok.className='adm-ok';ok.textContent='Salvando…';
+  const r=await sb.rpc('salvar_acesso_usuario',{p_user:tr.dataset.id,p_papel:papel,p_paineis:pn});
+  if(r.error){ok.className='adm-err';ok.textContent=r.error.message;return}
+  ok.textContent=papel!=='admin'&&!pn.length?'Salvo · sem nenhum painel, a pessoa só vê o glossário':'Salvo ✓'};
+ box.querySelectorAll('.acc-tab tr[data-id]').forEach(tr=>{const sel=tr.querySelector('.acc-papel');if(!sel)return;
+  sel.onchange=()=>salvaUser(tr);tr.querySelectorAll('.adm-chk input').forEach(i=>i.onchange=()=>salvaUser(tr))});
+ box.querySelectorAll('.acc-tab .rem').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');if(!confirm(`Remover o acesso de ${tr.dataset.email}? O login é apagado.`))return;
+  const r=await sb.rpc('remover_usuario',{p_user:tr.dataset.id});if(r.error){alert(r.error.message);return}telaAcessos(h)});
 }
 </script>
 </body>
