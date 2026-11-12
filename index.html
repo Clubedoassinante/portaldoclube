@@ -1139,7 +1139,7 @@ const AREAS={
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
   r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar'],['inativos-bases','Gerar bases',1]]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
-  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1],['parceiros-enviar','Enviar parceiros',1]]},
+  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
@@ -2280,7 +2280,7 @@ function paCadastro(){const D=PA.d;const L=linhas();const ini=mAdd(PA.b,-11);
  const ajs=[...D.aj.values()];const nomesCad=[...new Set(D.cad.map(c=>c.parceiro))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
  const ativos=new Set(D.cad.filter(c=>c.status==='Ativo').map(c=>baseNome(c.parceiro))).size;
  const catOpts=v=>`<option value="">—</option>${[...D.cats,'Agenda cultural','Lojas online (vários)','Ações do Clube'].map(c=>`<option ${c===v?'selected':''}>${esc(c)}</option>`).join('')}`;
- return shell('parceiros-cadastro',`<p class="answer">A lista de parceiros define categoria, local, modo de uso, Premium e status de cada parceiro. Hoje: <b>${fmt(D.cad.length)}</b> benefícios de <b>${fmt(ativos)}</b> parceiros ativos. Para trocar a lista, use <a href="#parceiros-enviar">Enviar parceiros</a>.</p>
+ return shell('parceiros-cadastro',`${paEnviarCorpo()}
  <div class="card tablecard"><h3>Marcas com voucher sem cadastro <small>${fmt(pend.length)}</small></h3><p class="sub">Marcas que geraram voucher nos últimos 12 meses e não foram encontradas na lista pelo nome. Ligue cada uma ao parceiro do cadastro (quando o nome é diferente) ou informe a categoria.</p>
  <datalist id="pa-cadl">${nomesCad.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
  <div class="tw"><table class="cmp pa-t"><thead><tr><th>Marca nos vouchers</th><th class="n">Vouchers 12 meses</th><th>Parceiro no cadastro</th><th>Categoria</th><th>Subcategoria</th><th></th></tr></thead><tbody>
@@ -2289,10 +2289,10 @@ function paCadastro(){const D=PA.d;const L=linhas();const ini=mAdd(PA.b,-11);
  <div class="card tablecard"><h3>Ajustes salvos <small>${fmt(ajs.length)}</small></h3><div class="tw"><table class="cmp pa-t"><thead><tr><th>Marca nos vouchers</th><th>Parceiro no cadastro</th><th>Categoria</th><th>Subcategoria</th><th></th></tr></thead><tbody>
  ${ajs.map(a=>`<tr><td>${esc(a.marca)}</td><td>${esc(a.parceiro||'—')}</td><td>${esc(a.categoria||'—')}</td><td>${esc(a.subcategoria||'—')}</td><td><button class="chip" data-rm="${esc(a.marca)}" type="button">Remover</button></td></tr>`).join('')||'<tr><td colspan="5" class="hint">Nenhum ajuste.</td></tr>'}
  </tbody></table></div><p class="hint">Produtoras de eventos, ações do Clube, Laçador e os agregadores online (Proxy Media, Hubconn, SponsorB, Integrada) são classificados por regra e não precisam de cadastro.</p></div>`)}
-function paEnviar(){const D=PA.d;const at=D.cad.filter(c=>c.status==='Ativo');const ativos=new Set(at.map(c=>baseNome(c.parceiro))).size;
+function paEnviarCorpo(){const D=PA.d;const at=D.cad.filter(c=>c.status==='Ativo');const ativos=new Set(at.map(c=>baseNome(c.parceiro))).size;
  const prem=new Set(D.cad.filter(c=>c.premium&&c.status==='Ativo').map(c=>baseNome(c.parceiro))).size;
  const quando=D.cadEm?new Date(D.cadEm).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):null;
- return shell('parceiros-enviar',`<p class="answer">Suba aqui a <b>Lista de Parceiros</b> sempre que ela for atualizada. A lista define categoria, subcategoria, local, modo de uso, Premium e status de cada parceiro.</p>
+ return `<p class="answer">Suba aqui a <b>Lista de Parceiros</b> sempre que ela for atualizada. A lista define categoria, subcategoria, local, modo de uso, Premium e status de cada parceiro.</p>
  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
   ${KPI('','',fmt(D.cad.length),'benefícios na lista atual','','Benefícios')}
   ${KPI('','',fmt(ativos),`parceiros ativos · ${fmt(prem)} com Premium`,'','Parceiros ativos')}
@@ -2301,7 +2301,7 @@ function paEnviar(){const D=PA.d;const at=D.cad.filter(c=>c.status==='Ativo');co
  </div>
  <div class="card"><h3>Enviar lista de parceiros</h3><p class="sub">Planilha "Lista de Parceiros" (.xlsx ou .csv separado por ponto e vírgula) com as colunas Parceiro, Promoção, Modo de uso, Local, Categorias, Subcategorias, Descrição, Link Clube e Premium?. As linhas abaixo de "ENCERRADAS OU PAUSADAS" entram como encerradas. A lista nova substitui a atual inteira.</p>
   <label class="drop"><b>Lista de parceiros</b><input type="file" id="pa-up" accept=".csv,.xlsx,.xls"></label><div id="pa-upr">${PA.upOk?`<p class="adm-ok" style="margin-top:10px">${PA.upOk}</p>`:''}</div></div>
- <div class="note">Os usos, vouchers e pessoas de cada parceiro <b>não</b> vêm desta planilha: continuam vindo dos arquivos enviados em <a href="#clube-enviar">Clube em números › Enviar mês</a>. Esta lista só classifica os parceiros. Marcas que geram voucher com nome diferente da lista aparecem em <a href="#parceiros-cadastro">Cadastro</a> para ligar.</div>`)}
+ <div class="note">Os usos, vouchers e pessoas de cada parceiro <b>não</b> vêm desta planilha: continuam vindo dos arquivos enviados em <a href="#clube-enviar">Clube em números › Enviar mês</a>. Esta lista só classifica os parceiros. Marcas que geram voucher com nome diferente da lista aparecem logo abaixo, em <b>Marcas com voucher sem cadastro</b>, para ligar.</div>`}
 async function lerListaParceiros(file){let linhas;
  if(/\.csv$/i.test(file.name)){const buf=await file.arrayBuffer();let txt;try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(e){txt=new TextDecoder('windows-1252').decode(buf)}
   linhas=Papa.parse(txt,{skipEmptyLines:true,delimiter:txt.split('\n')[0].includes(';')?';':','}).data}
@@ -2317,7 +2317,7 @@ async function lerListaParceiros(file){let linhas;
 function paBindCadastro(){libs();const up=document.getElementById('pa-up');if(up)up.onchange=async e=>{const f=e.target.files[0];if(!f)return;const box=document.getElementById('pa-upr');box.innerHTML='<p class="carregando">Lendo…</p>';
   try{const rows=await lerListaParceiros(f);const at=rows.filter(r=>r.status==='Ativo');const semCat=rows.filter(r=>!r.categoria).length;
    box.innerHTML=`<p class="hint" style="margin-top:10px"><b>${fmt(rows.length)}</b> benefícios, <b>${fmt(new Set(at.map(r=>baseNome(r.parceiro))).size)}</b> parceiros ativos, ${fmt(rows.length-at.length)} encerrados ou pausados${semCat?`, ${fmt(semCat)} sem categoria`:''}.</p><button class="btn" id="pa-upok" type="button">Substituir a lista</button> <span class="hint" id="pa-upm"></span>`;
-   document.getElementById('pa-upok').onclick=async()=>{const m=document.getElementById('pa-upm');m.textContent='Salvando…';const {error}=await sb.rpc('salvar_cadastro_parceiros',{p:rows});if(error){m.textContent='Não salvou: '+error.message;return}await paCarregar(true);const pend=typeof paPendentes==='function'?paPendentes().length:null;PA.upOk=`Lista trocada: ${fmt(rows.length)} benefícios salvos.`+(pend?` ${fmt(pend)} marcas com voucher ainda sem cadastro — veja em Cadastro.`:'');paRender('parceiros-enviar');PA.upOk=null}}
+   document.getElementById('pa-upok').onclick=async()=>{const m=document.getElementById('pa-upm');m.textContent='Salvando…';const {error}=await sb.rpc('salvar_cadastro_parceiros',{p:rows});if(error){m.textContent='Não salvou: '+error.message;return}await paCarregar(true);const pend=typeof paPendentes==='function'?paPendentes().length:null;PA.upOk=`Lista trocada: ${fmt(rows.length)} benefícios salvos.`+(pend?` ${fmt(pend)} marcas com voucher ainda sem cadastro — veja abaixo.`:'');paRender('parceiros-cadastro');PA.upOk=null}}
   catch(err){box.innerHTML=`<div class="note">${esc(err.message||err)}</div>`}};
  document.querySelectorAll('[data-salva]').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');const g=k=>tr.querySelector(`[data-k="${k}"]`).value.trim();
   if(!g('parceiro')&&!g('categoria')){b.textContent='Preencha';return}b.disabled=true;const {error}=await sb.rpc('salvar_ajuste_parceiro',{p_marca:tr.dataset.pm,p_parceiro:g('parceiro'),p_categoria:g('categoria'),p_subcategoria:g('sub')});
@@ -2325,16 +2325,16 @@ function paBindCadastro(){libs();const up=document.getElementById('pa-up');if(up
  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{b.disabled=true;const {error}=await sb.rpc('salvar_ajuste_parceiro',{p_marca:b.dataset.rm,p_parceiro:'',p_categoria:'',p_subcategoria:''});if(!error){await paCarregar(true);paRender('parceiros-cadastro')}})}
 
 /* ---------- roteamento ---------- */
-const PA_PAGES={parceiros:paVisao,'parceiros-ranking':paRanking,'parceiros-saude':paSaude,'parceiros-categorias':paCategorias,'parceiros-ficha':paFicha,'parceiros-cadastro':paCadastro,'parceiros-enviar':paEnviar};
+const PA_PAGES={parceiros:paVisao,'parceiros-ranking':paRanking,'parceiros-saude':paSaude,'parceiros-categorias':paCategorias,'parceiros-ficha':paFicha,'parceiros-cadastro':paCadastro};
 function paRender(h){const y=scrollY;app.innerHTML=PA_PAGES[h]();paBind(()=>paRender(h));
  document.querySelectorAll('[data-ord]').forEach(b=>b.onclick=()=>{PA.ord=b.dataset.ord;paRender(h)});
  document.querySelectorAll('[data-gr]').forEach(b=>b.onclick=()=>{PA.grupo=b.dataset.gr;paRender(h)});
  document.querySelectorAll('[data-catb]').forEach(b=>b.onclick=()=>{PA.cat=b.dataset.catb;paRender(h)});
  document.querySelectorAll('a[data-cat]').forEach(a=>a.onclick=()=>{PA.cat=a.dataset.cat});
  const f=document.getElementById('pa-f');if(f)f.onchange=()=>{if(PA.d.info.has(f.value)){PA.sel=f.value;paRender(h)}};
- if(h==='parceiros-ficha')paFichaSemanas();if(h==='parceiros-cadastro'||h==='parceiros-enviar')paBindCadastro();
+ if(h==='parceiros-ficha')paFichaSemanas();if(h==='parceiros-cadastro')paBindCadastro();
  if(PA.keep)scrollTo(0,y);PA.keep=false}
-async function rotaParceiros(h){if((h==='parceiros-cadastro'||h==='parceiros-enviar')&&!ADMIN){location.hash='parceiros';return}if(!PA_PAGES[h]){location.hash='parceiros';return}
+async function rotaParceiros(h){if(h==='parceiros-enviar'){location.hash='parceiros-cadastro';return}if(h==='parceiros-cadastro'&&!ADMIN){location.hash='parceiros';return}if(!PA_PAGES[h]){location.hash='parceiros';return}
  if(!PA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando os parceiros…</p>');
   try{await paCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os parceiros: ${esc(e.message||e)}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
