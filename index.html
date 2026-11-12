@@ -3366,9 +3366,8 @@ function caEnviar(){const D=CA.d;const U=CA.up;
  ${U?`<div class="ca-salvar"><button class="btn" id="ca-salvar" type="button"${pode?'':' disabled'}>Salvar ${U.length===1?'a base':`as ${U.length} bases`}</button> <span class="hint" id="ca-prog">${pode?'':'Preencha a farmácia e confira as colunas de cada arquivo.'}</span></div>`:''}
  <div class="card tablecard"><h3>Bases de farmácia carregadas <small>${fmt(D.env.length)}</small></h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th>Farmácia</th><th class="n">Pessoas</th><th class="n">Linhas</th><th class="n">Desconto</th><th>Arquivo</th><th>Enviado em</th><th></th></tr></thead><tbody>
   ${D.env.slice().reverse().map(e=>`<tr><td>${lab(e.mes)}</td><td>${esc(e.rede)}</td><td class="n">${fmt(e.pessoas)}</td><td class="n">${fmt(e.compras)}</td><td class="n">${brl(e.centavos||0)}</td><td><small>${esc(e.arquivo||'')}</small></td><td>${new Date(e.enviado_em).toLocaleDateString('pt-BR')}</td><td><button class="chip" type="button" data-ca-del="${e.mes}|${esc(e.rede)}">Apagar</button></td></tr>`).join('')||'<tr><td colspan="8" class="hint">Nenhuma base carregada ainda.</td></tr>'}
- </tbody></table></div></div>
- ${cuHistoricoCard()}`)}
-function caBindEnviar(){cuhBind();const up=document.getElementById('ca-up');if(!up)return;
+ </tbody></table></div></div>`)}
+function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
  up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CA.msg=null;app.querySelector('#ca-up').closest('.card').insertAdjacentHTML('beforeend','<p class="carregando">Lendo…</p>');
   try{CA.up=[];for(const f of fs)CA.up.push(caResumoArq(await caLerArquivo(f)))}catch(err){CA.up=null;CA.msg={t:esc(err.message||err)}}caRender('calculadora-enviar')};
  document.querySelectorAll('.ca-arq').forEach(card=>{const A=CA.up[+card.dataset.k];
@@ -3402,7 +3401,7 @@ function cuTempo(venda){const v=new Date(venda+'T12:00:00'),h=new Date();let mes
 const cuData=d=>{const [y,m,dd]=d.split('-');return `${dd}/${m}/${y}`};
 function cuCobertura(){const U=CA.d.uso||[];if(!U.length)return '';const ms=U.map(u=>u.mes);return `Histórico de uso carregado de ${lab(ms[0])} a ${lab(ms[ms.length-1])}${ms.length<(()=>{const [a,b]=[ms[0],ms[ms.length-1]].map(x=>x.split('-').map(Number));return (b[0]-a[0])*12+b[1]-a[1]+1})()?' (com meses faltando)':''}`}
 function cuPagina(){const U=CA.d.uso||[];
- if(!U.length)return shell('calculadora-uso',`<div class="note">Ainda não há histórico de uso carregado.${ADMIN?' Ele entra sozinho a cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a>; o histórico anterior entra em <a href="#calculadora-enviar">Enviar bases › Histórico de uso</a>.':' Peça a um administrador para carregar.'}</div>`);
+ if(!U.length)return shell('calculadora-uso',`<div class="note">Ainda não há histórico de uso carregado.${ADMIN?' Ele entra sozinho a cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a>; o histórico anterior entra uma vez só, pela <a href="#calculadora-historico">carga única do histórico</a>.':' Peça a um administrador para carregar.'}</div>`);
  return shell('calculadora-uso',`<p class="answer">Digite o CPF do sócio para ver a retrospectiva de uso do Clube: há quanto tempo é assinante, quantos vouchers gerou e o que mais usa.</p>
  <div class="card ca-box"><div class="ca-linha">
   <label class="fld ca-cpf"><span>CPF do sócio</span><input id="cu-cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" value="${esc(CU.cpf)}"></label>
@@ -3448,7 +3447,7 @@ function cuBind(){const i=document.getElementById('cu-cpf');if(!i)return;
 const CUH={arqs:null,lendo:false,msg:null};
 function cuHistoricoCard(){const U=CA.d.uso||[];const sit=CUH.lendo?`<p class="carregando" id="cuh-st">Lendo…</p>`:'';
  const meses=CUH.det?[...CUH.det.keys()].sort():[];
- return `<div class="card"><h3>Histórico de uso (Calculadora uso)</h3><p class="sub">Todo mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a> já guarda o detalhe dos vouchers para a Calculadora uso. Para os meses que foram enviados antes, suba aqui os mesmos arquivos de vouchers (.csv da plataforma, podem ter vários meses). Cada mês do arquivo substitui o detalhe que já havia daquele mês. Farmácias de resgate automático no balcão ficam fora, como no Clube em números.</p>
+ return `<div class="card"><h3>Carga única do histórico de uso</h3><p class="sub">Página temporária, fora do menu: serve só para carregar uma vez o detalhe dos vouchers dos meses enviados antes da Calculadora uso existir (jul/2023 a out/2026). Daqui para frente, cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a> já guarda esse detalhe sozinho. Suba os arquivos de vouchers (.csv da plataforma, podem ter vários meses). Cada mês do arquivo substitui o detalhe que já havia daquele mês. Farmácias de resgate automático no balcão ficam fora, como no Clube em números.</p>
   <label class="drop"><b>Arquivos de vouchers</b><input type="file" id="cuh-up" accept=".csv,.xlsx" multiple></label>${sit}
   ${CUH.msg?`<p class="${CUH.msg.ok?'adm-ok':'adm-err'}" style="margin-top:10px">${CUH.msg.t}</p>`:''}
   ${meses.length?`<div class="tw" style="margin-top:12px"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Linhas</th><th class="n">Vouchers</th><th>Já carregado</th></tr></thead><tbody>${meses.map(m=>{const d=CUH.det.get(m);let v=0;d.forEach(p=>v+=p);return `<tr><td>${lab(m)}</td><td class="n">${fmt(d.size)}</td><td class="n">${fmt(v)}</td><td>${U.some(u=>u.mes===m)?'sim (será substituído)':'não'}</td></tr>`}).join('')}</tbody></table></div>
@@ -3456,19 +3455,20 @@ function cuHistoricoCard(){const U=CA.d.uso||[];const sit=CUH.lendo?`<p class="c
   <h4 style="margin:16px 0 6px">Meses com histórico de uso <small class="hint">${fmt(U.length)}</small></h4>
   ${U.length?`<div class="mes-chips">${U.map(u=>`<span title="${fmt(u.vouchers)} vouchers de ${fmt(u.pessoas)} pessoas · enviado em ${new Date(u.enviado_em).toLocaleDateString('pt-BR')}">${lab(u.mes)}</span>`).join('')}</div>`:'<p class="hint">Nenhum mês ainda.</p>'}</div>`}
 function cuhBind(){const up=document.getElementById('cuh-up');if(!up)return;
- up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CUH.lendo=true;CUH.msg=null;CUH.det=null;caRender('calculadora-enviar');
+ up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CUH.lendo=true;CUH.msg=null;CUH.det=null;caRender('calculadora-historico');
   const vouAnt=CG.vou,detAnt=CG.det;CG.vou=new Map();CG.det=new Map();
   try{libs();for(const f of fs)await lerVouchers(f,est=>{const el=document.getElementById('cuh-st');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers…`});CUH.det=CG.det}
-  catch(err){CUH.msg={t:esc(err.message||err)}}finally{CG.vou=vouAnt;CG.det=detAnt;CUH.lendo=false;caRender('calculadora-enviar')}};
+  catch(err){CUH.msg={t:esc(err.message||err)}}finally{CG.vou=vouAnt;CG.det=detAnt;CUH.lendo=false;caRender('calculadora-historico')}};
  const sv=document.getElementById('cuh-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('cuh-prog');const ms=[...CUH.det.keys()].sort();
   try{PEPPER=PEPPER||await rpc('pepper');for(let k=0;k<ms.length;k++){const m=ms[k];await enviarUsoMes(m,CUH.det.get(m),(a,b)=>{pr.textContent=`${lab(m)} (${k+1} de ${ms.length}): ${fmt(Math.round(100*a/b))}%`})}
-   CUH.det=null;CUH.msg={ok:1,t:`Histórico salvo: ${fmt(ms.length)} ${ms.length===1?'mês':'meses'}.`};await caCarregar(true);caRender('calculadora-enviar')}
+   CUH.det=null;CUH.msg={ok:1,t:`Histórico salvo: ${fmt(ms.length)} ${ms.length===1?'mês':'meses'}.`};await caCarregar(true);caRender('calculadora-historico')}
   catch(err){sv.disabled=false;pr.textContent='Não salvou: '+(err.message||err)}}}
 
+function cuHistPagina(){return shell('calculadora-historico',cuHistoricoCard())}
 /* ---------- roteamento ---------- */
-const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar};
-function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else caBindEnviar()}
-async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if(h==='calculadora-enviar'&&!ADMIN){location.hash='calculadora';return}
+const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar,'calculadora-historico':cuHistPagina};
+function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else if(h==='calculadora-historico')cuhBind();else caBindEnviar()}
+async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if((h==='calculadora-enviar'||h==='calculadora-historico')&&!ADMIN){location.hash='calculadora';return}
  if(!CA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');
   try{await caCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar a calculadora: ${esc(e.message||e)}${/function|does not exist|schema cache/i.test(e.message||'')?'. Confira se o arquivo 41_calculadora_farmacias.sql já foi rodado no Supabase.':''}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
@@ -3516,7 +3516,7 @@ const acSomaDias=(dias,a,b)=>{let s=0;dias.forEach((v,d)=>{if(d>=a&&d<=b)s+=v});
 const acMais=(d,n)=>{const x=acDia(d);x.setDate(x.getDate()+n);return acIso(x)};
 
 function acPagina(){const D=AC.d;
- if(!D.meses.length)return shell('parceiros-acoes',`<div class="note">Ainda não há vouchers por dia carregados. Eles entram a cada mês enviado em Clube em números › Enviar mês; os meses anteriores entram em Calculadoras › Enviar bases › Histórico de uso${ADMIN?'':' (peça a um administrador)'}.</div>`);
+ if(!D.meses.length)return shell('parceiros-acoes',`<div class="note">Ainda não há vouchers por dia carregados. Eles entram a cada mês enviado em Clube em números › Enviar mês; os meses anteriores entram uma vez só pela carga única do histórico${ADMIN?'':' (peça a um administrador)'}.</div>`);
  const res=AC.q?acBusca(AC.q):[];if(AC.marcados==null||AC.marcadosQ!==AC.q){AC.marcados=new Set(res.filter(b=>b.v>0).slice(0,40).map(b=>b.id));AC.marcadosQ=AC.q}
  const opt=v=>D.meses.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
  const sug=['Cineminha','GNC','Uber','Capital Inicial','Hard Rock','Netshoes'].filter(s=>acBusca(s).length);
