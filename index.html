@@ -3474,8 +3474,11 @@ const AC_CANAL={'Newsletter':'N','E-mail pontual':'E','WhatsApp':'W','Push':'P',
 async function acCarregar(){if(AC.d)return;const {data,error}=await sb.rpc('dados_acoes');if(error)throw error;
  /* só ações da marca Clube do Assinante (mesma regra do Relatório semanal: cortesias, sorteios, convites) + tudo de Uber */
  const CORT=new Set((data.cortesias||[]).map(coN));
- const ehAcao=(marca,titulo)=>(ehMarcaClube(marca)&&(CORT.has(coN(titulo))||ehCortesia(marca,'',titulo)))||/\buber\b/.test(normL(marca+' '+titulo));
- const B=(data.beneficios||[]).filter(([id,marca,titulo])=>ehAcao(marca,titulo)).map(([id,marca,titulo,v,ini,fim])=>({id,marca,titulo,v,ini,fim,cat:/\buber\b/.test(normL(marca))?'Uber':'Ações do Clube',txt:normL(cuMarcaAc(marca)+' '+titulo)}));
+ // ações de Uber dentro da marca do Clube (ex.: "R$5 OFF na sua viagem", aberta para Plus): título fala de corrida/viagem com R$, ou foi divulgado com chamada sobre Uber
+ const UBERT=new Set();(data.comunicacoes||[]).forEach(c=>(c.linhas||[]).forEach(([mb,tits,cham])=>{if(/\buber\b/.test(normL((cham||'')+' '+mb)))(tits||[]).forEach(t=>UBERT.add(coN(t)))}));
+ const ehUber=(marca,titulo)=>/\buber\b/.test(normL(marca+' '+titulo))||(ehMarcaClube(marca)&&(UBERT.has(coN(titulo))||/corrida|r\$ ?\d+.*viagem/.test(normL(titulo))));
+ const ehAcao=(marca,titulo)=>(ehMarcaClube(marca)&&(CORT.has(coN(titulo))||ehCortesia(marca,'',titulo)))||ehUber(marca,titulo);
+ const B=(data.beneficios||[]).filter(([id,marca,titulo])=>ehAcao(marca,titulo)).map(([id,marca,titulo,v,ini,fim])=>({id,marca,titulo,v,ini,fim,cat:ehUber(marca,titulo)?'Uber':'Ações do Clube',txt:normL(cuMarcaAc(marca)+' '+titulo+(ehUber(marca,titulo)?' uber':''))}));
  const porChave=new Map();B.forEach(b=>porChave.set(coN(b.marca)+'|'+coN(b.titulo),b));
  const C=(data.comunicacoes||[]).map(c=>({...c,envio:String(c.envio).slice(0,10),linhas:(c.linhas||[]).map(([mb,tits,cham,cl,ev])=>({mb,tits:tits||[],cham,cl:cl||[],ev,ids:(tits||[]).map(t=>porChave.get(coN(mb)+'|'+coN(t))).filter(Boolean).map(b=>b.id)}))}));
  AC.d={meses:data.meses||[],B,byId:new Map(B.map(b=>[b.id,b])),C};
