@@ -3284,8 +3284,8 @@ function caResultado(){const R=CA.res;if(!R)return '';if(R.erro)return `<div cla
  const redes=Object.keys(tot);const T=redes.reduce((s,r)=>s+tot[r].c,0),N=redes.reduce((s,r)=>s+tot[r].n,0);
  const ms=[...new Set(L.map(x=>x[0]))].sort();const val=(m,r)=>{const x=L.find(y=>y[0]===m&&y[1]===r);return x?x[2]:0};
  const sem=r=>{const ms2=D.env.filter(e=>e.rede===r).map(e=>e.mes);return !ms2.some(m=>m>=CA.de&&m<=CA.ate)};
- return `<div class="ca-grid">${redes.map(r=>`<div class="card ca-card" style="--c:${caCor(r)}"><h3>${esc(r)}</h3><div class="v">${brl(tot[r].c)}</div><div class="d">${tot[r].c>0?`economizados em ${per}${tot[r].n?` · ${fmt(tot[r].n)} ${tot[r].n===1?'compra':'compras'}`:''}`:sem(r)?'sem base carregada neste período':'sem utilização registrada'}</div></div>`).join('')}</div>
- <div class="card ca-card ca-total"><h3>Total economizado${redes.length>1?` (${redes.map(esc).join(' + ')})`:''}</h3><div class="v">${brl(T)}</div><div class="d">${per}${N?` · ${fmt(N)} ${N===1?'compra':'compras'}`:''}</div></div>
+ return `<div class="ca-grid">${redes.map(r=>`<div class="card ca-card" style="--c:${caCor(r)}"><h3>${esc(r)}</h3><div class="v">${brl(tot[r].c)}</div><div class="d">${tot[r].c>0?`economizados em ${per}`:sem(r)?'sem base carregada neste período':'sem utilização registrada'}</div></div>`).join('')}</div>
+ <div class="card ca-card ca-total"><h3>Total economizado${redes.length>1?` (${redes.map(esc).join(' + ')})`:''}</h3><div class="v">${brl(T)}</div><div class="d">${per}</div></div>
  ${ms.length>1?`<div class="card tablecard"><h3>Mês a mês</h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th>${redes.map(r=>`<th class="n">${esc(r)}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
   ${ms.map(m=>`<tr><td>${lab(m)}</td>${redes.map(r=>`<td class="n">${val(m,r)?brl(val(m,r)):'—'}</td>`).join('')}<td class="n"><b>${brl(redes.reduce((s,r)=>s+val(m,r),0))}</b></td></tr>`).join('')}</tbody></table></div></div>`:''}`}
 async function caConsultar(){const c=document.getElementById('ca-cpf').value.replace(/\D/g,'');CA.cpf=document.getElementById('ca-cpf').value;
@@ -3307,12 +3307,12 @@ function caBindConsulta(){const i=document.getElementById('ca-cpf');if(!i)return
 
 /* ---------- Enviar bases (admin) ---------- */
 const caNum=v=>{if(v==null||v==='')return NaN;if(typeof v==='number')return v;let s=String(v).replace(/[R$\s]/g,'').trim();if(!s)return NaN;
- if(/,\d{1,2}$/.test(s))s=s.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');else s=s.replace(',','.');
+ if(/,\d{1,2}$/.test(s))s=s.replace(/\./g,'').replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');else if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,'');else s=s.replace(',','.');
  const n=Number(s.replace(/[^\d.\-]/g,''));return isFinite(n)?n:NaN};
-function caMesDe(v){if(v==null||v==='')return null;
+function caMesDe(v,mdy){if(v==null||v==='')return null;
  if(v instanceof Date&&!isNaN(v))return `${v.getFullYear()}-${pad2(v.getMonth()+1)}`;
  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}`}
- const s=String(v).trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return `${y}-${pad2(+m[2])}`}
+ const s=String(v).trim();let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;const mes=mdy?+m[1]:+m[2];return mes>=1&&mes<=12?`${y}-${pad2(mes)}`:null}
  m=s.match(/^(\d{4})[\/\-.](\d{1,2})/);if(m)return `${m[1]}-${pad2(+m[2])}`;
  m=normL(s).match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\.?\s*(?:de\s*)?\/?\s*(\d{2,4})/);if(m){let y=+m[2];if(y<100)y+=2000;return `${y}-${pad2(['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'].indexOf(m[1])+1)}`}
  return null}
@@ -3322,21 +3322,23 @@ async function caLerArquivo(f){libs();let rows;
  else{const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true,dense:true});
   // usa a aba com mais linhas
   let best=null;for(const n of wb.SheetNames){const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});if(!best||r.length>best.length)best=r}rows=best}
- const hi=rows.slice(0,20).findIndex(r=>(r||[]).some(x=>/CPF/.test(normU(x))));if(hi<0)throw new Error(`${f.name}: não encontrei a coluna de CPF nas primeiras linhas.`);
+ // padrão das planilhas das farmácias: A = CPF, B = data competência (mês/dia/ano), C = desconto acumulado
+ let hi=rows.slice(0,20).findIndex(r=>(r||[]).some(x=>/CPF/.test(normU(x))));
+ if(hi<0){rows=[['CPF','Data competência','Desconto acumulado'],...rows];hi=0}
  const cab=rows[hi].map(x=>String(x??'').trim());const H=cab.map(normU);
  const ach=t=>H.findIndex(t);
- const iCpf=ach(x=>/CPF/.test(x));
- const iData=ach(x=>/^DATA|DT[ _.]|EMISS|VENDA$|^DIA$/.test(x));
+ let iCpf=ach(x=>/CPF/.test(x));if(iCpf<0)iCpf=0;
+ let iData=ach(x=>/COMPET/.test(x));if(iData<0)iData=ach(x=>/^DATA|DT[ _.]|EMISS|VENDA$|^DIA$/.test(x));if(iData<0&&cab.length>=3)iData=1;
  const nVal=x=>!/%|PERC|QTD|QUANT/.test(x);
- let iVal=ach(x=>/ECONOMI/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESC/.test(x)&&/VAL|R\$|VLR/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESCONTO/.test(x)&&nVal(x));
+ let iVal=ach(x=>/ACUMUL/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/ECONOMI/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESC/.test(x)&&/VAL|R\$|VLR/.test(x)&&nVal(x));if(iVal<0)iVal=ach(x=>/DESCONTO/.test(x)&&nVal(x));if(iVal<0&&cab.length>=3)iVal=2;
  const iRede=ach(x=>/REDE|BANDEIRA|FARMACIA|EMPRESA/.test(x));
  const nome=normL(f.name);const rede=/panvel/.test(nome)?'Panvel':/raia|drogasil|rd ?saude/.test(nome)?'Droga Raia':'';
- return {arq:f.name,cab,linhas:rows.slice(hi+1),iCpf,iData,iVal,iRede,rede,mesFixo:caMesDe(f.name.replace(/[_.]/g,' ').match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\s*\d{2,4}|\d{1,2}[\-\/]\d{4}/i)?.[0]||'')}}
+ return {arq:f.name,cab,linhas:rows.slice(hi+1),iCpf,iData,iVal,iRede,rede,mdy:true,mesFixo:caMesDe(f.name.replace(/[_.]/g,' ').match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\w*\s*\d{2,4}|\d{1,2}[\-\/]\d{4}/i)?.[0]||'')}}
 function caResumoArq(A){const por=new Map();const est={ok:0,semCpf:0,semValor:0,semMes:0,neg:0};
  for(const L of A.linhas){if(!L||!L.some(x=>x!==''&&x!=null))continue;
   const c=cpf11(L[A.iCpf]);if(!c){est.semCpf++;continue}
   const v=caNum(L[A.iVal]);if(!isFinite(v)){est.semValor++;continue}
-  const m=A.iData>=0?caMesDe(L[A.iData])||A.mesFixo:A.mesFixo;if(!m){est.semMes++;continue}
+  const m=A.iData>=0?caMesDe(L[A.iData],A.mdy)||A.mesFixo:A.mesFixo;if(!m){est.semMes++;continue}
   if(v<0)est.neg++;
   let g=por.get(m);if(!g){g=new Map();por.set(m,g)}const x=g.get(c)||[0,0];x[0]+=Math.round(Math.abs(v)*100);x[1]++;g.set(c,x);est.ok++}
  A.por=por;A.est=est;return A}
@@ -3349,19 +3351,20 @@ function caEnviar(){const D=CA.d;const U=CA.up;
     <label class="fld"><span>Coluna do CPF</span>${sel('iCpf',A.iCpf,A)}</label>
     <label class="fld"><span>Coluna do valor economizado</span>${A.iVal<0?'<select data-ca-col="iVal"><option value="-1">— escolha —</option>'+A.cab.map((c,j)=>`<option value="${j}">${esc(c)}</option>`).join('')+'</select>':sel('iVal',A.iVal,A)}</label>
     <label class="fld"><span>Coluna da data</span>${sel('iData',A.iData,A)}</label>
+    <label class="fld"><span>Formato da data</span><select data-ca-mdy><option value="1"${A.mdy?' selected':''}>mês/dia/ano (padrão das farmácias)</option><option value="0"${A.mdy?'':' selected'}>dia/mês/ano</option></select></label>
     <label class="fld"><span>Mês (se não houver data)</span><select data-ca-mes>${mesOpts(A.mesFixo)}</select></label></div>
-   ${A.iVal<0?'<p class="note">Não achei a coluna do valor economizado. Escolha acima.</p>':`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Pessoas</th><th class="n">Compras</th><th class="n">Economia</th><th></th></tr></thead><tbody>
+   ${A.iVal<0?'<p class="note">Não achei a coluna do valor economizado. Escolha acima.</p>':`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Pessoas</th><th class="n">Linhas</th><th class="n">Desconto</th><th></th></tr></thead><tbody>
     ${ms.map(m=>{const g=A.por.get(m);let c=0,n=0;g.forEach(x=>{c+=x[0];n+=x[1]});const ja=D.env.find(x=>x.mes===m&&x.rede===A.rede);return `<tr><td>${lab(m)}</td><td class="n">${fmt(g.size)}</td><td class="n">${fmt(n)}</td><td class="n">${brl(c)}</td><td>${ja?'<small class="hint">substitui o que já está carregado</small>':''}</td></tr>`}).join('')||'<tr><td colspan="5" class="hint">Nenhuma linha válida.</td></tr>'}</tbody></table></div>
     <p class="hint">${fmt(e.ok)} linhas válidas${e.semCpf?` · ${fmt(e.semCpf)} sem CPF válido`:''}${e.semValor?` · ${fmt(e.semValor)} sem valor`:''}${e.semMes?` · ${fmt(e.semMes)} sem mês (escolha o mês)`:''}${e.neg?` · ${fmt(e.neg)} com valor negativo (contado como positivo)`:''}.</p>`}</div>`}).join(''):'';
  const pode=U&&U.length&&U.every(A=>A.iVal>=0&&A.rede&&A.por.size);
  return shell('calculadora-enviar',`<p class="answer"><b>Calculadora farmácia:</b> suba os relatórios das farmácias (um arquivo por farmácia; pode ter vários meses). Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
- <div class="card"><h3>Enviar bases das farmácias</h3><p class="sub">Arquivos .xlsx ou .csv com o CPF do sócio, a data da compra e o valor economizado (desconto). O portal reconhece as colunas e você confere antes de salvar. O CPF vira código antes de sair do seu computador.</p>
+ <div class="card"><h3>Enviar bases das farmácias</h3><p class="sub">Arquivos .xlsx ou .csv no padrão das farmácias: coluna A = CPF do sócio (CPFs com menos de 11 dígitos são completados com zeros à esquerda), coluna B = data competência (mês/dia/ano) e coluna C = desconto acumulado. O portal reconhece as colunas e você confere antes de salvar. O CPF vira código antes de sair do seu computador.</p>
   <label class="drop"><b>Relatórios das farmácias</b><input type="file" id="ca-up" accept=".csv,.xlsx,.xls,.txt" multiple></label>
   <datalist id="ca-redes">${[...new Set([...CA_REDES,...D.redes])].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
   ${CA.msg?`<p class="${CA.msg.ok?'adm-ok':'adm-err'}" style="margin-top:10px">${CA.msg.t}</p>`:''}</div>
  ${prev}
  ${U?`<div class="ca-salvar"><button class="btn" id="ca-salvar" type="button"${pode?'':' disabled'}>Salvar ${U.length===1?'a base':`as ${U.length} bases`}</button> <span class="hint" id="ca-prog">${pode?'':'Preencha a farmácia e confira as colunas de cada arquivo.'}</span></div>`:''}
- <div class="card tablecard"><h3>Bases de farmácia carregadas <small>${fmt(D.env.length)}</small></h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th>Farmácia</th><th class="n">Pessoas</th><th class="n">Compras</th><th class="n">Economia</th><th>Arquivo</th><th>Enviado em</th><th></th></tr></thead><tbody>
+ <div class="card tablecard"><h3>Bases de farmácia carregadas <small>${fmt(D.env.length)}</small></h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th>Farmácia</th><th class="n">Pessoas</th><th class="n">Linhas</th><th class="n">Desconto</th><th>Arquivo</th><th>Enviado em</th><th></th></tr></thead><tbody>
   ${D.env.slice().reverse().map(e=>`<tr><td>${lab(e.mes)}</td><td>${esc(e.rede)}</td><td class="n">${fmt(e.pessoas)}</td><td class="n">${fmt(e.compras)}</td><td class="n">${brl(e.centavos||0)}</td><td><small>${esc(e.arquivo||'')}</small></td><td>${new Date(e.enviado_em).toLocaleDateString('pt-BR')}</td><td><button class="chip" type="button" data-ca-del="${e.mes}|${esc(e.rede)}">Apagar</button></td></tr>`).join('')||'<tr><td colspan="8" class="hint">Nenhuma base carregada ainda.</td></tr>'}
  </tbody></table></div></div>
  ${cuHistoricoCard()}`)}
@@ -3370,6 +3373,7 @@ function caBindEnviar(){cuhBind();const up=document.getElementById('ca-up');if(!
   try{CA.up=[];for(const f of fs)CA.up.push(caResumoArq(await caLerArquivo(f)))}catch(err){CA.up=null;CA.msg={t:esc(err.message||err)}}caRender('calculadora-enviar')};
  document.querySelectorAll('.ca-arq').forEach(card=>{const A=CA.up[+card.dataset.k];
   card.querySelectorAll('[data-ca-col]').forEach(s=>s.onchange=()=>{A[s.dataset.caCol]=+s.value;caResumoArq(A);caRender('calculadora-enviar')});
+  card.querySelector('[data-ca-mdy]').onchange=ev=>{A.mdy=ev.target.value==='1';caResumoArq(A);caRender('calculadora-enviar')};
   card.querySelector('[data-ca-mes]').onchange=ev=>{A.mesFixo=ev.target.value;caResumoArq(A);caRender('calculadora-enviar')};
   card.querySelector('[data-ca-rede]').onchange=ev=>{A.rede=ev.target.value.trim();caRender('calculadora-enviar')}});
  const sv=document.getElementById('ca-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('ca-prog');
