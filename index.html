@@ -3783,6 +3783,43 @@ async function telaAcessos(h){
  box.querySelectorAll('.acc-tab .rem').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');if(!confirm(`Remover o acesso de ${tr.dataset.email}? O login é apagado.`))return;
   const r=await sb.rpc('remover_usuario',{p_user:tr.dataset.id});if(r.error){alert(r.error.message);return}telaAcessos(h)});
 }
+
+/* ---------- ordenar qualquer tabela pelo cabeçalho (todos os painéis) ----------
+   1º clique: do maior para o menor; 2º clique: do menor para o maior. Vale para toda tabela simples (uma linha por item).
+   Linhas de total ficam no fim. Tabelas com ordenação própria (Ranking de parceiros, Gerações) não são mexidas. */
+const MESES_ORD={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+function valorCel(td){const v=td.dataset.v;if(v!=null&&v!=='')return +v;
+ const inp=td.querySelector('input:not([type=checkbox]),select');let t=(inp?inp.value:td.textContent).replace(/\s+/g,' ').trim();
+ if(!t||/^[—–·-]$/.test(t)||t==='n/d')return null;
+ let m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(t);if(m)return +(m[3]+m[2]+m[1]);
+ m=/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\/(\d{4})/i.exec(t);if(m)return +m[2]*100+MESES_ORD[m[1].toLowerCase()];
+ m=/^(\d{2})\/(\d{2})(?!\/)/.exec(t);if(m)return +(m[2]+m[1]);
+ m=/^(?:R\$\s*)?([+\-−]?\s*\d{1,3}(?:\.\d{3})*(?:,\d+)?|[+\-−]?\s*\d+(?:,\d+)?)\s*(%|pp|p\.p\.|x|×)?(?=$|\s|\(|·)/.exec(t);
+ if(m)return parseFloat(m[1].replace(/\s/g,'').replace('−','-').replace(/\./g,'').replace(',','.'));
+ return t.toLowerCase()}
+function ordenavel(tb){if(tb.dataset.ordOk||tb.classList.contains('co-ord')||tb.closest('.no-ord'))return false;
+ if(!tb.tHead||tb.tBodies.length!==1||!tb.tHead.rows.length)return false;
+ const hr=tb.tHead.rows[tb.tHead.rows.length-1];if([...hr.cells].some(c=>c.colSpan>1||c.rowSpan>1||c.dataset.ord!=null||c.dataset.cuOrd!=null))return false;
+ const rows=[...tb.tBodies[0].rows];if(rows.length<2)return false;
+ const secao=r=>r.cells.length===1&&r.cells[0].colSpan>=hr.cells.length; // linha de título de grupo: ordena dentro de cada grupo
+ if(rows.some(r=>!secao(r)&&([...r.cells].some(c=>c.rowSpan>1||c.colSpan>1)||r.cells.length!==hr.cells.length)))return false;
+ if(rows.filter(r=>!secao(r)).length<2)return false;
+ return true}
+function ligarOrdenacao(root){(root||document).querySelectorAll('table').forEach(tb=>{if(!ordenavel(tb))return;tb.dataset.ordOk='1';tb.classList.add('co-ord','gl-ord');
+ const hr=tb.tHead.rows[tb.tHead.rows.length-1];const ths=[...hr.cells];
+ ths.forEach((th,i)=>{if(!th.textContent.trim()||th.querySelector('input'))return;th.classList.add('co-th');th.title='Ordenar (clique de novo para inverter)';
+  th.addEventListener('click',e=>{if(e.target.closest('.t,.term,a,button,input'))return;
+   const desc=th.dataset.o!=='desc';ths.forEach(x=>{delete x.dataset.o});th.dataset.o=desc?'desc':'asc';
+   const body=tb.tBodies[0];const rows=[...body.rows];const nC=ths.length;
+   const fixo=r=>/^total\b/i.test((r.cells[0]?.textContent||'').trim())||r.classList.contains('tot');
+   const grupos=[[null,[]]];rows.forEach(r=>{if(r.cells.length===1&&r.cells[0].colSpan>=nC)grupos.push([r,[]]);else grupos[grupos.length-1][1].push(r)});
+   const todos=rows.filter(r=>!(r.cells.length===1&&r.cells[0].colSpan>=nC)&&!fixo(r));
+   const vals=new Map(todos.map(r=>[r,valorCel(r.cells[i])]));const nums=[...vals.values()].filter(v=>typeof v==='number').length;const numCol=nums>=[...vals.values()].filter(v=>v!=null).length/2;
+   const cmp=(a,b)=>{let x=vals.get(a),y=vals.get(b);if(numCol){if(typeof x!=='number')x=null;if(typeof y!=='number')y=null}
+    if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+    const r=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'pt-BR',{numeric:true});return desc?-r:r};
+   grupos.forEach(([sec,rs])=>{if(sec)body.appendChild(sec);const mov=rs.filter(r=>!fixo(r)).sort(cmp);[...mov,...rs.filter(fixo)].forEach(r=>body.appendChild(r))})})})})}
+let ORD_T=null;new MutationObserver(()=>{clearTimeout(ORD_T);ORD_T=setTimeout(()=>ligarOrdenacao(app),60)}).observe(app,{childList:true,subtree:true});
 </script>
 </body>
 </html>
