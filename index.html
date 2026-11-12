@@ -512,7 +512,7 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .acc-tab td.pn{min-width:280px}
 .adm-msg{font-size:12.5px;color:var(--muted);white-space:pre-wrap;margin:6px 0 0}
 /* calculadora */
-.ca-box .ca-linha{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.ca-linha{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .ca-box .ca-cpf{flex:1 1 220px}
 .ca-box .ca-cpf input{font-size:20px;letter-spacing:.04em;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);width:100%}
 .ca-bts{display:flex;gap:8px}
@@ -536,6 +536,21 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .cu-tw{max-height:620px;overflow:auto}
 .cu-tw thead th{position:sticky;top:0;background:var(--surface);z-index:1}
 [data-cu-ord]{cursor:pointer;user-select:none}
+.pa-form{display:grid;gap:10px;margin:6px 0 12px;padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--bg)}
+.pa-form input,.pa-form textarea{width:100%}
+.pa-edb{float:right;margin-left:8px}
+.row-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ac-tw{max-height:420px;overflow:auto;margin-top:8px}
+.ac-tw thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+.ac-ser .chip{color:#fff;display:inline-flex;gap:6px;align-items:center}
+.ac-x{background:none;border:0;color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0 0 0 2px}
+.ac-kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:14px 0}
+.ac-kpis .v{font-size:26px}
+.ac-svg{margin-top:4px}
+.ac-h{margin:18px 0 8px}
+.ac-pico{margin:0 0 10px}.ac-pico ol{margin:6px 0 0;padding-left:20px}.ac-pico li{margin:4px 0;line-height:1.45}
+.ac-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+small.up{color:var(--good,#2e7d32)}
 </style>
 </head>
 <body>
@@ -725,7 +740,8 @@ const GL=[
   ['categoria-site','Categoria','A mesma categoria do site do Clube, vinda da lista de parceiros (a primeira, quando há mais de uma). Shows e eventos das produtoras ficam em Agenda cultural.','Marca sem cadastro aparece como "Sem cadastro" até alguém ligar ao parceiro ou informar a categoria em Parceiros › Cadastro.'],
   ['concentracao','Concentração','Quanto dos vouchers do período está nos 5 (e nos 10) maiores parceiros.','Quanto maior, mais o resultado depende de poucos parceiros.'],
   ['parceiro-novo','Parceiro novo','Parceiro cujo primeiro voucher (desde jul/2023) caiu dentro do período escolhido.',''],
-  ['parceiro-parado','Parou de gerar','Parceiro com voucher no período anterior de mesmo tamanho e nenhum no período escolhido.','Pode ser oferta encerrada, pausada ou sem comunicação.'],
+  ['parceiro-parado','Parou de gerar','Parceiro que segue no Clube (ativo na lista de parceiros, produtora de eventos ou fora da lista) com voucher no período anterior de mesmo tamanho e nenhum no período escolhido.','Oferta no ar e sem uso: problema de resgate, visibilidade ou comunicação.'],
+  ['parceiro-saiu','Saiu do Clube','Parceiro encerrado ou pausado na lista de parceiros, com voucher no período anterior de mesmo tamanho e nenhum no período escolhido.','Parada esperada: a oferta saiu do ar.'],
   ['saude-parceiro','Saúde do parceiro','Classificação pelo tamanho e pela variação vs período anterior. Grandes: os que juntos somam 80% dos vouchers. Em risco: grande e caindo 15% ou mais. Âncora: grande e estável ou crescendo. Promissor: menor, com 20 vouchers ou mais e crescendo 30% ou mais. Novo: primeiro voucher nos últimos 3 meses.',''],
   ['parceiros-com-uso','Parceiros com uso','Marcas que tiveram pelo menos um voucher no período.',''],
   ['cadastrados-sem-uso','Cadastrados sem uso','Parceiros ativos na lista de parceiros sem nenhum voucher no período (na página Saúde, nos últimos 6 meses).','Pode ser oferta pouco atrativa, difícil de usar ou sem divulgação.'],
@@ -1164,7 +1180,7 @@ const AREAS={
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
   r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar'],['inativos-bases','Gerar bases',1]]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
-  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
+  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-acoes','Ações do Clube'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  calculadora:{n:'Calculadoras',t:'Calculadoras do',s:'Clube',d:'Digite o CPF do sócio e veja quanto ele economizou nas farmácias parceiras e a retrospectiva de uso do Clube.',c:'var(--verde-esc, #2f7a4a)',st:['ok','Novo'],
@@ -2147,7 +2163,7 @@ const notaPeriodo=P=>`Comparações: período anterior de mesmo tamanho (${perLa
 /* ---------- página: Visão geral ---------- */
 function paVisao(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v>0);const tot=com.reduce((t,r)=>t+r.v,0);
  const totA=L.reduce((t,r)=>t+(r.vant||0),0),totL=L.reduce((t,r)=>t+(r.vly||0),0);const okA=temDados(P.ant.a,P.ant.b),okL=temDados(P.ly.a,P.ly.b);
- const comA=L.filter(r=>r.vant>0).length;const novos=com.filter(r=>r.prim>=P.a);const pararam=L.filter(r=>r.vant>0&&r.v===0);
+ const comA=L.filter(r=>r.vant>0).length;const novos=com.filter(r=>r.prim>=P.a);const pararam=L.filter(r=>r.vant>0&&r.v===0&&!saiuDoClube(r)),sairam=L.filter(r=>r.vant>0&&r.v===0&&saiuDoClube(r));
  const ord=[...com].sort((a,b)=>b.v-a.v);const top=k=>ord.slice(0,k).reduce((t,r)=>t+r.v,0)/tot*100;
  const ordA=L.filter(r=>r.vant>0).sort((a,b)=>b.vant-a.vant);const top5A=totA?ordA.slice(0,5).reduce((t,r)=>t+r.vant,0)/totA*100:null;
  const cadSem=new Set();PA.d.cad.filter(c=>c.status==='Ativo').forEach(c=>{const l=[...PA.d.info.values()].filter(i=>i.rows.includes(c));if(!l.some(i=>somaMarca(i.m,P.a,P.b).v>0))cadSem.add(baseNome(c.parceiro))});
@@ -2166,7 +2182,8 @@ function paVisao(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v
   ${k(T('vouchers','Vouchers gerados'),fmt(tot),`${okA?`${sinalP(varp(tot,totA))} vs anterior`:''}${okL?` · ${sinalP(varp(tot,totL))} vs ano anterior`:''}`)}
   ${k(T('parceiros-com-uso','Parceiros com uso'),fmt(com.length),okA?`${sinalN(com.length-comA)} vs anterior`:'')}
   ${k(T('parceiro-novo','Parceiros novos'),fmt(novos.length),novos.length?`${fmt(novos.reduce((t,r)=>t+r.v,0))} vouchers`:'primeiro uso no período')}
-  ${k(T('parceiro-parado','Pararam de gerar'),fmt(pararam.length),okA?`tinham ${fmt(pararam.reduce((t,r)=>t+r.vant,0))} vouchers antes`:'','baixo')}
+  ${k(T('parceiro-parado','Pararam de gerar'),fmt(pararam.length),okA?`seguem no Clube · tinham ${fmt(pararam.reduce((t,r)=>t+r.vant,0))} vouchers antes`:'seguem no Clube','baixo')}
+  ${k(T('parceiro-saiu','Saíram do Clube'),fmt(sairam.length),okA?`encerrados ou pausados · tinham ${fmt(sairam.reduce((t,r)=>t+r.vant,0))} vouchers antes`:'encerrados ou pausados no cadastro','lim')}
   ${k(T('concentracao','Concentração'),`${fmt(top(5),1)}%`,`top 5 · top 10: ${fmt(top(10),1)}%`)}
   ${k(T('cadastrados-sem-uso','Cadastrados sem uso'),fmt(cadSem.size),'parceiros ativos no cadastro, 0 vouchers','lim')}
  </div>
@@ -2203,8 +2220,11 @@ const GRUPOS=[
  ['ancora','Âncoras','ok','Parceiros grandes que ficaram estáveis ou cresceram. São eles que sustentam o volume do Clube.','Proteger: manter a oferta e o destaque, renovar contrato com antecedência e evitar depender só deles.'],
  ['promissor','Promissores','pr','Parceiros fora dos grandes, com 20 vouchers ou mais no período e crescimento de 30% ou mais.','Acelerar: dar mais destaque na News e nas redes enquanto a procura está subindo.'],
  ['novo','Novos','','Parceiros cujo primeiro voucher (desde jul/2023) foi nos últimos 3 meses do período.','Acompanhar a estreia: comunicar nas primeiras semanas e ver se o uso se sustenta depois do lançamento.'],
- ['parado','Pararam','lim','Parceiros que tiveram voucher no período anterior e nenhum no período escolhido.','Entender o motivo: oferta encerrada (esperado) ou ativa e sem uso (problema de comunicação ou de resgate).'],
+ ['parado','Pararam de gerar','baixo','Parceiros que seguem no Clube (ativos no cadastro, produtoras de eventos ou fora da lista) e tiveram voucher no período anterior, mas nenhum no período escolhido.','Investigar: a oferta segue no ar e ninguém usou. Checar se o resgate funciona, se o benefício ainda está visível e se foi divulgado.'],
+ ['saiu','Saíram do Clube','lim','Parceiros encerrados ou pausados na lista de parceiros que tiveram voucher no período anterior e nenhum no período escolhido.','Parada esperada: a oferta saiu do ar. Vale ver se há substituto na mesma categoria e se o volume migrou para outro parceiro.'],
  ['cadsem','Cadastrados sem uso','lim','Parceiros ativos na lista de parceiros sem nenhum voucher nos últimos 6 meses.','Revisar a oferta: rever desconto e modo de uso, divulgar ou tirar do ar o que não tem procura.']];
+/* saiu do Clube = encerrado ou pausado na lista de parceiros; quem segue ativo (ou é produtora / está fora da lista) "parou" */
+const saiuDoClube=r=>r.status==='Encerrado ou pausado'&&r.tipo!=='Eventos e shows';
 function serieMarca(m){return PA.d.uso.get(m)||{}}
 function mesesCaindo(m,ate){const u=serieMarca(m);let n=0,cur=ate;while(true){const a=u[cur]?.v||0,b=u[mAdd(cur,-1)]?.v||0;if(b>0&&a<b){n++;cur=mAdd(cur,-1)}else break}return n}
 function ultimoUso(m){return Object.keys(serieMarca(m)).filter(k=>serieMarca(m)[k].v>0).sort().pop()}
@@ -2218,12 +2238,13 @@ function porque(g,r,P,ctx){const pct=v=>fmt(v,1)+'%';const sh=ctx.tot?r.v/ctx.to
   return `Subiu de ${fmt(r.vant)} para ${fmt(r.v)} vouchers (${sinalP(r.dA)}).${ly} ${falta>0?`Faltam ${fmt(falta)} vouchers para entrar no grupo dos grandes (a partir de ${fmt(ctx.lim)} no período).`:''}`}
  if(g==='novo'){const naCat=ctx.L.filter(x=>x.cat===r.cat&&x.v>0).sort((a,b)=>b.v-a.v);const pc=naCat.findIndex(x=>x.m===r.m)+1;
   return `Primeiro voucher em ${lab(r.prim)}. Já soma ${fmt(r.v)} vouchers e está em ${pc}º lugar em ${r.cat}, entre ${naCat.length} parceiros.`}
+ if(g==='saiu'){const ul=ultimoUso(r.m);return `Tinha ${fmt(r.vant)} ${r.vant===1?'voucher':'vouchers'} no período anterior; último uso em ${ul?lab(ul):'—'}. Está encerrado ou pausado na lista de parceiros: a parada é esperada.`}
  if(g==='parado'){const ul=ultimoUso(r.m);const st=r.status;
   return `Tinha ${fmt(r.vant)} ${r.vant===1?'voucher':'vouchers'} no período anterior; último uso em ${ul?lab(ul):'—'}. ${r.tipo==='Eventos e shows'?'Produtora sem evento com voucher no período: costuma ser intervalo entre agendas. Vale perguntar se há eventos previstos para divulgar.':st==='Ativo'?'No cadastro está ativo: vale checar se a oferta ainda funciona e se está sendo divulgada.':st==='Encerrado ou pausado'?'No cadastro está encerrado ou pausado: a parada é esperada.':'Não está na lista de parceiros: confirmar se a parceria segue ativa.'}`}
  if(g==='cadsem'){const ul=r.semDados?null:ultimoUso(r.m);const garg=(r.rows||[]).map(x=>x.gargalos).filter(Boolean)[0];
   return `${ul?`Último voucher em ${lab(ul)}.`:'Nenhum voucher desde jul/2023.'} Modo de uso: ${r.modo||'—'}${r.localTxt?` · ${r.localTxt}`:''}.${garg?` Gargalo apontado no cadastro: ${garg}.`:''}`}
  return ''}
-const GTERM={risco:'em-risco',ancora:'ancora',promissor:'promissor',novo:'parceiro-novo',parado:'parceiro-parado',cadsem:'cadastrados-sem-uso'};
+const GTERM={risco:'em-risco',ancora:'ancora',promissor:'promissor',novo:'parceiro-novo',parado:'parceiro-parado',saiu:'parceiro-saiu',cadsem:'cadastrados-sem-uso'};
 const CATT={'Agenda cultural':'agenda-cultural','Lojas online (vários)':'lojas-online-varios','Sem cadastro':'sem-cadastro'};
 const catH=c=>CATT[c]?T(CATT[c],esc(c)):esc(c);
 function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifica(L,P);const g=GRUPOS.find(x=>x[0]===PA.grupo)||GRUPOS[0];const lst=G[g[0]];
@@ -2231,12 +2252,13 @@ function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifi
  const lim=Math.min(...com.filter(r=>grande.has(r.m)).map(r=>r.v));const ctx={tot,pos,lim,L};
  const totA=L.reduce((t,r)=>t+(r.vant||0),0);const dTot=tot-totA;
  const soma=k=>G[k].reduce((t,r)=>t+(r.v||0),0),dif=k=>G[k].reduce((t,r)=>t+((r.v||0)-(r.vant||0)),0);
- const sub={risco:`${fmt(soma('risco'))} vouchers · ${sinalN(dif('risco'))} vs anterior`,ancora:`${fmt(soma('ancora'))} vouchers · ${fmt(tot?soma('ancora')/tot*100:0,0)}% do total`,promissor:`${sinalN(dif('promissor'))} vouchers vs anterior`,novo:`${fmt(soma('novo'))} vouchers no período`,parado:`perderam ${fmt(-dif('parado'))} vouchers`,cadsem:'sem voucher em 6 meses'};
+ const sub={risco:`${fmt(soma('risco'))} vouchers · ${sinalN(dif('risco'))} vs anterior`,ancora:`${fmt(soma('ancora'))} vouchers · ${fmt(tot?soma('ancora')/tot*100:0,0)}% do total`,promissor:`${sinalN(dif('promissor'))} vouchers vs anterior`,novo:`${fmt(soma('novo'))} vouchers no período`,parado:`perderam ${fmt(-dif('parado'))} vouchers`,saiu:`perderam ${fmt(-dif('saiu'))} vouchers`,cadsem:'sem voucher em 6 meses'};
  const leitura={risco:G.risco.length?`Os ${G.risco.length} parceiros em risco perderam juntos ${fmt(-dif('risco'))} vouchers${dTot<0?`, o equivalente a ${fmt(Math.min(100,-dif('risco')/-dTot*100),0)}% da queda total do Clube no período (${sinalN(dTot)})`:''}.`:'Nenhum parceiro grande caiu 15% ou mais.',
   ancora:`${G.ancora.length} parceiros sustentam ${fmt(tot?soma('ancora')/tot*100:0,0)}% dos vouchers do período.`,
   promissor:G.promissor.length?`${G.promissor.length} parceiros menores cresceram 30% ou mais e somaram ${sinalN(dif('promissor'))} vouchers.`:'Nenhum parceiro menor cresceu 30% ou mais.',
   novo:G.novo.length?`${G.novo.length} parceiros estrearam nos últimos 3 meses do período e somam ${fmt(soma('novo'))} vouchers.`:'Nenhum parceiro estreou nos últimos 3 meses do período.',
-  parado:G.parado.length?`${G.parado.length} parceiros zeraram; ${G.parado.filter(r=>r.status==='Ativo').length} deles seguem ativos no cadastro, que são os casos para investigar.`:'Nenhum parceiro zerou.',
+  parado:G.parado.length?`${G.parado.length} parceiros que seguem no Clube zeraram e perderam juntos ${fmt(-dif('parado'))} vouchers: ${G.parado.filter(r=>r.status==='Ativo').length} ativos no cadastro, ${G.parado.filter(r=>r.tipo==='Eventos e shows').length} produtoras de eventos e ${G.parado.filter(r=>r.status!=='Ativo'&&r.tipo!=='Eventos e shows').length} fora da lista de parceiros.`:'Nenhum parceiro que segue no Clube zerou.',
+  saiu:G.saiu.length?`${G.saiu.length} parceiros saíram do Clube (encerrados ou pausados no cadastro) e levaram ${fmt(-dif('saiu'))} vouchers do período anterior.`:'Nenhum parceiro encerrado zerou neste período.',
   cadsem:`${G.cadsem.length} parceiros ativos no cadastro estão sem voucher há 6 meses ou mais.`};
  const cats=new Map();lst.forEach(r=>{const k=r.cat||'—';const c=cats.get(k)||[];c.push(r);cats.set(k,c)});
  const ordCats=[...cats].sort((a,b)=>g[0]==='cadsem'?b[1].length-a[1].length:Math.abs(b[1].reduce((t,r)=>t+(r.v-(r.vant||0)),0))-Math.abs(a[1].reduce((t,r)=>t+(r.v-(r.vant||0)),0))||b[1].length-a[1].length);
@@ -2252,14 +2274,14 @@ function paSaude(){const P=periodos();const L=linhas();const {G,grande}=classifi
  <p class="hint">${notaPeriodo(P)} Grandes: os parceiros que, juntos, somam 80% dos vouchers do período (neste período, a partir de ${fmt(lim)} vouchers). Os grupos são exclusivos: cada parceiro aparece em um só, nesta ordem de prioridade: novo, em risco ou âncora, promissor.</p>`)}
 
 function classifica(L,P){const com=L.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);const tot=com.reduce((t,r)=>t+r.v,0);let ac=0;const grande=new Set();com.forEach(r=>{if(ac<tot*.8){grande.add(r.m)}ac+=r.v});
- const ini3=mAdd(P.b,-2);const G={risco:[],ancora:[],promissor:[],novo:[],parado:[],cadsem:[]};
- L.forEach(r=>{if(r.v===0){if(r.vant>0)G.parado.push(r);else if(r.status==='Ativo'&&!Object.keys(PA.d.uso.get(r.m)||{}).some(k=>k>=mAdd(P.b,-5)&&PA.d.uso.get(r.m)[k].v>0))G.cadsem.push(r);return}
+ const ini3=mAdd(P.b,-2);const G={risco:[],ancora:[],promissor:[],novo:[],parado:[],saiu:[],cadsem:[]};
+ L.forEach(r=>{if(r.v===0){if(r.vant>0)(saiuDoClube(r)?G.saiu:G.parado).push(r);else if(r.status==='Ativo'&&!Object.keys(PA.d.uso.get(r.m)||{}).some(k=>k>=mAdd(P.b,-5)&&PA.d.uso.get(r.m)[k].v>0))G.cadsem.push(r);return}
   if(r.prim>=ini3){G.novo.push(r);return}
   if(grande.has(r.m)){(r.dA!=null&&r.dA<=-15?G.risco:G.ancora).push(r);return}
   if(r.dA!=null&&r.dA>=30&&r.v>=20)G.promissor.push(r)});
  const vis=new Set([...PA.d.info.keys()]);PA.d.cad.filter(c=>c.status==='Ativo').forEach(c=>{const tem=[...PA.d.info.values()].some(i=>i.rows.includes(c));if(!tem&&!G.cadsem.some(x=>x.m===baseNome(c.parceiro)))G.cadsem.push({m:baseNome(c.parceiro),cat:catsDe(c.categoria)[0]||'—',local:grupoLocal(c.local),v:0,vant:0,semDados:true,modo:c.modo})});
  G.cadsem=[...new Map(G.cadsem.map(x=>[x.m,x])).values()];
- G.risco.sort((a,b)=>(a.v-a.vant)-(b.v-b.vant));G.ancora.sort((a,b)=>b.v-a.v);G.promissor.sort((a,b)=>b.dA-a.dA);G.novo.sort((a,b)=>b.v-a.v);G.parado.sort((a,b)=>b.vant-a.vant);G.cadsem.sort((a,b)=>a.cat.localeCompare(b.cat,'pt-BR')||a.m.localeCompare(b.m,'pt-BR'));return {G,grande}}
+ G.risco.sort((a,b)=>(a.v-a.vant)-(b.v-b.vant));G.ancora.sort((a,b)=>b.v-a.v);G.promissor.sort((a,b)=>b.dA-a.dA);G.novo.sort((a,b)=>b.v-a.v);G.parado.sort((a,b)=>b.vant-a.vant);G.saiu.sort((a,b)=>b.vant-a.vant);G.cadsem.sort((a,b)=>a.cat.localeCompare(b.cat,'pt-BR')||a.m.localeCompare(b.m,'pt-BR'));return {G,grande}}
 /* ---------- página: Categorias ---------- */
 function paCategorias(){const P=periodos();const L=linhas();const com=L.filter(r=>r.v>0||r.vant>0);const cats=agrupaPor(com,r=>r.cat,P);
  if(!PA.cat||!cats.some(c=>c.k===PA.cat))PA.cat=cats[0]?.k||'';const C=cats.find(c=>c.k===PA.cat);const tot=cats.reduce((t,c)=>t+c.v,0);
@@ -2304,13 +2326,43 @@ function paFicha(){const L=linhas();const nomes=L.filter(r=>r.v>0||r.vant>0||Obj
   <div class="td-k"><span>Primeiro e último uso</span><b style="font-size:17px">${prim} · ${ultM?lab(ultM):'—'}</b><small>desde jul/2023</small></div></div>
  <div class="card"><h3>Vouchers por mês</h3><svg viewBox="0 0 ${W} ${H}" class="td-svg">${g}</svg>${legend([['#721a50','Período escolhido'],['#d8c6cf','Outros meses'],['#C65911','Mesmo mês do ano anterior']])}</div>
  <div class="grid2">
-  <div class="card"><h3>Cadastro</h3><dl class="pa-dl">
+  <div class="card"><div class="row-head"><h3>Cadastro</h3>${ADMIN&&!PA.edCad?'<button class="chip" type="button" id="pa-edcad">Editar</button>':''}</div>${PA.edCad?paFormCad(r):''}<dl class="pa-dl"${PA.edCad?' hidden':''}>
    <dt>Tipo</dt><dd>${esc(r.tipo)}</dd><dt>Categoria</dt><dd>${esc(r.cat)}${r.sub?' › '+esc(r.sub):''}${r.ajuste?' <small>(ajuste manual)</small>':''}</dd>
    <dt>Local</dt><dd>${esc(r.localTxt||r.local)}</dd><dt>Modo de uso</dt><dd>${esc(r.modo||'—')}</dd><dt>Premium</dt><dd>${r.premium?'Sim, tem benefício exclusivo Premium':'Não'}</dd><dt>Status</dt><dd>${esc(r.status)}</dd>
    ${promos[0]?.responsavel?`<dt>Responsável</dt><dd>${esc(moda(promos.map(p=>p.responsavel)))}</dd>`:''}${promos.some(p=>p.gargalos)?`<dt>Possíveis gargalos</dt><dd>${esc(moda(promos.map(p=>p.gargalos)))}</dd>`:''}
   </dl>${!r.cad&&r.tipo==='Parceiros diretos'?'<p class="note">Este parceiro não está na lista de parceiros. '+(ADMIN?'Ligue-o ao cadastro ou informe a categoria em Parceiros › Cadastro.':'')+'</p>':''}</div>
-  <div class="card"><h3>Benefícios no cadastro <small>${fmt(promos.length)}</small></h3>${promos.length?`<ul class="pa-promos">${promos.map(p=>`<li><b>${esc(p.promocao||p.parceiro)}</b>${p.premium?' <small class="pa-tag">Premium</small>':''}${p.status!=='Ativo'?' <small>encerrado</small>':''}<br><small>${esc(p.modo||'')}${p.local?' · '+esc(p.local):''}</small>${p.descricao?`<p>${esc(p.descricao)}</p>`:''}${p.link?`<a href="${esc(p.link)}" target="_blank" rel="noopener">Ver no site do Clube →</a>`:''}</li>`).join('')}</ul>`:'<p class="hint">Sem benefícios no cadastro.</p>'}</div>
+  <div class="card"><h3>Benefícios no cadastro <small>${fmt(promos.length)}</small></h3>${promos.length?`<ul class="pa-promos">${promos.map(p=>PA.edRow===p.id?`<li>${paFormRow(p)}</li>`:`<li>${ADMIN&&p.id!=null?`<button class="chip pa-edb" type="button" data-edrow="${p.id}">Editar</button>`:''}<b>${esc(p.promocao||p.parceiro)}</b>${p.premium?' <small class="pa-tag">Premium</small>':''}${p.status!=='Ativo'?' <small>encerrado</small>':''}<br><small>${esc(p.modo||'')}${p.local?' · '+esc(p.local):''}</small>${p.descricao?`<p>${esc(p.descricao)}</p>`:''}${p.link?`<a href="${esc(p.link)}" target="_blank" rel="noopener">Ver no site do Clube →</a>`:''}</li>`).join('')}</ul>`:'<p class="hint">Sem benefícios no cadastro.</p>'}</div>
  </div><div class="card" id="pa-sem"><h3>Promoções nas últimas semanas</h3><p class="carregando">Carregando…</p></div>`)}
+/* edição do cadastro na ficha (admin) */
+function paFormCad(r){const aj=PA.d.aj.get(r.m)||{};const cats=[...new Set([...PA.d.cats,'Agenda cultural','Lojas online (vários)','Ações do Clube','Outros benefícios do Clube'])];
+ const nomesCad=[...new Set(PA.d.cad.map(c=>c.parceiro))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+ return `<div class="pa-form" id="pa-fcad"><p class="hint">Fica salvo como ajuste da marca <b>${esc(r.m)}</b> e vale mesmo depois de enviar uma lista de parceiros nova. Deixe a categoria em branco para usar a da lista.</p>
+  <label class="fld"><span>Categoria</span><input data-k="categoria" list="pa-catl" value="${esc(aj.categoria||'')}" placeholder="${esc(r.cat)}"></label><datalist id="pa-catl">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+  <label class="fld"><span>Subcategoria</span><input data-k="sub" value="${esc(aj.subcategoria||'')}" placeholder="${esc(r.sub||'')}"></label>
+  <label class="fld"><span>Parceiro na lista (quando o nome é diferente)</span><input data-k="parceiro" list="pa-cadl2" value="${esc(aj.parceiro||'')}" placeholder="${r.cad?esc(r.rows[0].parceiro):'Nome na lista de parceiros'}"></label><datalist id="pa-cadl2">${nomesCad.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+  <div class="adm-acoes"><button class="btn" type="button" id="pa-fcad-ok">Salvar</button><button class="chip" type="button" id="pa-fcad-x">Cancelar</button><span class="adm-err" hidden></span></div></div>`}
+function paFormRow(p){const f=(k,t,v,ph)=>`<label class="fld"><span>${t}</span><input data-k="${k}" value="${esc(v||'')}"${ph?` placeholder="${esc(ph)}"`:''}></label>`;
+ return `<div class="pa-form" data-id="${p.id}"><b>${esc(p.parceiro)}</b>
+  ${f('promocao','Promoção (nome do benefício)',p.promocao)}${f('link','Página no site do Clube (link)',p.link,'https://...')}${f('modo','Modo de uso',p.modo)}${f('local','Local',p.local)}
+  <label class="fld"><span>Descrição</span><textarea data-k="descricao" rows="3">${esc(p.descricao||'')}</textarea></label>
+  <div class="adm-chk"><label><input type="checkbox" data-k="premium"${p.premium?' checked':''}> Premium</label>
+   <select data-k="status"><option${p.status==='Ativo'?' selected':''}>Ativo</option><option${p.status!=='Ativo'?' selected':''}>Encerrado ou pausado</option></select></div>
+  <p class="hint">Muda esta linha da lista de parceiros. Ao enviar uma lista nova, valem os dados da planilha: atualize a planilha também.</p>
+  <div class="adm-acoes"><button class="btn" type="button" data-row-ok>Salvar</button><button class="chip" type="button" data-row-x>Cancelar</button><span class="adm-err" hidden></span></div></div>`}
+function paBindFicha(){const b=document.getElementById('pa-edcad');if(b)b.onclick=()=>{PA.edCad=true;PA.keep=true;paRender('parceiros-ficha')};
+ const f=document.getElementById('pa-fcad');if(f){const g=k=>f.querySelector(`[data-k="${k}"]`).value.trim();
+  document.getElementById('pa-fcad-x').onclick=()=>{PA.edCad=false;PA.keep=true;paRender('parceiros-ficha')};
+  document.getElementById('pa-fcad-ok').onclick=async e=>{e.target.disabled=true;const err=f.querySelector('.adm-err');
+   const cat=g('categoria')||(g('sub')?f.querySelector('[data-k="categoria"]').placeholder:''); // só a subcategoria: mantém a categoria atual
+   const {error}=await sb.rpc('salvar_ajuste_parceiro',{p_marca:PA.sel,p_parceiro:g('parceiro'),p_categoria:cat,p_subcategoria:g('sub')});
+   if(error){err.textContent=error.message;err.hidden=false;e.target.disabled=false;return}PA.edCad=false;PA.keep=true;await paCarregar(true);paRender('parceiros-ficha')}}
+ document.querySelectorAll('[data-edrow]').forEach(x=>x.onclick=()=>{PA.edRow=+x.dataset.edrow;PA.keep=true;paRender('parceiros-ficha')});
+ document.querySelectorAll('.pa-form[data-id]').forEach(fr=>{const v=k=>{const el=fr.querySelector(`[data-k="${k}"]`);return el.type==='checkbox'?el.checked:el.value};
+  fr.querySelector('[data-row-x]').onclick=()=>{PA.edRow=null;PA.keep=true;paRender('parceiros-ficha')};
+  fr.querySelector('[data-row-ok]').onclick=async e=>{e.target.disabled=true;const err=fr.querySelector('.adm-err');
+   const p={};['promocao','link','modo','local','descricao','premium','status'].forEach(k=>p[k]=v(k));
+   const {error}=await sb.rpc('salvar_linha_cadastro',{p_id:+fr.dataset.id,p});
+   if(error){err.textContent=error.message;err.hidden=false;e.target.disabled=false;return}PA.edRow=null;PA.keep=true;await paCarregar(true);paRender('parceiros-ficha')}})}
 async function paFichaSemanas(){const box=document.getElementById('pa-sem');if(!box)return;const m=PA.sel;
  try{await semCarregar();const L=SEM.dados.semanas.filter(s=>!s.so_total).slice(-8);await semItens(L.map(s=>s.i));
   const tit=new Map();L.forEach((s,j)=>(SEM.itens[s.i]||[]).filter(it=>it.marca===m).forEach(it=>{const t=it.titulo.trim();const a=tit.get(t)||Array(L.length).fill(0);a[j]+=it.usos;tit.set(t,a)}));
@@ -2370,20 +2422,23 @@ function paBindCadastro(){libs();const up=document.getElementById('pa-up');if(up
  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{b.disabled=true;const {error}=await sb.rpc('salvar_ajuste_parceiro',{p_marca:b.dataset.rm,p_parceiro:'',p_categoria:'',p_subcategoria:''});if(!error){await paCarregar(true);paRender('parceiros-cadastro')}})}
 
 /* ---------- roteamento ---------- */
-const PA_PAGES={parceiros:paVisao,'parceiros-ranking':paRanking,'parceiros-saude':paSaude,'parceiros-categorias':paCategorias,'parceiros-ficha':paFicha,'parceiros-cadastro':paCadastro};
+const PA_PAGES={parceiros:paVisao,'parceiros-ranking':paRanking,'parceiros-saude':paSaude,'parceiros-categorias':paCategorias,'parceiros-ficha':paFicha,'parceiros-cadastro':paCadastro,'parceiros-acoes':acPagina};
 function paRender(h){const y=scrollY;app.innerHTML=PA_PAGES[h]();paBind(()=>paRender(h));
  document.querySelectorAll('[data-ord]').forEach(b=>b.onclick=()=>{PA.ord=b.dataset.ord;paRender(h)});
  document.querySelectorAll('[data-gr]').forEach(b=>b.onclick=()=>{PA.grupo=b.dataset.gr;paRender(h)});
  document.querySelectorAll('[data-catb]').forEach(b=>b.onclick=()=>{PA.cat=b.dataset.catb;paRender(h)});
  document.querySelectorAll('a[data-cat]').forEach(a=>a.onclick=()=>{PA.cat=a.dataset.cat});
- const f=document.getElementById('pa-f');if(f)f.onchange=()=>{if(PA.d.info.has(f.value)){PA.sel=f.value;paRender(h)}};
- if(h==='parceiros-ficha')paFichaSemanas();if(h==='parceiros-cadastro')paBindCadastro();
+ const f=document.getElementById('pa-f');if(f)f.onchange=()=>{if(PA.d.info.has(f.value)){PA.sel=f.value;PA.edCad=false;PA.edRow=null;paRender(h)}};
+ if(h==='parceiros-ficha'){paFichaSemanas();paBindFicha()}if(h==='parceiros-acoes')acBind();if(h==='parceiros-cadastro')paBindCadastro();
  if(PA.keep)scrollTo(0,y);PA.keep=false}
 async function rotaParceiros(h){if(h==='parceiros-enviar'){location.hash='parceiros-cadastro';return}if(h==='parceiros-cadastro'&&!ADMIN){location.hash='parceiros';return}if(!PA_PAGES[h]){location.hash='parceiros';return}
  if(!PA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando os parceiros…</p>');
   try{await paCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os parceiros: ${esc(e.message||e)}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
  if(!PA.d.meses.length){app.innerHTML=shell(h,semDados());return}
+ if(h==='parceiros-acoes'&&!AC.d){app.innerHTML=shell(h,'<p class="carregando">Carregando as ações…</p>');
+  try{await acCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar as ações: ${esc(e.message||e)}${/function|schema cache|does not exist/i.test(e.message||'')?'. Confira se o arquivo 43_parceiros_ficha_acoes.sql já foi rodado no Supabase.':''}</div>`);return}
+  if((location.hash||'#home').slice(1)!==h)return}
  paRender(h)}
 
 /* =====================================================================
@@ -3415,6 +3470,120 @@ async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';r
   if((location.hash||'#home').slice(1)!==h)return}
  caRender(h)}
 
+/* =====================================================================
+   Parceiros › Ações do Clube
+   Busca de benefícios por palavra-chave, comparação de séries e cruzamento com as comunicações.
+   Bases: vouchers por dia (detalhe do Clube em números), comunicações (painel Comunicações) e lista de parceiros (categorias).
+   ===================================================================== */
+const AC={d:null,cache:new Map(),series:[],q:'',marcados:null,de:'',ate:'',gr:'auto',so:'todas'};
+const AC_CORES=['#721a50','#2f7fb8','#e07b24','#3f9a3a','#8d5bc1','#c23b56'];
+const AC_CANAL={'Newsletter':'N','E-mail pontual':'E','WhatsApp':'W','Push':'P','In-app':'I'};
+async function acCarregar(){if(AC.d)return;const {data,error}=await sb.rpc('dados_acoes');if(error)throw error;
+ const B=(data.beneficios||[]).map(([id,marca,titulo,v,ini,fim])=>({id,marca,titulo,v,ini,fim,cat:acCatDe(marca,titulo),txt:normL(cuMarcaAc(marca)+' '+titulo)}));
+ const porChave=new Map();B.forEach(b=>porChave.set(coN(b.marca)+'|'+coN(b.titulo),b));
+ const C=(data.comunicacoes||[]).map(c=>({...c,envio:String(c.envio).slice(0,10),linhas:(c.linhas||[]).map(([mb,tits,cham,cl,ev])=>({mb,tits:tits||[],cham,cl:cl||[],ev,ids:(tits||[]).map(t=>porChave.get(coN(mb)+'|'+coN(t))).filter(Boolean).map(b=>b.id)}))}));
+ AC.d={meses:data.meses||[],B,byId:new Map(B.map(b=>[b.id,b])),C};
+ const M=AC.d.meses;if(!AC.ate||!M.includes(AC.ate))AC.ate=M[M.length-1]||'';if(!AC.de||!M.includes(AC.de))AC.de=M[Math.max(0,M.length-12)]||''}
+const cuMarcaAc=m=>m==='GZH'?'Clube do Assinante':m;
+const AC_CAT=new Map();function acCatDe(marca,titulo){let m=marcaDoClube(marca,'',titulo);if(m==='GZH')m=CLUBE_MARCA;if(!AC_CAT.has(m))AC_CAT.set(m,(PA.d.info.get(m)||infoMarca(PA.d,m)).cat);return AC_CAT.get(m)}
+const acCat=b=>b.cat||'—';
+function acBusca(q){const t=normL(q).split(/\s+/).filter(Boolean);if(!t.length)return [];
+ return AC.d.B.filter(b=>t.every(x=>b.txt.includes(x))&&(AC.so==='todas'||(AC.so==='acoes'?acCat(b)==='Ações do Clube':acCat(b)!=='Ações do Clube')))}
+/* baldes de tempo */
+const acDia=d=>new Date(d+'T12:00:00');const acIso=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+function acGr(){if(AC.gr!=='auto')return AC.gr;const n=mesesEntre(AC.de,AC.ate).length;return n<=2?'dia':n<=9?'semana':'mes'}
+function acBalde(dia,gr){if(gr==='dia')return dia;if(gr==='mes')return dia.slice(0,7);const d=acDia(dia);const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return acIso(d)}
+function acBaldes(gr){const out=[];const ini=acDia(AC.de+'-01'),[y,m]=AC.ate.split('-').map(Number),fim=new Date(y,m,0,12);
+ if(gr==='mes')return mesesEntre(AC.de,AC.ate);let d=new Date(ini);if(gr==='semana'){d.setDate(d.getDate()-((d.getDay()+6)%7))}
+ while(d<=fim){out.push(acIso(d));d.setDate(d.getDate()+(gr==='dia'?1:7))}return out}
+const acLabB=(k,gr)=>gr==='mes'?lab(k):gr==='semana'?`sem. ${k.slice(8)}/${k.slice(5,7)}`:`${k.slice(8)}/${k.slice(5,7)}`;
+const acFimB=(k,gr)=>{if(gr==='dia')return k;if(gr==='mes'){const [y,m]=k.split('-').map(Number);return `${k}-${pad2(new Date(y,m,0).getDate())}`}const d=acDia(k);d.setDate(d.getDate()+6);return acIso(d)};
+const acIniB=(k,gr)=>gr==='mes'?k+'-01':k;
+async function acGarante(ids){const falta=ids.filter(i=>!AC.cache.has(i));if(!falta.length)return;
+ for(let i=0;i<falta.length;i+=300){const parte=falta.slice(i,i+300);const {data,error}=await sb.rpc('serie_acoes',{p_ids:parte});if(error)throw error;
+  parte.forEach(id=>AC.cache.set(id,[]));(data||[]).forEach(([id,dia,v,p])=>AC.cache.get(id).push([String(dia).slice(0,10),v,p]))}}
+function acSerieDados(S,gr){const ini=AC.de+'-01',[y,m]=AC.ate.split('-').map(Number),fim=`${AC.ate}-${pad2(new Date(y,m,0).getDate())}`;
+ const por=new Map();let tot=0;const dias=new Map();
+ S.ids.forEach(id=>(AC.cache.get(id)||[]).forEach(([dia,v])=>{if(dia<ini||dia>fim)return;const k=acBalde(dia,gr);por.set(k,(por.get(k)||0)+v);dias.set(dia,(dias.get(dia)||0)+v);tot+=v}));
+ return {por,tot,dias}}
+function acComsDe(S){const ini=AC.de+'-01',[y,m]=AC.ate.split('-').map(Number),fim=`${AC.ate}-${pad2(new Date(y,m,0).getDate())}`;
+ const out=[];AC.d.C.forEach(c=>{if(c.envio<ini||c.envio>fim)return;const ls=c.linhas.filter(l=>l.ids.some(id=>S.ids.has(id)));if(ls.length)out.push({c,ls})});return out}
+const acSomaDias=(dias,a,b)=>{let s=0;dias.forEach((v,d)=>{if(d>=a&&d<=b)s+=v});return s};
+const acMais=(d,n)=>{const x=acDia(d);x.setDate(x.getDate()+n);return acIso(x)};
+
+function acPagina(){const D=AC.d;
+ if(!D.meses.length)return shell('parceiros-acoes',`<div class="note">Ainda não há vouchers por dia carregados. Eles entram a cada mês enviado em Clube em números › Enviar mês; os meses anteriores entram em Calculadoras › Enviar bases › Histórico de uso${ADMIN?'':' (peça a um administrador)'}.</div>`);
+ const res=AC.q?acBusca(AC.q):[];if(AC.marcados==null||AC.marcadosQ!==AC.q){AC.marcados=new Set(res.filter(b=>b.v>0).slice(0,40).map(b=>b.id));AC.marcadosQ=AC.q}
+ const opt=v=>D.meses.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
+ const sug=['Cineminha','GNC','Uber','Capital Inicial','Hard Rock','Netshoes'].filter(s=>acBusca(s).length);
+ const gr=acGr();
+ return shell('parceiros-acoes',`<p class="answer">Compare a geração de vouchers de ações e benefícios e veja quais comunicações (canais e datas) aconteceram perto de cada pico.</p>
+ <div class="card"><h3>1. Buscar ações</h3>
+  <div class="ca-linha"><label class="fld" style="flex:1 1 260px"><span>Palavra-chave</span><input id="ac-q" value="${esc(AC.q)}" placeholder="Ex.: GNC, Uber, Capital Inicial"></label>
+   <label class="fld"><span>Mostrar</span><select id="ac-so"><option value="todas"${AC.so==='todas'?' selected':''}>Todos os benefícios</option><option value="acoes"${AC.so==='acoes'?' selected':''}>Só ações do Clube (cortesias)</option><option value="parc"${AC.so==='parc'?' selected':''}>Só benefícios de parceiros</option></select></label>
+   <div class="ca-bts"><button class="btn" id="ac-buscar" type="button">Buscar</button></div></div>
+  ${!AC.q&&sug.length?`<div class="chips" style="margin-top:10px">${sug.map(s=>`<button class="chip" type="button" data-ac-sug="${esc(s)}">${esc(s)}</button>`).join('')}</div>`:''}
+  ${AC.q?(res.length?`<div class="ac-res"><p class="hint">${fmt(res.length)} ${res.length===1?'benefício encontrado':'benefícios encontrados'} para "${esc(AC.q)}". Marque o que entra na comparação (os números são de todo o histórico carregado).</p>
+   <div class="tw ac-tw"><table class="cmp"><thead><tr><th><input type="checkbox" id="ac-all"${res.every(b=>AC.marcados.has(b.id))?' checked':''} aria-label="Marcar todos"></th><th>Marca</th><th>Benefício</th><th>Categoria</th><th class="n">Vouchers</th><th>Período de uso</th></tr></thead><tbody>
+   ${res.slice(0,200).map(b=>`<tr><td><input type="checkbox" data-ac-b="${b.id}"${AC.marcados.has(b.id)?' checked':''}></td><td>${esc(cuMarcaAc(b.marca))}</td><td>${esc(b.titulo)}</td><td>${esc(acCat(b))}</td><td class="n">${fmt(b.v)}</td><td><small>${cuData(String(b.ini).slice(0,10))} a ${cuData(String(b.fim).slice(0,10))}</small></td></tr>`).join('')}</tbody></table></div>
+   <div class="ca-salvar"><label class="fld" style="min-width:220px"><span>Nome na comparação</span><input id="ac-nome" value="${esc(AC.q)}"></label><button class="btn" id="ac-add" type="button"${AC.series.length>=6?' disabled':''}>Adicionar à comparação</button>${AC.series.length>=6?'<span class="hint">Máximo de 6 séries.</span>':''}</div></div>`:`<p class="hint" style="margin-top:10px">Nenhum benefício com "${esc(AC.q)}" no histórico carregado.</p>`):''}</div>
+ ${AC.series.length?`<div class="card"><h3>2. Comparação</h3>
+  <div class="chips ac-ser">${AC.series.map((S,i)=>`<span class="chip on" style="background:${S.cor};border-color:${S.cor}">${esc(S.nome)} <small>(${fmt(S.ids.size)})</small> <button type="button" class="ac-x" data-ac-rm="${i}" aria-label="Remover ${esc(S.nome)}">×</button></span>`).join('')}</div>
+  <div class="ca-linha" style="margin-top:12px"><label class="fld"><span>De</span><select id="ac-de">${opt(AC.de)}</select></label><label class="fld"><span>Até</span><select id="ac-ate">${opt(AC.ate)}</select></label>
+   <label class="fld"><span>Agrupar por</span><select id="ac-gr">${[['auto',`Automático (${({dia:'dia',semana:'semana',mes:'mês'})[gr]})`],['dia','Dia'],['semana','Semana'],['mes','Mês']].map(([k,t])=>`<option value="${k}"${AC.gr===k?' selected':''}>${t}</option>`).join('')}</select></label></div>
+  <div id="ac-out"><p class="carregando">Carregando os vouchers…</p></div></div>`:''}
+ <p class="hint">Fontes: vouchers por dia do detalhe guardado pelo Clube em números (${lab(D.meses[0])} a ${lab(D.meses[D.meses.length-1])}${D.meses.length<mesesEntre(D.meses[0],D.meses[D.meses.length-1]).length?', com meses faltando':''}; sem as farmácias de resgate automático), comunicações analisadas no painel Comunicações e categorias da lista de parceiros.</p>`)}
+
+function acResultado(){const gr=acGr();const K=acBaldes(gr);const SD=AC.series.map(S=>({S,...acSerieDados(S,gr),coms:acComsDe(S)}));
+ const mx=Math.max(1,...SD.flatMap(s=>K.map(k=>s.por.get(k)||0)));const W=1000,H=300,Lm=48,R=12,T0=14,B=58;const bw=(W-Lm-R)/Math.max(1,K.length);
+ const xx=j=>Lm+j*bw+bw/2,yy=v=>T0+(1-v/mx)*(H-T0-B);const idx=new Map(K.map((k,j)=>[k,j]));
+ let g='';for(let k=0;k<=4;k++){const v=mx*k/4;g+=`<line x1="${Lm}" x2="${W-R}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${Lm-6}" y="${yy(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(v)}</text>`}
+ const Mset=new Set(AC.d.meses);const temD=k=>Mset.has(acIniB(k,gr).slice(0,7))||Mset.has(acFimB(k,gr).slice(0,7));
+ K.forEach((k,j)=>{if(!temD(k))g+=`<rect x="${Lm+j*bw}" y="${T0}" width="${bw}" height="${H-B-T0}" fill="var(--line)" opacity=".45"><title>${acLabB(k,gr)}: sem vouchers por dia carregados</title></rect>`});
+ const passo=Math.ceil(K.length/12);K.forEach((k,j)=>{if(j%passo===0)g+=`<text x="${xx(j)}" y="${H-B+16}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${acLabB(k,gr)}</text>`});
+ // marcas das comunicações: uma faixa por série, abaixo do eixo
+ SD.forEach((s,i)=>{const yb=H-B+28+i*8;s.coms.forEach(({c,ls})=>{const j=idx.get(acBalde(c.envio,gr));if(j==null)return;
+  g+=`<line x1="${xx(j)}" x2="${xx(j)}" y1="${T0}" y2="${H-B}" stroke="${s.S.cor}" stroke-opacity=".18" stroke-dasharray="3 3"/><g><title>${esc(c.canal)} ${cuData(c.envio)} · ${esc(c.assunto||c.lista||'')}\n${ls.map(l=>esc(l.cham||l.tits[0]||'')).join(' · ')}</title><circle cx="${xx(j)}" cy="${yb}" r="4.2" fill="${s.S.cor}"/></g>`})});
+ SD.forEach(s=>{let d='',on=false;K.forEach((k,j)=>{if(!temD(k)){on=false;return}d+=`${on?'L':'M'}${xx(j).toFixed(1)} ${yy(s.por.get(k)||0).toFixed(1)}`;on=true});
+  g+=`<path d="${d}" fill="none" stroke="${s.S.cor}" stroke-width="2.4" stroke-linejoin="round"/>`;
+  K.forEach((k,j)=>{const v=s.por.get(k)||0;if(v)g+=`<circle cx="${xx(j)}" cy="${yy(v)}" r="${K.length>60?1.6:3}" fill="${s.S.cor}"><title>${esc(s.S.nome)} · ${acLabB(k,gr)}: ${fmt(v)} vouchers</title></circle>`})});
+ const Hs=H+Math.max(0,SD.length-3)*8;
+ // picos
+ const picos=SD.map(s=>{const arr=K.map(k=>[k,s.por.get(k)||0]).filter(x=>x[1]>0);const media=s.tot/Math.max(1,K.length);
+  return {s,media,top:arr.sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>{const a=acIniB(k,gr),z=acFimB(k,gr);
+   const cs=s.coms.filter(({c})=>c.envio>=acMais(a,gr==='dia'?-3:-3)&&c.envio<=z);
+   const pre=gr==='dia'?'':`<small class="hint">(${cuData(a)} a ${cuData(z)})</small>`;
+   const txt=cs.length?`${cs.length===1?'Uma comunicação':cs.length+' comunicações'} nos dias antes ou durante o pico: ${cs.map(({c,ls})=>`<b>${esc(c.canal)}</b> ${cuData(c.envio)} «${esc(c.assunto||c.lista||'')}»${ls[0].cl&&ls[0].cl[0]?` (${fmt(ls[0].cl[0])} ${ls[0].cl[0]===1?'pessoa gerou':'pessoas geraram'} depois de ${c.canal==='WhatsApp'?'ler':'clicar'})`:''}`).join('; ')}.`
+    :'Sem comunicação analisada no painel nesse período: o pico pode vir da data do evento, do lançamento do benefício, do destaque no site/app ou de divulgação fora dos canais analisados (redes, site, matéria).';
+   return {k,v,x:media?v/media:0,pre,txt}})}});
+ // comunicações das séries
+ const linhasC=SD.flatMap(s=>s.coms.map(({c,ls})=>{const v3=acSomaDias(s.dias,c.envio,acMais(c.envio,3));const ant=acSomaDias(s.dias,acMais(c.envio,-4),acMais(c.envio,-1));return {s,c,ls,v3,ant}})).sort((a,b)=>a.c.envio.localeCompare(b.c.envio));
+ return `<div class="kpis ac-kpis">${SD.map(s=>{const melhor=[...s.por].sort((a,b)=>b[1]-a[1])[0];return `<div class="kpi" style="border-top:4px solid ${s.S.cor}"><div class="k">${esc(s.S.nome)}</div><div class="v">${fmt(s.tot)}</div><div class="d">vouchers em ${perLab(AC.de,AC.ate)}${melhor?` · pico ${acLabB(melhor[0],gr)} (${fmt(melhor[1])})`:''} · ${fmt(s.coms.length)} ${s.coms.length===1?'comunicação':'comunicações'}</div></div>`}).join('')}</div>
+ <svg viewBox="0 0 ${W} ${Hs}" class="td-svg ac-svg">${g}</svg>
+ <p class="hint">Linha: vouchers por ${({dia:'dia',semana:'semana (de segunda a domingo)',mes:'mês'})[gr]}. Faixas cinza: meses sem vouchers por dia carregados. Bolinhas embaixo do eixo: comunicações que divulgaram algum benefício da série (passe o mouse para ver canal, data e assunto).</p>
+ <h4 class="ac-h">Por que teve pico?</h4>
+ ${picos.map(p=>`<div class="ac-pico"><b style="color:${p.s.S.cor}">${esc(p.s.S.nome)}</b>${p.top.length?`<ol>${p.top.map(t=>`<li><b>${acLabB(t.k,gr)}</b> ${t.pre}: ${fmt(t.v)} vouchers${t.x>=1.5?`, ${fmt(t.x,1)} vezes a média do período`:''}. ${t.txt}</li>`).join('')}</ol>`:'<p class="hint">Sem vouchers no período.</p>'}</div>`).join('')}
+ <h4 class="ac-h">Comunicações das ações no período <small class="hint">${fmt(linhasC.length)}</small></h4>
+ ${linhasC.length?`<div class="tw"><table class="cmp"><thead><tr><th>Envio</th><th>Comunicação</th><th>Benefício divulgado</th><th class="n">Geraram<br><small>após clique</small></th><th class="n">Série<br><small>4 dias antes</small></th><th class="n">Série<br><small>dia + 3 dias</small></th></tr></thead><tbody>
+  ${linhasC.map(x=>`<tr><td style="white-space:nowrap">${cuData(x.c.envio)}<br><small class="hint">${esc(x.c.canal)}</small></td><td style="min-width:200px">${esc(x.c.assunto||x.c.lista||'')}</td><td style="min-width:180px"><span class="ac-dot" style="background:${x.s.S.cor}" title="${esc(x.s.S.nome)}"></span>${x.ls.map(l=>esc(l.cham||l.tits[0]||'')).join('<br>')}</td><td class="n">${fmt(x.ls.reduce((t,l)=>t+((l.cl||[])[0]||0),0))}</td><td class="n">${fmt(x.ant)}</td><td class="n"><b>${fmt(x.v3)}</b>${x.v3>x.ant?` <small class="up">+${fmt(x.v3-x.ant)}</small>`:''}</td></tr>`).join('')}</tbody></table></div>
+  <p class="hint">A bolinha mostra a série. "Geraram após clique": pessoas que clicaram (ou leram, no WhatsApp) e geraram voucher do benefício no prazo oficial do canal. As duas últimas colunas comparam a série inteira (todos os canais e quem não recebeu) nos 4 dias antes do envio e no dia do envio + 3 dias.</p>`:'<p class="hint">Nenhuma comunicação analisada no painel divulgou esses benefícios no período.</p>'}`}
+
+async function acDesenha(){const out=document.getElementById('ac-out');if(!out)return;
+ try{await acGarante([...new Set(AC.series.flatMap(S=>[...S.ids]))]);out.innerHTML=acResultado()}catch(e){out.innerHTML=`<div class="note">Não foi possível carregar os vouchers: ${esc(e.message||e)}</div>`}}
+function acBind(){const q=document.getElementById('ac-q');if(!q)return;
+ const buscar=()=>{AC.q=q.value.trim();paRender('parceiros-acoes')};
+ document.getElementById('ac-buscar').onclick=buscar;q.onkeydown=e=>{if(e.key==='Enter')buscar()};
+ document.getElementById('ac-so').onchange=e=>{AC.so=e.target.value;AC.marcadosQ=null;paRender('parceiros-acoes')};
+ document.querySelectorAll('[data-ac-sug]').forEach(b=>b.onclick=()=>{AC.q=b.dataset.acSug;paRender('parceiros-acoes')});
+ document.querySelectorAll('[data-ac-b]').forEach(c=>c.onchange=()=>{const id=+c.dataset.acB;c.checked?AC.marcados.add(id):AC.marcados.delete(id)});
+ const all=document.getElementById('ac-all');if(all)all.onchange=()=>{acBusca(AC.q).forEach(b=>all.checked?AC.marcados.add(b.id):AC.marcados.delete(b.id));document.querySelectorAll('[data-ac-b]').forEach(c=>c.checked=all.checked)};
+ const add=document.getElementById('ac-add');if(add)add.onclick=()=>{const ids=new Set([...AC.marcados].filter(id=>acBusca(AC.q).some(b=>b.id===id)));if(!ids.size){alert('Marque pelo menos um benefício.');return}
+  const usadas=new Set(AC.series.map(s=>s.cor));AC.series.push({nome:document.getElementById('ac-nome').value.trim()||AC.q,ids,cor:AC_CORES.find(c=>!usadas.has(c))||AC_CORES[0]});AC.q='';AC.marcados=null;paRender('parceiros-acoes')};
+ document.querySelectorAll('[data-ac-rm]').forEach(b=>b.onclick=()=>{AC.series.splice(+b.dataset.acRm,1);paRender('parceiros-acoes')});
+ const per=()=>{AC.de=document.getElementById('ac-de').value;AC.ate=document.getElementById('ac-ate').value;if(AC.de>AC.ate)[AC.de,AC.ate]=[AC.ate,AC.de];AC.gr=document.getElementById('ac-gr').value;paRender('parceiros-acoes')};
+ ['ac-de','ac-ate','ac-gr'].forEach(id=>{const el=document.getElementById(id);if(el)el.onchange=per});
+ acDesenha()}
+
 
 /* ---------- telas gerais ---------- */
 function semDados(){return `<p class="answer">Ainda não há meses carregados no portal.</p>${ADMIN?`<p><a class="btn" href="#clube-enviar">Enviar dados do mês</a></p>`:'<p class="hint">Peça a um administrador para carregar os arquivos.</p>'}`}
@@ -3505,7 +3674,7 @@ async function carregarDados(silencioso){
  const {data,error}=await sb.rpc('dados_portal');
  if(error)throw error;
  prepararDados(data);PAIN=Array.isArray(data.paineis)?new Set(data.paineis):null;PAIN_T=Date.now();
- if(typeof PA!=='undefined')PA.d=null;if(typeof CO!=='undefined')CO.d=null;if(typeof INA!=='undefined')INA.d=null;if(typeof CA!=='undefined')CA.d=null; // parceiros recarregam com os meses novos
+ if(typeof PA!=='undefined')PA.d=null;if(typeof CO!=='undefined')CO.d=null;if(typeof INA!=='undefined')INA.d=null;if(typeof CA!=='undefined')CA.d=null;if(typeof AC!=='undefined')AC.d=null; // parceiros recarregam com os meses novos
  const at=document.getElementById('atualizado');
  at.textContent=M.length?`Dados até ${lab(LAST)}`:(temPainel('clube')?'Sem dados':'');
 }
