@@ -529,6 +529,13 @@ table.cmp.io .up{color:var(--good);font-weight:600}table.cmp.io .down{color:var(
 .ca-map input,.ca-map select{width:100%}
 .ca-salvar{margin:6px 0 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .ca-rs{white-space:nowrap}
+.cu-hero h3{margin:4px 0 6px;font-size:22px}
+.cu-hero p{margin:0;font-size:15.5px}
+.cu-kpis{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:14px 0}
+.cu-kpis .v{font-size:24px;line-height:1.2;overflow-wrap:anywhere}
+.cu-tw{max-height:620px;overflow:auto}
+.cu-tw thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+[data-cu-ord]{cursor:pointer;user-select:none}
 </style>
 </head>
 <body>
@@ -1160,8 +1167,8 @@ const AREAS={
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
- calculadora:{n:'Calculadora',t:'Calculadora de',s:'economia',d:'Digite o CPF do sócio e veja quanto ele economizou nas farmácias parceiras (Panvel, Droga Raia) no período.',c:'var(--verde-esc, #2f7a4a)',st:['ok','Novo'],
-  r:[['calculadora','Consultar CPF'],['calculadora-enviar','Enviar bases',1]]},
+ calculadora:{n:'Calculadoras',t:'Calculadoras do',s:'Clube',d:'Digite o CPF do sócio e veja quanto ele economizou nas farmácias parceiras e a retrospectiva de uso do Clube.',c:'var(--verde-esc, #2f7a4a)',st:['ok','Novo'],
+  r:[['calculadora','Calculadora farmácia'],['calculadora-uso','Calculadora uso'],['calculadora-enviar','Enviar bases',1]]},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
   r:GL.map(([g],i)=>['glossario-'+i,g])},
  admin:{n:'Área do administrador',t:'Área do',s:'administrador',d:'Pedidos de acesso ao portal, quem tem login e quais painéis cada pessoa vê.',c:'var(--ink)',st:['ok','Só admin'],adm:1,
@@ -1228,7 +1235,7 @@ const FARMACIAS=new Set(['Droga Raia','Farmácia Pague Menos','Farmácias Pague 
 const ATIVAS=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
 const PRODUTO={'DIGITAL':'Digital','IMPRESSO':'Impresso','IMP+DIG':'Impresso + Digital'};
 const FAMILIA={'PLANO FAMILIA ATIVO':'Ativo','AINDA TEM ESPACO NO PLANO FAMILIA':'Tem espaço','PLANO FAMILIA INATIVO':'Inativo','NAO TEM PLANO FAMILIA':'Não tem direito'};
-const CG={cart:[],vou:new Map(),vouArq:[],lendo:false,rodando:false,sit:null,log:[],erro:null,feito:0};
+const CG={cart:[],vou:new Map(),det:new Map(),vouArq:[],lendo:false,rodando:false,sit:null,log:[],erro:null,feito:0};
 
 function libs(){for(const id of ['lib-xlsx','lib-papa']){const el=document.getElementById(id);if(el&&!el.dataset.ok){const s=document.createElement('script');s.textContent=el.textContent;document.head.appendChild(s);el.dataset.ok='1'}}}
 function mesDoArquivo(nome){const n=normU(nome).replace(/[^A-Z0-9]/g,' ');const m=n.match(/(JANEIRO|FEVEREIRO|MARCO|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)\s*(20\d\d)/);return m?`${m[2]}-${pad2(NOMES_MES[m[1]])}`:null}
@@ -1244,6 +1251,15 @@ function ymDe(v){/* devolve [ano, mês] ou null */
  if((m=s.match(/^(\d{1,2}) de ([a-zç]{3})[a-zç]*\.? de (\d{4})/))&&ABREV[m[2]])return [+m[3],ABREV[m[2]]];
  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)))return [+m[3],+m[2]];
  if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})/)))return [+m[1],+m[2]];
+ return null}
+/* dia completo (AAAA-MM-DD) para o detalhe da Calculadora uso */
+function diaDe(v){if(v==null||v==='')return null;
+ if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);return d&&d.y?`${d.y}-${pad2(d.m)}-${pad2(d.d)}`:null}
+ if(v instanceof Date)return `${v.getFullYear()}-${pad2(v.getMonth()+1)}-${pad2(v.getDate())}`;
+ const s=String(v).trim().toLowerCase();let m;
+ if((m=s.match(/^(\d{1,2}) de ([a-zç]{3})[a-zç]*\.? de (\d{4})/))&&ABREV[m[2]])return `${m[3]}-${pad2(ABREV[m[2]])}-${pad2(+m[1])}`;
+ if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)))return `${m[3]}-${pad2(+m[2])}-${pad2(+m[1])}`;
+ if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})/)))return `${m[1]}-${m[2]}-${m[3]}`;
  return null}
 
 /* regra MODALIDADE → MODALIDADE 2 (13 etapas; vale a primeira que bater) */
@@ -1314,6 +1330,8 @@ function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw
  let p=parseInt(prodRaw,10);if(!(p>0))p=1;
  const m=`${ym[0]}-${pad2(ym[1])}`;let g=CG.vou.get(m);if(!g){g={mapa:new Map(),linhas:0,cort:descRaw===undefined?null:0};CG.vou.set(m,g)}
  if(g.cort!=null&&ehCortesia(marca,descRaw,titRaw)&&!normU(nomeRaw).startsWith('ADMIN C'))g.cort+=p;
+ if(!normU(nomeRaw).startsWith('ADMIN C')){const dia=diaDe(dataRaw);if(dia){let dm=CG.det.get(m);if(!dm){dm=new Map();CG.det.set(m,dm)}
+  const tt=String(titRaw??'').replace(/\s+/g,' ').trim()||marca;const kd=c+'\t'+dia+'\t'+marca+'\t'+tt;dm.set(kd,(dm.get(kd)||0)+p)}}
  marca=marcaDoClube(marca,descRaw,titRaw);
  const k=c+'\t'+marca;g.mapa.set(k,(g.mapa.get(k)||0)+p);g.linhas++;est.ok++}
 function lerVouchers(file,prog){const est={ok:0,farm:0,semCpf:0,semData:0};
@@ -1331,6 +1349,12 @@ async function codigos(lista){const falta=[...new Set(lista.filter(c=>c&&!HC.has
  for(let i=0;i<falta.length;i+=2000){await Promise.all(falta.slice(i,i+2000).map(async c=>{const d=new Uint8Array(await crypto.subtle.digest('SHA-256',ENC.encode(PEPPER+':'+c)));
   let hex='';for(let j=0;j<7;j++)hex+=d[j].toString(16).padStart(2,'0');HC.set(c,parseInt(hex.slice(0,13),16))}))}}
 async function enviar(tabela,linhas,prog){const T=4000;for(let i=0;i<linhas.length;i+=T){const {error}=await sb.from(tabela).insert(linhas.slice(i,i+T));if(error)throw new Error(error.message);prog(Math.min(i+T,linhas.length),linhas.length)}}
+/* detalhe de um mês para a Calculadora uso: código do CPF + dia + benefício + produtos (precisa de PEPPER) */
+async function enviarUsoMes(m,det,prog){await codigos([...det.keys()].map(k=>k.slice(0,k.indexOf('\t'))));
+ const B=new Map();const L=[];for(const [k,p] of det){const [c,dia,marca,tit]=k.split('\t');const bk=marca+'\t'+tit;let id=B.get(bk);if(id==null){id=B.size;B.set(bk,id)}L.push([HC.get(c),dia,id,p])}
+ const bl=[...B].map(([bk,id])=>{const i=bk.indexOf('\t');return [String(id),bk.slice(0,i),bk.slice(i+1)]});const T=6000;
+ for(let i=0;i<L.length;i+=T){const parte=L.slice(i,i+T).map(x=>[x[0],x[1],String(x[2]),x[3]]);const usados=new Set(parte.map(x=>x[2]));
+  await rpc('salvar_uso',{p_mes:m+'-01',p_benef:bl.filter(b=>usados.has(b[0])),p_linhas:parte,p_inicio:i===0});if(prog)prog(Math.min(i+T,L.length),L.length)}}
 async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args);if(error)throw new Error(error.message);return data}
 
 /* ---------- tela ---------- */
@@ -1350,7 +1374,7 @@ function bindCarga(){libs();
  document.getElementById('f-tot').onchange=async e=>{const f=e.target.files[0];const box=document.getElementById('cg-tot');if(!f)return;box.innerHTML='<p class="carregando">Lendo…</p>';
   try{const rows=await lerTotais(f);desenharTotais(rows)}catch(err){box.innerHTML=`<div class="note">${esc(err.message||err)}</div>`}};
  document.getElementById('f-cart').onchange=e=>{CG.cart=[...e.target.files].map(f=>({file:f,mes:mesDoArquivo(f.name)}));desenharMeses()};
- document.getElementById('f-vou').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CG.vou=new Map();CG.vouArq=fs.map(f=>f.name);CG.lendo=true;CG.erro=null;desenharMeses();
+ document.getElementById('f-vou').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CG.vou=new Map();CG.det=new Map();CG.vouArq=fs.map(f=>f.name);CG.lendo=true;CG.erro=null;desenharMeses();
   try{for(const f of fs){await lerVouchers(f,est=>{const el=document.getElementById('cg-lendo');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers válidos…`})}}
   catch(err){CG.erro=err.message}finally{CG.lendo=false;desenharMeses()}};
  desenharMeses();desenharLog();atualizarSituacao()}
@@ -1400,9 +1424,10 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
+   let txtU='';const det=CG.det.get(m);if(det&&det.size){try{etapa(`${nome}: guardando o detalhe para a Calculadora uso…`,base+passo*.95);await enviarUsoMes(m,det);txtU=' Detalhe salvo para a Calculadora uso.'}catch(e){txtU=` O detalhe para a Calculadora uso não foi salvo (${esc(e.message||e)}).`}}
    let txtC='';if(v.cort!=null){const [yy,mm]=m.split('-').map(Number);const fimMes=`${m}-${pad2(new Date(yy,mm,0).getDate())}`;
     try{await rpc('salvar_cortesia',{p_mes:m+'-01',p_valor:v.cort,p_ate:fimMes});txtC=` Cortesia: ${fmt(v.cort)} usos.`}catch(e){txtC=` A cortesia não foi salva (${esc(e.message||e)}).`}}
-   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}`,'ok')}
+   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}`,'ok')}
  }catch(e){logar(`Parou com erro: ${esc(e.message||e)}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
  try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
    try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
@@ -3170,7 +3195,7 @@ function caCpfValido(c){if(!/^\d{11}$/.test(c)||/^(\d)\1{10}$/.test(c))return fa
 
 async function caCarregar(forcar){if(CA.d&&!forcar)return;const {data,error}=await sb.rpc('dados_calculadora');if(error)throw error;
  const env=data.envios||[];const meses=[...new Set(env.map(e=>e.mes))].sort();const redes=[...new Set(env.map(e=>e.rede))].sort((a,b)=>(CA_REDES.indexOf(a)+99*(CA_REDES.indexOf(a)<0))-(CA_REDES.indexOf(b)+99*(CA_REDES.indexOf(b)<0))||a.localeCompare(b));
- CA.d={env,meses,redes};if(!meses.includes(CA.de))CA.de=meses[0]||'';if(!meses.includes(CA.ate))CA.ate=meses[meses.length-1]||''}
+ CA.d={env,meses,redes,uso:data.uso||[]};if(!meses.includes(CA.de))CA.de=meses[0]||'';if(!meses.includes(CA.ate))CA.ate=meses[meses.length-1]||''}
 
 /* atalhos de período: cada semestre e cada ano que tem base */
 function caAtalhos(){const M=CA.d.meses;if(!M.length)return [];const anos=[...new Set(M.map(m=>m.slice(0,4)))];const out=[];
@@ -3184,10 +3209,10 @@ function caCobertura(){const D=CA.d;if(!D.meses.length)return '';
 
 /* ---------- Consultar CPF ---------- */
 function caConsulta(){const D=CA.d;
- if(!D.meses.length)return shell('calculadora',`<div class="note">Ainda não há bases de farmácia carregadas.${ADMIN?' Envie em <a href="#calculadora-enviar">Enviar bases</a>.':' Peça a um administrador para enviar as bases.'}</div>`);
+ if(!D.meses.length)return shell('calculadora',`<div class="note"><b>Calculadora farmácia:</b> ainda não há bases de farmácia carregadas.${ADMIN?' Envie em <a href="#calculadora-enviar">Enviar bases</a>.':' Peça a um administrador para enviar as bases.'}</div>`);
  const opt=v=>D.meses.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
  const at=caAtalhos();
- return shell('calculadora',`<p class="answer">Digite o CPF do sócio para ver quanto ele economizou nas farmácias parceiras do Clube no período.</p>
+ return shell('calculadora',`<p class="answer"><b>Calculadora farmácia.</b> Digite o CPF do sócio para ver quanto ele economizou nas farmácias parceiras do Clube no período.</p>
  <div class="card ca-box"><div class="ca-linha">
   <label class="fld ca-cpf"><span>CPF do sócio</span><input id="ca-cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" value="${esc(CA.cpf)}"></label>
   <label class="fld"><span>De</span><select id="ca-de">${opt(CA.de)}</select></label>
@@ -3274,17 +3299,18 @@ function caEnviar(){const D=CA.d;const U=CA.up;
     ${ms.map(m=>{const g=A.por.get(m);let c=0,n=0;g.forEach(x=>{c+=x[0];n+=x[1]});const ja=D.env.find(x=>x.mes===m&&x.rede===A.rede);return `<tr><td>${lab(m)}</td><td class="n">${fmt(g.size)}</td><td class="n">${fmt(n)}</td><td class="n">${brl(c)}</td><td>${ja?'<small class="hint">substitui o que já está carregado</small>':''}</td></tr>`}).join('')||'<tr><td colspan="5" class="hint">Nenhuma linha válida.</td></tr>'}</tbody></table></div>
     <p class="hint">${fmt(e.ok)} linhas válidas${e.semCpf?` · ${fmt(e.semCpf)} sem CPF válido`:''}${e.semValor?` · ${fmt(e.semValor)} sem valor`:''}${e.semMes?` · ${fmt(e.semMes)} sem mês (escolha o mês)`:''}${e.neg?` · ${fmt(e.neg)} com valor negativo (contado como positivo)`:''}.</p>`}</div>`}).join(''):'';
  const pode=U&&U.length&&U.every(A=>A.iVal>=0&&A.rede&&A.por.size);
- return shell('calculadora-enviar',`<p class="answer">Suba os relatórios das farmácias (um arquivo por farmácia; pode ter vários meses). Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
+ return shell('calculadora-enviar',`<p class="answer"><b>Calculadora farmácia:</b> suba os relatórios das farmácias (um arquivo por farmácia; pode ter vários meses). Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
  <div class="card"><h3>Enviar bases das farmácias</h3><p class="sub">Arquivos .xlsx ou .csv com o CPF do sócio, a data da compra e o valor economizado (desconto). O portal reconhece as colunas e você confere antes de salvar. O CPF vira código antes de sair do seu computador.</p>
   <label class="drop"><b>Relatórios das farmácias</b><input type="file" id="ca-up" accept=".csv,.xlsx,.xls,.txt" multiple></label>
   <datalist id="ca-redes">${[...new Set([...CA_REDES,...D.redes])].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
   ${CA.msg?`<p class="${CA.msg.ok?'adm-ok':'adm-err'}" style="margin-top:10px">${CA.msg.t}</p>`:''}</div>
  ${prev}
  ${U?`<div class="ca-salvar"><button class="btn" id="ca-salvar" type="button"${pode?'':' disabled'}>Salvar ${U.length===1?'a base':`as ${U.length} bases`}</button> <span class="hint" id="ca-prog">${pode?'':'Preencha a farmácia e confira as colunas de cada arquivo.'}</span></div>`:''}
- <div class="card tablecard"><h3>Bases carregadas <small>${fmt(D.env.length)}</small></h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th>Farmácia</th><th class="n">Pessoas</th><th class="n">Compras</th><th class="n">Economia</th><th>Arquivo</th><th>Enviado em</th><th></th></tr></thead><tbody>
+ <div class="card tablecard"><h3>Bases de farmácia carregadas <small>${fmt(D.env.length)}</small></h3><div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th>Farmácia</th><th class="n">Pessoas</th><th class="n">Compras</th><th class="n">Economia</th><th>Arquivo</th><th>Enviado em</th><th></th></tr></thead><tbody>
   ${D.env.slice().reverse().map(e=>`<tr><td>${lab(e.mes)}</td><td>${esc(e.rede)}</td><td class="n">${fmt(e.pessoas)}</td><td class="n">${fmt(e.compras)}</td><td class="n">${brl(e.centavos||0)}</td><td><small>${esc(e.arquivo||'')}</small></td><td>${new Date(e.enviado_em).toLocaleDateString('pt-BR')}</td><td><button class="chip" type="button" data-ca-del="${e.mes}|${esc(e.rede)}">Apagar</button></td></tr>`).join('')||'<tr><td colspan="8" class="hint">Nenhuma base carregada ainda.</td></tr>'}
- </tbody></table></div></div>`)}
-function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
+ </tbody></table></div></div>
+ ${cuHistoricoCard()}`)}
+function caBindEnviar(){cuhBind();const up=document.getElementById('ca-up');if(!up)return;
  up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CA.msg=null;app.querySelector('#ca-up').closest('.card').insertAdjacentHTML('beforeend','<p class="carregando">Lendo…</p>');
   try{CA.up=[];for(const f of fs)CA.up.push(caResumoArq(await caLerArquivo(f)))}catch(err){CA.up=null;CA.msg={t:esc(err.message||err)}}caRender('calculadora-enviar')};
  document.querySelectorAll('.ca-arq').forEach(card=>{const A=CA.up[+card.dataset.k];
@@ -3304,9 +3330,85 @@ function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
  document.querySelectorAll('[data-ca-del]').forEach(b=>b.onclick=async()=>{const [m,r]=b.dataset.caDel.split('|');if(!confirm(`Apagar a base de ${r} de ${lab(m)}?`))return;b.disabled=true;
   try{await rpc('apagar_farmacia',{p_mes:m+'-01',p_rede:r});await caCarregar(true);CA.res=null;caRender('calculadora-enviar')}catch(err){alert(err.message);b.disabled=false}})}
 
+
+/* ---------- Calculadora uso: retrospectiva do CPF ---------- */
+const CU={res:null,cpf:'',cat:null,ord:'dia',desc:true,busy:false};
+async function cuCategorias(){if(CU.cat)return CU.cat;const {data,error}=await sb.rpc('categorias_calculadora');if(error)throw error;
+ const D={cad:data.cadastro||[],aj:new Map((data.ajustes||[]).map(a=>[a.marca,a])),prod:new Set([...(data.produtoras||[]),PLANETA]),idx:new Map()};
+ D.cad.forEach(c=>{[nk(c.parceiro),nk(baseNome(c.parceiro))].forEach(k=>{if(!k)return;const l=D.idx.get(k)||[];if(!l.includes(c))l.push(c);D.idx.set(k,l)})});
+ const memo=new Map();CU.cat=(marca,titulo)=>{let m=marcaDoClube(marca,'',titulo);if(m==='GZH')m=CLUBE_MARCA;if(!memo.has(m))memo.set(m,infoMarca(D,m).cat);return memo.get(m)};return CU.cat}
+const cuMarca=m=>m==='GZH'?'Clube do Assinante':m;
+function cuTempo(venda){const v=new Date(venda+'T12:00:00'),h=new Date();let meses=(h.getFullYear()-v.getFullYear())*12+h.getMonth()-v.getMonth();if(h.getDate()<v.getDate())meses--;
+ if(meses<1)return 'há menos de 1 mês';const a=Math.floor(meses/12),m=meses%12;return 'há '+[a?`${a} ${a===1?'ano':'anos'}`:'',m?`${m} ${m===1?'mês':'meses'}`:''].filter(Boolean).join(' e ')}
+const cuData=d=>{const [y,m,dd]=d.split('-');return `${dd}/${m}/${y}`};
+function cuCobertura(){const U=CA.d.uso||[];if(!U.length)return '';const ms=U.map(u=>u.mes);return `Histórico de uso carregado de ${lab(ms[0])} a ${lab(ms[ms.length-1])}${ms.length<(()=>{const [a,b]=[ms[0],ms[ms.length-1]].map(x=>x.split('-').map(Number));return (b[0]-a[0])*12+b[1]-a[1]+1})()?' (com meses faltando)':''}`}
+function cuPagina(){const U=CA.d.uso||[];
+ if(!U.length)return shell('calculadora-uso',`<div class="note">Ainda não há histórico de uso carregado.${ADMIN?' Ele entra sozinho a cada mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a>; o histórico anterior entra em <a href="#calculadora-enviar">Enviar bases › Histórico de uso</a>.':' Peça a um administrador para carregar.'}</div>`);
+ return shell('calculadora-uso',`<p class="answer">Digite o CPF do sócio para ver a retrospectiva de uso do Clube: há quanto tempo é assinante, quantos vouchers gerou e o que mais usa.</p>
+ <div class="card ca-box"><div class="ca-linha">
+  <label class="fld ca-cpf"><span>CPF do sócio</span><input id="cu-cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" value="${esc(CU.cpf)}"></label>
+  <div class="ca-bts"><button class="btn" id="cu-go" type="button">Consultar</button><button class="btn-sec" id="cu-clr" type="button">Limpar</button></div></div>
+  <p class="hint">Pode digitar só os números ou colar o CPF com pontos e traço. O CPF não fica salvo: o portal só busca o resultado.</p></div>
+ <div id="cu-res" aria-live="polite">${cuResultado()}</div>
+ <p class="hint">${cuCobertura()}. Fonte: arquivos de vouchers enviados em Clube em números (sem as farmácias de resgate automático no balcão). Data de venda: carteiras do Clube enviadas no portal.</p>`)}
+function cuResultado(){const R=CU.res;if(!R)return '';if(R.erro)return `<div class="note ca-err">${R.erro}</div>`;
+ const L=R.linhas||[];const cat=CU.cat;
+ const tot=L.reduce((s,x)=>s+x[3],0);
+ const soma=f=>{const M=new Map();L.forEach(x=>{const k=f(x);M.set(k,(M.get(k)||0)+x[3])});return [...M].sort((a,b)=>b[1]-a[1])};
+ const cats=soma(x=>cat(x[1],x[2])),marcas=soma(x=>cuMarca(x[1]));
+ const dias=new Set(L.map(x=>x[0])).size;const pri=L.length?L[L.length-1][0]:null,ult=L.length?L[0][0]:null;
+ const kpi=(t,v,d)=>`<div class="kpi"><div class="k">${t}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
+ const cab=`<div class="card cu-hero"><div class="eyebrow">Retrospectiva do sócio</div><h3>CPF ${esc(caMascara(CU.cpfConsultado||''))}</h3>
+  <p>${R.venda?`Assinante <b>${cuTempo(R.venda)}</b>, desde ${cuData(R.venda)}${R.assinaturas>1?` <small class="hint">(assinatura mais antiga de ${fmt(R.assinaturas)})</small>`:''}.`:'Sem data de venda nas carteiras carregadas.'}</p></div>`;
+ if(!L.length)return cab+`<div class="note"><b>Nenhum voucher gerado</b> por este CPF no histórico carregado.</div>`;
+ const pct=v=>tot?` · ${fmt(100*v/tot,0)}% do total`:'';
+ const ord=CU.ord,dsc=CU.desc;const Ls=L.slice().sort((a,b)=>{const k={dia:0,marca:1,ben:2,n:3}[ord];let r=k===3?a[3]-b[3]:k===1?cuMarca(a[1]).localeCompare(cuMarca(b[1]),'pt-BR'):String(a[k]).localeCompare(String(b[k]),'pt-BR');if(!r)r=a[0].localeCompare(b[0]);return dsc?-r:r});
+ const th=(k,t,n)=>`<th class="co-th${n?' n':''}" data-cu-ord="${k}"${ord===k?` data-o="${dsc?'desc':'asc'}"`:''}>${t}</th>`;
+ return cab+`<div class="kpis cu-kpis">
+  ${kpi('Vouchers gerados',fmt(tot),`em ${fmt(dias)} ${dias===1?'dia':'dias'} diferentes · de ${cuData(pri)} a ${cuData(ult)}`)}
+  ${kpi('Categoria mais utilizada',esc(cats[0][0]),`${fmt(cats[0][1])} ${cats[0][1]===1?'voucher':'vouchers'}${pct(cats[0][1])}`)}
+  ${kpi('Marca mais utilizada',esc(marcas[0][0]),`${fmt(marcas[0][1])} ${marcas[0][1]===1?'voucher':'vouchers'}${pct(marcas[0][1])}`)}
+  ${kpi('Variedade',`${fmt(marcas.length)} ${marcas.length===1?'marca':'marcas'}`,`${fmt(cats.length)} ${cats.length===1?'categoria diferente':'categorias diferentes'}`)}</div>
+ <div class="card tablecard"><h3>Gerações <small>${fmt(L.length)}</small></h3><div class="tw cu-tw"><table class="cmp co-ord"><thead><tr>${th('dia','Data')}${th('marca','Marca')}${th('ben','Benefício')}${th('n','Vouchers',1)}</tr></thead><tbody>
+  ${Ls.map(x=>`<tr><td>${cuData(x[0])}</td><td>${esc(cuMarca(x[1]))}</td><td>${esc(x[2])}</td><td class="n">${fmt(x[3])}</td></tr>`).join('')}</tbody></table></div></div>`}
+async function cuConsultar(){const i=document.getElementById('cu-cpf');const c=i.value.replace(/\D/g,'');CU.cpf=i.value;const box=document.getElementById('cu-res');
+ if(c.length!==11){CU.res={erro:'Digite os 11 números do CPF.'};box.innerHTML=cuResultado();return}
+ if(!caCpfValido(c)){CU.res={erro:'Esse CPF parece inválido. Confira os números e tente de novo.'};box.innerHTML=cuResultado();return}
+ box.innerHTML='<p class="carregando">Consultando…</p>';
+ try{await cuCategorias();const {data,error}=await sb.rpc('uso_cpf',{p_cpf:c});if(error)throw error;CU.res=data;CU.cpfConsultado=c;CU.ord='dia';CU.desc=true}
+ catch(e){CU.res={erro:'Não foi possível consultar: '+esc(e.message||e)}}
+ box.innerHTML=cuResultado();cuBindTabela()}
+function cuBindTabela(){document.querySelectorAll('[data-cu-ord]').forEach(t=>t.onclick=()=>{const k=t.dataset.cuOrd;if(CU.ord===k)CU.desc=!CU.desc;else{CU.ord=k;CU.desc=k==='dia'||k==='n'}document.getElementById('cu-res').innerHTML=cuResultado();cuBindTabela()})}
+function cuBind(){const i=document.getElementById('cu-cpf');if(!i)return;
+ i.oninput=e=>{e.target.value=caMascara(e.target.value)};i.onkeydown=e=>{if(e.key==='Enter')cuConsultar()};
+ document.getElementById('cu-go').onclick=cuConsultar;
+ document.getElementById('cu-clr').onclick=()=>{CU.cpf='';CU.res=null;i.value='';document.getElementById('cu-res').innerHTML='';i.focus()};
+ cuBindTabela();i.focus()}
+
+/* ---------- Histórico de uso (admin): arquivos de vouchers antigos ---------- */
+const CUH={arqs:null,lendo:false,msg:null};
+function cuHistoricoCard(){const U=CA.d.uso||[];const sit=CUH.lendo?`<p class="carregando" id="cuh-st">Lendo…</p>`:'';
+ const meses=CUH.det?[...CUH.det.keys()].sort():[];
+ return `<div class="card"><h3>Histórico de uso (Calculadora uso)</h3><p class="sub">Todo mês enviado em <a href="#clube-enviar">Clube em números › Enviar mês</a> já guarda o detalhe dos vouchers para a Calculadora uso. Para os meses que foram enviados antes, suba aqui os mesmos arquivos de vouchers (.csv da plataforma, podem ter vários meses). Cada mês do arquivo substitui o detalhe que já havia daquele mês. Farmácias de resgate automático no balcão ficam fora, como no Clube em números.</p>
+  <label class="drop"><b>Arquivos de vouchers</b><input type="file" id="cuh-up" accept=".csv,.xlsx" multiple></label>${sit}
+  ${CUH.msg?`<p class="${CUH.msg.ok?'adm-ok':'adm-err'}" style="margin-top:10px">${CUH.msg.t}</p>`:''}
+  ${meses.length?`<div class="tw" style="margin-top:12px"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Linhas</th><th class="n">Vouchers</th><th>Já carregado</th></tr></thead><tbody>${meses.map(m=>{const d=CUH.det.get(m);let v=0;d.forEach(p=>v+=p);return `<tr><td>${lab(m)}</td><td class="n">${fmt(d.size)}</td><td class="n">${fmt(v)}</td><td>${U.some(u=>u.mes===m)?'sim (será substituído)':'não'}</td></tr>`}).join('')}</tbody></table></div>
+   <div class="ca-salvar"><button class="btn" id="cuh-salvar" type="button">Salvar ${meses.length===1?'1 mês':meses.length+' meses'}</button> <span class="hint" id="cuh-prog"></span></div>`:''}
+  <h4 style="margin:16px 0 6px">Meses com histórico de uso <small class="hint">${fmt(U.length)}</small></h4>
+  ${U.length?`<div class="mes-chips">${U.map(u=>`<span title="${fmt(u.vouchers)} vouchers de ${fmt(u.pessoas)} pessoas · enviado em ${new Date(u.enviado_em).toLocaleDateString('pt-BR')}">${lab(u.mes)}</span>`).join('')}</div>`:'<p class="hint">Nenhum mês ainda.</p>'}</div>`}
+function cuhBind(){const up=document.getElementById('cuh-up');if(!up)return;
+ up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CUH.lendo=true;CUH.msg=null;CUH.det=null;caRender('calculadora-enviar');
+  const vouAnt=CG.vou,detAnt=CG.det;CG.vou=new Map();CG.det=new Map();
+  try{libs();for(const f of fs)await lerVouchers(f,est=>{const el=document.getElementById('cuh-st');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers…`});CUH.det=CG.det}
+  catch(err){CUH.msg={t:esc(err.message||err)}}finally{CG.vou=vouAnt;CG.det=detAnt;CUH.lendo=false;caRender('calculadora-enviar')}};
+ const sv=document.getElementById('cuh-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('cuh-prog');const ms=[...CUH.det.keys()].sort();
+  try{PEPPER=PEPPER||await rpc('pepper');for(let k=0;k<ms.length;k++){const m=ms[k];await enviarUsoMes(m,CUH.det.get(m),(a,b)=>{pr.textContent=`${lab(m)} (${k+1} de ${ms.length}): ${fmt(Math.round(100*a/b))}%`})}
+   CUH.det=null;CUH.msg={ok:1,t:`Histórico salvo: ${fmt(ms.length)} ${ms.length===1?'mês':'meses'}.`};await caCarregar(true);caRender('calculadora-enviar')}
+  catch(err){sv.disabled=false;pr.textContent='Não salvou: '+(err.message||err)}}}
+
 /* ---------- roteamento ---------- */
-const CA_PAGES={calculadora:caConsulta,'calculadora-enviar':caEnviar};
-function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else caBindEnviar()}
+const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar};
+function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else caBindEnviar()}
 async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if(h==='calculadora-enviar'&&!ADMIN){location.hash='calculadora';return}
  if(!CA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');
   try{await caCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar a calculadora: ${esc(e.message||e)}${/function|does not exist|schema cache/i.test(e.message||'')?'. Confira se o arquivo 41_calculadora_farmacias.sql já foi rodado no Supabase.':''}</div>`);return}
