@@ -1191,13 +1191,13 @@ const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-co
 /* ---------- áreas e relatórios ---------- */
 const AREAS={
  clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos e perfil de quem usa.',c:'var(--vinho)',st:['ok','Pronto'],
-  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-bases','Gerar bases',1],['clube-enviar','Enviar mês',1]]},
+  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-bases','Gerar bases','bases'],['clube-enviar','Enviar mês',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
   r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar']]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
-  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-acoes','Ações do Clube'],['parceiros-checkin','Check-in parceiro'],['parceiros-cadastro','Cadastro',1]]},
+  r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-acoes','Ações do Clube'],['parceiros-checkin','Check-in parceiro',1],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  calculadora:{n:'Calculadoras',t:'Calculadoras do',s:'Clube',d:'Digite o CPF do sócio e veja quanto ele economizou nas farmácias parceiras e a retrospectiva de uso do Clube.',c:'var(--verde-esc, #2f7a4a)',st:['ok','Novo'],
@@ -2479,7 +2479,7 @@ function paRender(h){const y=scrollY;app.innerHTML=PA_PAGES[h]();paBind(()=>paRe
  const f=document.getElementById('pa-f');if(f)f.onchange=()=>{if(PA.d.info.has(f.value)){PA.sel=f.value;PA.edCad=false;PA.edRow=null;paRender(h)}};
  if(h==='parceiros-ficha'){paFichaSemanas();paBindFicha()}if(h==='parceiros-acoes')acBind();if(h==='parceiros-checkin')ciBind();if(h==='parceiros-cadastro')paBindCadastro();
  if(PA.keep)scrollTo(0,y);PA.keep=false}
-async function rotaParceiros(h){if(h==='parceiros-enviar'){location.hash='parceiros-cadastro';return}if(h==='parceiros-cadastro'&&!ADMIN){location.hash='parceiros';return}if(!PA_PAGES[h]){location.hash='parceiros';return}
+async function rotaParceiros(h){if(h==='parceiros-enviar'){location.hash='parceiros-cadastro';return}if((h==='parceiros-cadastro'||h==='parceiros-checkin')&&!ADMIN){location.hash='parceiros';return}if(!PA_PAGES[h]){location.hash='parceiros';return}
  if(!PA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando os parceiros…</p>');
   try{await paCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os parceiros: ${esc(e.message||e)}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
@@ -2683,7 +2683,7 @@ function inaRender(h){app.innerHTML=INA_PAGES[h]();
  on('ia-a',v=>{INA.a=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});on('ia-b',v=>{INA.b=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});
  document.querySelectorAll('[data-ir]').forEach(x=>x.onclick=()=>{INA.a=inaRap(x.dataset.ir);inaRender(h)});
  if(h==='clube-bases')bindBases(h);if(h==='inativos-fca')bindFca(h);document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
-async function rotaInativos(h){if(h==='clube-bases'&&!ADMIN){location.hash='clube';return}if(!INA_PAGES[h]){location.hash='inativos';return}
+async function rotaInativos(h){if(h==='clube-bases'&&!podeBases()){location.hash='clube';return}if(!INA_PAGES[h]){location.hash='inativos';return}
  if(!INA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');try{await inaCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os inativos: ${esc(e.message||e)}</div>`);return}}
  if(h==='inativos-hipoteses')await inaParceiros();
  if((location.hash||'#home').slice(1)!==h)return;
@@ -3978,7 +3978,7 @@ function home(){return `<div class="wrap">
  ${M.length||!temPainel('clube')?'':`<div class="note" style="margin-bottom:16px">Ainda não há meses carregados no portal.${ADMIN?' Envie os arquivos em <a href="#clube-enviar">Clube em números › Enviar mês</a>.':''}</div>`}
  <div class="areas" id="areas">${Object.entries(AREAS).filter(([id])=>temPainel(id)).map(([id,a])=>`<a class="area" href="#${id}" style="--c:${a.c}"><div class="row"><h3>${a.n}</h3><span class="status s-${a.st[0]}">${a.st[1]}</span></div><p>${a.d}</p><div class="subs">${(a.subs||a.r.filter(r=>!r[2]||ADMIN).map(r=>r[1])).map(x=>`<span>${x}</span>`).join('')}</div><span class="go">Abrir →</span></a>`).join('')}</div></section>
  </div>`}
-function shell(h,body){const id=areaOf(h),a=AREAS[id];const rs=a.r.filter(r=>!r[2]||ADMIN);const cur=rs.find(r=>r[0]===h)||rs[0];
+function shell(h,body){const id=areaOf(h),a=AREAS[id];const rs=a.r.filter(r=>!r[2]||ADMIN||(r[2]==='bases'&&podeBases()));const cur=rs.find(r=>r[0]===h)||rs[0];
  return `<div class="shell${MENU_MINI?' mini':''}${id==='clube'?' compacto':''}"><nav class="side" aria-label="Relatórios de ${a.n}">${botaoMenu()}<a href="#home" class="back">← Portal</a><div class="grp">${a.n}</div>${rs.map(r=>`<a href="#${r[0]}" class="${r[0]===cur[0]?'on':''}">${r[1]}</a>`).join('')}</nav>
  <div class="main"><div class="page-head"><div class="in"><div class="crumb"><a href="#home">Portal</a> › <a href="#${id}">${a.n}</a> › ${cur[1]}</div><h1 class="title">${a.t} <em>${a.s}</em></h1></div></div><div class="content">${body}</div></div></div>`}
 
@@ -3998,7 +3998,7 @@ function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(h==='carga'){location.hash='clube-enviar';return}
  if(h==='inativos-bases'){location.hash='clube-bases';return}
  if(h==='acessos'){location.hash='admin';return}
- if(area&&!temPainel(area)){app.innerHTML=semAcesso(area);window.scrollTo(0,0);return}
+ if(area&&!temPainel(area)&&!(h==='clube-bases'&&podeBases())){app.innerHTML=semAcesso(area);window.scrollTo(0,0);return}
  if(area==='admin'){telaAcessos(h);window.scrollTo(0,0);return}
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
  else if(area==='semanal')rotaSemanal(h);
@@ -4054,6 +4054,7 @@ async function conferePaineis(){ // mudança feita pelo admin chega sozinha: con
  const ganhouClube=novo.has('clube')&&!PAIN.has('clube');PAIN=novo;
  if(ganhouClube){try{await carregarDados(true)}catch(_){}}route()}
 let PAIN=null; // painéis liberados para quem está logado (null = banco ainda sem o arquivo 37: tudo liberado)
+const podeBases=()=>ADMIN||!!(PAIN&&PAIN.has('bases'));
 const temPainel=id=>{const a=AREAS[id];if(!a)return true;if(a.adm)return ADMIN;return id==='glossario'||!PAIN||PAIN.has(id)};
 async function carregarDados(silencioso){
  if(!silencioso)app.innerHTML='<div class="wrap"><p class="carregando">Carregando os números…</p></div>';
@@ -4109,8 +4110,8 @@ document.getElementById('sair').addEventListener('click',async()=>{await sb.auth
 const URL_PORTAL=location.origin+location.pathname;
 const dataBR=d=>d?new Date(d).toLocaleDateString('pt-BR'):'—';
 const ACC={links:{}}; // links gerados nesta sessão (o banco guarda só o "hash"; depois de sair, gere um link novo)
-const nomePainel=k=>(AREAS[k]&&AREAS[k].n)||k;
-function accChecks(lista,marcados,off){return `<div class="adm-chk" role="group" aria-label="Painéis">${lista.map(k=>`<label class="${off?'off':''}"><input type="checkbox" value="${k}"${off||marcados.includes(k)?' checked':''}${off?' disabled':''}> ${nomePainel(k)}</label>`).join('')}</div>`}
+const nomePainel=k=>k==='bases'?'Gerar bases (CPF, e-mail e telefone)':(AREAS[k]&&AREAS[k].n)||k;
+function accChecks(listaT,marcados,off){const lista=listaT.filter(k=>k!=='bases');const extra=listaT.includes('bases')?`<div class="adm-chk adm-extra" role="group" aria-label="Permissões extras" style="margin-top:6px;padding:6px 8px;border:1px dashed var(--line);border-radius:8px"><span class="hint" style="width:100%">Permissão separada (dados pessoais):</span><label class="${off?'off':''}"><input type="checkbox" value="bases"${off||marcados.includes('bases')?' checked':''}${off?' disabled':''}> ${nomePainel('bases')}</label></div>`:'';return `<div class="adm-chk" role="group" aria-label="Painéis">${lista.map(k=>`<label class="${off?'off':''}"><input type="checkbox" value="${k}"${off||marcados.includes(k)?' checked':''}${off?' disabled':''}> ${nomePainel(k)}</label>`).join('')}</div>${extra}`}
 const accPapel=(p,cls)=>`<select class="${cls}" aria-label="Tipo de acesso"><option value="visualizador"${p!=='admin'?' selected':''}>Visualizador</option><option value="admin"${p==='admin'?' selected':''}>Administrador (tudo)</option></select>`;
 const accMsg=(nome,link)=>`Oi, ${(nome||'').split(' ')[0]}! Seu acesso ao Portal do Clube foi aprovado. Crie sua senha por este link (vale 7 dias e só pode ser usado uma vez): ${link}`;
 function accLinkBox(id,nome){const l=ACC.links[id];if(!l)return '';
@@ -4164,6 +4165,7 @@ async function telaAcessos(h){
   const r=await sb.rpc('salvar_acesso_usuario',{p_user:tr.dataset.id,p_papel:papel,p_paineis:pn});
   if(r.error){ok.className='adm-err';ok.textContent=r.error.message;return}
   ok.textContent=papel!=='admin'&&!pn.length?'Salvo · sem nenhum painel, a pessoa só vê o glossário':'Salvo ✓'};
+ box.addEventListener('change',e=>{const i=e.target;if(i.value==='bases'&&i.checked){const c=i.closest('.adm-ped,tr')?.querySelector('.adm-chk input[value="clube"]');if(c&&!c.checked){c.checked=true}}},true);
  box.querySelectorAll('.acc-tab tr[data-id]').forEach(tr=>{const sel=tr.querySelector('.acc-papel');if(!sel)return;
   sel.onchange=()=>salvaUser(tr);tr.querySelectorAll('.adm-chk input').forEach(i=>i.onchange=()=>salvaUser(tr))});
  box.querySelectorAll('.acc-tab .rem').forEach(b=>b.onclick=async()=>{const tr=b.closest('tr');if(!confirm(`Remover o acesso de ${tr.dataset.email}? O login é apagado.`))return;
