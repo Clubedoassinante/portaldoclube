@@ -1191,11 +1191,11 @@ const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-co
 /* ---------- áreas e relatórios ---------- */
 const AREAS={
  clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos e perfil de quem usa.',c:'var(--vinho)',st:['ok','Pronto'],
-  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-enviar','Enviar mês',1]]},
+  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-bases','Gerar bases',1],['clube-enviar','Enviar mês',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
-  r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar'],['inativos-bases','Gerar bases',1]]},
+  r:[['inativos','Visão geral'],['inativos-fca','FCA do mês'],['inativos-perfil','Quem são'],['inativos-hipoteses','Hipóteses'],['inativos-nunca','Nunca gerou'],['inativos-parou','Pararam de gerar'],['inativos-voltou','Voltaram a usar']]},
  parceiros:{n:'Parceiros',t:'Uso por',s:'parceiro',d:'Como está cada parceiro e cada categoria do site: ranking, saúde (quem cresce, quem cai, quem parou), categorias e a ficha de cada parceiro.',c:'var(--verde)',st:['ok','Pronto'],
   r:[['parceiros','Visão geral'],['parceiros-ranking','Ranking'],['parceiros-saude','Saúde dos parceiros'],['parceiros-categorias','Categorias'],['parceiros-ficha','Ficha do parceiro'],['parceiros-acoes','Ações do Clube'],['parceiros-checkin','Check-in parceiro'],['parceiros-cadastro','Cadastro',1]]},
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
@@ -2644,62 +2644,83 @@ function inaVoltou(){const D=INA.d;const S=D.serie.filter(x=>x.cart);const s=ult
  <p class="hint">Use esta página para medir campanhas de ativação e reativação: uma ação que funciona aparece como pico de estreias ou de retornos no mês. Os parceiros pelos quais as pessoas voltam aparecem quando cruzarmos vouchers por pessoa e marca (próxima etapa).</p>`)}
 
 /* ---------- roteamento ---------- */
-const INA_PAGES={'inativos-bases':()=>inaBases(),'inativos-fca':()=>inaFca(),inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
+const INA_PAGES={'clube-bases':()=>inaBases(),'inativos-fca':()=>inaFca(),inativos:inaVisao,'inativos-perfil':inaPerfil,'inativos-hipoteses':inaHipoteses,'inativos-nunca':inaNunca,'inativos-parou':inaParou,'inativos-voltou':inaVoltou};
 async function inaParceiros(){if(INA.parc)return;try{await paCarregar();const at=PA.d.cad.filter(c=>c.status==='Ativo');const by=new Map();at.forEach(c=>{const g=grupoLocal(c.local);const k=baseNome(c.parceiro);if(!by.has(k))by.set(k,new Set());by.get(k).add(g)});
  const n=f=>[...by.values()].filter(f).length;INA.parc={poa:n(s=>s.has('Porto Alegre e região')||s.has('Várias cidades')),serra:n(s=>s.has('Serra')||s.has('Várias cidades')),int:n(s=>s.has('Interior do RS')||s.has('Várias cidades')),onl:n(s=>s.has('Online'))}}catch(e){}}
 function inaRender(h){app.innerHTML=INA_PAGES[h]();
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onchange=()=>f(el.value)};
  on('ia-a',v=>{INA.a=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});on('ia-b',v=>{INA.b=v;if(INA.a>INA.b)[INA.a,INA.b]=[INA.b,INA.a];inaRender(h)});
  document.querySelectorAll('[data-ir]').forEach(x=>x.onclick=()=>{INA.a=inaRap(x.dataset.ir);inaRender(h)});
- if(h==='inativos-bases')bindBases(h);if(h==='inativos-fca')bindFca(h);document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
-async function rotaInativos(h){if(!INA_PAGES[h]||(h==='inativos-bases'&&!ADMIN)){location.hash='inativos';return}
+ if(h==='clube-bases')bindBases(h);if(h==='inativos-fca')bindFca(h);document.querySelectorAll('[data-idim]').forEach(b=>b.onclick=()=>{INA.dim=b.dataset.idim;inaRender(h)})}
+async function rotaInativos(h){if(h==='clube-bases'&&!ADMIN){location.hash='clube';return}if(!INA_PAGES[h]){location.hash='inativos';return}
  if(!INA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');try{await inaCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar os inativos: ${esc(e.message||e)}</div>`);return}}
  if(h==='inativos-hipoteses')await inaParceiros();
  if((location.hash||'#home').slice(1)!==h)return;
  if(!INA.d){app.innerHTML=shell(h,`<p class="answer">O resumo dos inativos ainda não foi calculado.</p><p class="hint">Rode o arquivo 11_inativos.sql no Supabase ou carregue um mês em Clube em números › Enviar mês.</p>`);return}
  inaRender(h)}
 
-/* ---------- página: Gerar bases (administradores) ---------- */
-const BASE={est:new Set(['nunca']),f:{},smin:'',smax:'',res:null,busy:false};
+/* ---------- página: Clube em números › Gerar bases (administradores) ----------
+   Qualquer segmentação da carteira do último mês (com ou sem filtro de uso do Clube) e a base de
+   ex-assinantes para reativação. Sai só CDASS + campos de segmentação: sem CPF, nome ou e-mail. */
+const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',cmin:'',cmax:'',res:null,busy:false};
 const PRESETS=[
- ['Novos sem uso',{est:['nunca'],f:{tempo:['Onboarding (0 a 6 meses)']}},'Até 6 meses de casa e nunca geraram: a janela de ativação.'],
- ['Esfriando',{est:['esfriando']},'3 a 5 meses sem gerar: ainda dá para recuperar.'],
- ['Parados há 6 a 12 meses',{est:['parou'],smin:6,smax:12},'Já usaram e pararam há pouco tempo.'],
- ['Inativos sem e-mail',{est:['nunca','parou'],f:{email:['Sem e-mail']}},'Não recebem a News: precisam de outro canal.'],
- ['Ativos recentes',{est:['mes','recente']},'Usaram nos últimos 3 meses: base para fidelização.']];
-function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);
+ ['Mídia paga',[
+  ['Inativos legados',{est:['nunca','parou'],f:{tempo:['Legado (10 anos ou mais)']}},'10 anos ou mais de casa e sem gerar voucher há 6 meses ou mais (ou nunca geraram).'],
+  ['Plano Família: não cadastraram ou têm espaço',{f:{familia:['Inativo','Tem espaço']}},'Plano Família inativo (nenhum dependente cadastrado) ou com espaço para mais dependentes. Independe de voucher.'],
+  ['Assinantes de até 6 meses',{f:{tempo:['Onboarding (0 a 6 meses)']}},'Até 6 meses de casa, independente da geração de vouchers.'],
+  ['Reativação: ex-assinantes',{univ:'ex',cmin:1,cmax:12},'Assinaturas que saíram da carteira nos últimos 12 meses, de quem não tem outra assinatura ativa.']]],
+ ['Uso do Clube',[
+  ['Novos sem uso',{est:['nunca'],f:{tempo:['Onboarding (0 a 6 meses)']}},'Até 6 meses de casa e nunca geraram: a janela de ativação.'],
+  ['Esfriando',{est:['esfriando']},'3 a 5 meses sem gerar: ainda dá para recuperar.'],
+  ['Parados há 6 a 12 meses',{est:['parou'],smin:6,smax:12},'Já usaram e pararam há pouco tempo: reativação do uso.'],
+  ['Inativos sem e-mail',{est:['nunca','parou'],f:{email:['Sem e-mail']}},'Não recebem a News: precisam de outro canal.'],
+  ['Ativos recentes',{est:['mes','recente']},'Usaram nos últimos 3 meses: base para fidelização.']]]];
+const PRESET_L=PRESETS.flatMap(g=>g[1]);
+function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);const ex=BASE.univ==='ex';
  const chipsDim=k=>{const cats=linhasDim(k).map(x=>x.k);const sel=new Set(BASE.f[k]||[]);return `<div class="fld"><span>${dimT(k)}</span><div class="chips">${cats.map(c=>`<button class="chip ${sel.has(c)?'on':''}" data-bf="${k}" data-bv="${esc(c)}" type="button">${esc(c)}</button>`).join('')}</div></div>`};
- const R=BASE.res;
- return shell('inativos-bases',`<p class="answer">Escolha o segmento e baixe os ${T('cdass','CDASS')} da carteira de ${lab(D.mes)} para usar em CRM, mídia ou análise. A base sai sem CPF e sem nome: o CDASS é a chave para cruzar com o cadastro.</p>${semPerfil()}
- <div class="card"><h3>Atalhos</h3><div class="ina-pres">${PRESETS.map(([n,,d],j)=>`<button class="td-k" data-preset="${j}" type="button"><span>${n}</span><small>${d}</small></button>`).join('')}</div></div>
- <div class="card"><h3>1. Estado de uso</h3><div class="chips">${EST.map(([k,n])=>`<button class="chip ${BASE.est.has(k)?'on':''}" data-be="${k}" type="button">${T(ETERM[k],n)} <small>${fmt(ultS()[k])}</small></button>`).join('')}</div>
+ const R=BASE.res;let pi=0;
+ return shell('clube-bases',`<p class="answer">Monte qualquer segmento da carteira de ${lab(D.mes)}, com ou sem filtro de uso do Clube, e baixe os ${T('cdass','CDASS')} para CRM, mídia paga ou análise. A base sai sem CPF, nome e e-mail: o CDASS é a chave para cruzar com o cadastro.</p>${semPerfil()}
+ <div class="card"><h3>Atalhos</h3>${PRESETS.map(([g,L])=>`<p class="sub" style="margin:8px 0 6px"><b>${g}</b></p><div class="ina-pres">${L.map(([n,,d])=>`<button class="td-k" data-preset="${pi++}" type="button"><span>${n}</span><small>${d}</small></button>`).join('')}</div>`).join('')}</div>
+ <div class="card"><h3>1. Quem entra na base</h3><div class="chips"><button class="chip ${!ex?'on':''}" data-univ="ativos" type="button">Assinantes ativos <small>carteira de ${lab(D.mes)}</small></button><button class="chip ${ex?'on':''}" data-univ="ex" type="button">Ex-assinantes <small>reativação</small></button></div>
+  ${ex?`<div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>Saíram da carteira há: de</span><input type="number" min="1" id="b-cmin" value="${BASE.cmin}" placeholder="1" style="width:90px"></label><label class="fld"><span>até (meses)</span><input type="number" min="1" id="b-cmax" value="${BASE.cmax}" placeholder="—" style="width:90px"></label></div>
+  <p class="hint">Assinaturas que já apareceram ativas em alguma carteira enviada e não estão ativas em ${lab(D.mes)}, de pessoas sem nenhuma outra assinatura ativa. "1" = estava ativa no mês anterior.</p>`:''}</div>
+ ${ex?`<div class="card"><h3>2. Uso do Clube quando era assinante <small>opcional; nenhum marcado = todos</small></h3><div class="chips"><button class="chip ${BASE.usou.has('sim')?'on':''}" data-usou="sim" type="button">Já usou o Clube</button><button class="chip ${BASE.usou.has('nao')?'on':''}" data-usou="nao" type="button">Nunca usou</button></div></div>
+ <div class="card"><h3>3. Perfil <small>opcional</small></h3><div class="ina-filtros">${chipsDim('tempo')}</div><p class="hint">Para ex-assinantes, o tempo de casa é contado até o último mês ativo. Produto, região, idade e os demais campos só existem para quem está na carteira atual.</p></div>`
+ :`<div class="card"><h3>2. Uso do Clube <small>opcional; nenhum marcado = todos, independente da geração de vouchers</small></h3><div class="chips"><button class="chip ${!BASE.est.size?'on':''}" data-be="*" type="button">Todos</button>${EST.map(([k,n])=>`<button class="chip ${BASE.est.has(k)?'on':''}" data-be="${k}" type="button">${T(ETERM[k],n)} <small>${fmt(ultS()[k])}</small></button>`).join('')}</div>
   <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>${T('meses-sem-gerar','Meses sem gerar')}: de</span><input type="number" min="1" id="b-smin" value="${BASE.smin}" placeholder="—" style="width:90px"></label><label class="fld"><span>até</span><input type="number" min="1" id="b-smax" value="${BASE.smax}" placeholder="—" style="width:90px"></label></div>
   <p class="hint">Opcional. Vale para quem já gerou voucher alguma vez (ativo recente, esfriando e parou).</p></div>
- <div class="card"><h3>2. Perfil <small>opcional; dentro de cada grupo, vale qualquer opção marcada</small></h3><div class="ina-filtros">${dims.map(chipsDim).join('')}</div></div>
+ <div class="card"><h3>3. Perfil <small>opcional; dentro de cada grupo, vale qualquer opção marcada</small></h3><div class="ina-filtros">${dims.map(chipsDim).join('')}</div></div>`}
  <div class="acoes"><button class="btn" id="b-gerar" type="button">${BASE.busy?'Gerando…':'Gerar base'}</button><button class="chip" id="b-limpar" type="button">Limpar filtros</button></div>
  <div id="b-res">${R?`<div class="card"><h3>Base pronta: ${fmt(R.linhas.length)} CDASS <small>${fmt(R.pessoas)} pessoas</small></h3>
-  <p class="sub">${esc(R.desc)}. Uma pessoa com mais de uma assinatura ativa aparece em mais de uma linha.</p>
+  <p class="sub">${esc(R.desc)}. Uma pessoa com mais de uma assinatura aparece em mais de uma linha.</p>
   <div class="acoes"><button class="btn" id="b-csv" type="button" ${R.linhas.length?'':'disabled'}>Baixar CSV</button><button class="chip" id="b-cdass" type="button" ${R.linhas.length?'':'disabled'}>Baixar só os CDASS (.txt)</button></div>
-  ${R.linhas.length?`<div class="tw"><table class="cmp pa-t"><thead><tr>${BASE_COLS.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.linhas.slice(0,10).map(l=>`<tr>${linhaBase(l).map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">Mostrando as 10 primeiras linhas.</p>`:'<p class="hint">Nenhuma pessoa neste segmento.</p>'}</div>`:''}</div>
- <p class="hint">Carteira ativa de ${lab(D.mes)} (último mês carregado). Estados e meses sem gerar contam a partir de jul/2023.</p>`)}
-const BASE_COLS=['CDASS','Estado','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família','E-mail'];
+  ${R.linhas.length?`<div class="tw"><table class="cmp pa-t"><thead><tr>${colsBase(R).map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.linhas.slice(0,10).map(l=>`<tr>${linhaBase(l,R).map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">Mostrando as 10 primeiras linhas.</p>`:'<p class="hint">Ninguém neste segmento.</p>'}</div>`:''}</div>
+ <p class="hint">Carteira ativa de ${lab(D.mes)} (último mês carregado). Uso do Clube e meses sem gerar contam a partir de jul/2023.</p>`)}
+const BASE_COLS=['CDASS','Situação','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família','E-mail','Último mês ativo','Meses desde a saída'];
+const BASE_EX=[0,1,2,4,5,13,14],BASE_AT=[0,1,2,3,4,5,6,7,8,9,10,11,12];
 const ESTN=Object.fromEntries(EST.map(([k,n])=>[k,n]));
-const linhaBase=l=>[l[0],ESTN[l[1]]||l[1],l[2]==null?'':l[2],l[3]?lab(l[3]):'',...l.slice(4).map(v=>v??'')];
+const colsBase=R=>(R.universo==='ex'?BASE_EX:BASE_AT).map(i=>BASE_COLS[i]);
+const linhaBase=(l,R)=>{const v=[l[0],l[1],ESTN[l[2]]||l[2],l[3]??'',l[4]?lab(l[4]):'',...l.slice(5,13).map(x=>x??''),l[13]?lab(l[13]):'',l[14]??''];return (R.universo==='ex'?BASE_EX:BASE_AT).map(i=>v[i])};
 function baixarTexto(nome,txt,tipo){const blob=new Blob([txt],{type:tipo});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-function descBase(){const p=[[...BASE.est].map(k=>ESTN[k]).join(', ')];if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`);return p.join(' · ')}
-function bindBases(h){const re=()=>inaRender(h);
- document.querySelectorAll('[data-be]').forEach(b=>b.onclick=()=>{const k=b.dataset.be;BASE.est.has(k)?BASE.est.delete(k):BASE.est.add(k);BASE.res=null;re()});
- document.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{const k=b.dataset.bf,v=b.dataset.bv;const s=new Set(BASE.f[k]||[]);s.has(v)?s.delete(v):s.add(v);BASE.f[k]=[...s];if(!s.size)delete BASE.f[k];BASE.res=null;re()});
- document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRESETS[+b.dataset.preset][1];BASE.est=new Set(p.est);BASE.f=JSON.parse(JSON.stringify(p.f||{}));BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.res=null;re()});
- const sm=document.getElementById('b-smin'),sx=document.getElementById('b-smax');if(sm)sm.onchange=()=>{BASE.smin=sm.value;BASE.res=null};if(sx)sx.onchange=()=>{BASE.smax=sx.value;BASE.res=null};
+function descBase(){const p=[];if(BASE.univ==='ex'){p.push('Ex-assinantes');if(BASE.cmin||BASE.cmax)p.push(`saíram há ${BASE.cmin||'1'} a ${BASE.cmax||'∞'} meses`);if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '));if(BASE.f.tempo)p.push(`Tempo de casa: ${BASE.f.tempo.join(', ')}`);return p.join(' · ')}
+ p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`);return p.join(' · ')}
+function bindBases(h){const re=()=>inaRender(h);const zera=()=>{BASE.res=null};
+ document.querySelectorAll('[data-univ]').forEach(b=>b.onclick=()=>{BASE.univ=b.dataset.univ;zera();re()});
+ document.querySelectorAll('[data-be]').forEach(b=>b.onclick=()=>{const k=b.dataset.be;if(k==='*')BASE.est.clear();else BASE.est.has(k)?BASE.est.delete(k):BASE.est.add(k);zera();re()});
+ document.querySelectorAll('[data-usou]').forEach(b=>b.onclick=()=>{const k=b.dataset.usou;BASE.usou.has(k)?BASE.usou.delete(k):BASE.usou.add(k);zera();re()});
+ document.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{const k=b.dataset.bf,v=b.dataset.bv;const s=new Set(BASE.f[k]||[]);s.has(v)?s.delete(v):s.add(v);BASE.f[k]=[...s];if(!s.size)delete BASE.f[k];zera();re()});
+ document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRESET_L[+b.dataset.preset][1];BASE.univ=p.univ||'ativos';BASE.est=new Set(p.est||[]);BASE.usou=new Set();BASE.f=JSON.parse(JSON.stringify(p.f||{}));
+  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.cmin=p.cmin??'';BASE.cmax=p.cmax??'';zera();re()});
+ [['b-smin','smin'],['b-smax','smax'],['b-cmin','cmin'],['b-cmax','cmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
- on('b-limpar',()=>{BASE.f={};BASE.smin='';BASE.smax='';BASE.res=null;re()});
- on('b-gerar',async()=>{if(!BASE.est.size){alert('Escolha pelo menos um estado de uso.');return}BASE.busy=true;re();
-  const {data,error}=await sb.rpc('gerar_base_inativos',{p:{estados:[...BASE.est],filtros:BASE.f,sem_min:BASE.smin,sem_max:BASE.smax}});BASE.busy=false;
-  if(error){BASE.res=null;re();alert('Não foi possível gerar a base: '+error.message);return}BASE.res={...data,desc:descBase()};re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
- const nome=ext=>`base_${[...BASE.est].join('-')}_${INA.d.mes}.${ext}`;
- on('b-csv',()=>{const q=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  const txt='﻿'+[BASE_COLS,...BASE.res.linhas.map(linhaBase)].map(r=>r.map(q).join(';')).join('\r\n');baixarTexto(nome('csv'),txt,'text/csv;charset=utf-8')});
+ on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.smin='';BASE.smax='';BASE.cmin='';BASE.cmax='';zera();re()});
+ on('b-gerar',async()=>{BASE.busy=true;re();const ex=BASE.univ==='ex';
+  const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,estados:ex?[]:[...BASE.est],usou:[...BASE.usou],filtros:ex?(BASE.f.tempo?{tempo:BASE.f.tempo}:{}):BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,canc_min:BASE.cmin,canc_max:BASE.cmax}});BASE.busy=false;
+  if(error){BASE.res=null;re();alert('Não foi possível gerar a base: '+error.message+(/gerar_base/.test(error.message)?' (rode o arquivo 46_gerar_bases_clube.sql no Supabase)':''));return}
+  BASE.res={...data,desc:descBase()};re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
+ const nome=ext=>`base_${BASE.univ==='ex'?'ex-assinantes':(BASE.est.size?[...BASE.est].join('-'):'todos')}_${INA.d.mes}.${ext}`;
+ on('b-csv',()=>{const R=BASE.res;const q=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const txt='﻿'+[colsBase(R),...R.linhas.map(l=>linhaBase(l,R))].map(r=>r.map(q).join(';')).join('\r\n');baixarTexto(nome('csv'),txt,'text/csv;charset=utf-8')});
  on('b-cdass',()=>baixarTexto(nome('txt'),BASE.res.linhas.map(l=>l[0]).join('\r\n'),'text/plain'))}
 
 /* ---------- página: FCA do mês ---------- */
@@ -2711,7 +2732,7 @@ function fcaInativos(m){const S=INA.d.serie;const j=S.findIndex(x=>x.m===m);cons
  // 1. inativos
  rows.push({f:`**${fmt(ina)} inativos** em ${lab(m)}, ${pc1(ina/s.cart*100)} da carteira${a?` (${ppT(ina/s.cart*100-inaA/a.cart*100)} vs ${lab(a.m)}`:''}${l?`; ${ppT(ina/s.cart*100-(l.parou+l.nunca)/l.cart*100)} vs ${lab(l.m)})`:a?')':''}.`,
   c:a?`O que mudou vs ${lab(a.m)}:\n- Nunca gerou: ${sinalN(s.nunca-a.nunca)} (${pc1(pp(s.nunca,s.cart))} da carteira)\n- Parou de gerar: ${sinalN(s.parou-a.parou)} (${pc1(pp(s.parou,s.cart))})\n- Carteira: ${sinalN(s.cart-a.cart)} pessoas${s.cart>a.cart?' (quem entra começa como "nunca gerou")':''}\n- Primeiro voucher no mês: ${fmt(s.estreou)}; voltaram a usar: ${fmt(s.voltou)}`:'Primeiro mês do histórico do painel.',
-  a:s.parou-(a?a.parou:0)>Math.abs(s.nunca-(a?a.nunca:0))?'O aumento vem de quem parou: priorizar a reativação de quem está esfriando e parou há pouco (Gerar bases › Parados há 6 a 12 meses).':'O movimento vem de quem nunca usou: priorizar a ativação de quem entrou nos últimos meses (Gerar bases › Novos sem uso).'});
+  a:s.parou-(a?a.parou:0)>Math.abs(s.nunca-(a?a.nunca:0))?'O aumento vem de quem parou: priorizar a reativação de quem está esfriando e parou há pouco (Clube em números › Gerar bases › Parados há 6 a 12 meses).':'O movimento vem de quem nunca usou: priorizar a ativação de quem entrou nos últimos meses (Clube em números › Gerar bases › Novos sem uso).'});
  // 2. ativação
  const tE=a&&a.nunca?s.estreou/a.nunca*100:null;const tEm=ult12.length>1?ult12.slice(1).reduce((t,x,q)=>t+(ult12[q].nunca?x.estreou/ult12[q].nunca*100:0),0)/(ult12.length-1):null;
  rows.push({f:`**${fmt(s.estreou)} pessoas geraram o primeiro voucher**${a?` (${sinalP(varp(s.estreou,a.estreou))} vs ${lab(a.m)}`:''}${l?`; ${sinalP(varp(s.estreou,l.estreou))} vs ${lab(l.m)})`:a?')':''}.`,
@@ -2725,7 +2746,7 @@ function fcaInativos(m){const S=INA.d.serie;const j=S.findIndex(x=>x.m===m);cons
  // 4. esfriando
  rows.push({f:`**${fmt(s.esfriando)} pessoas esfriando** (3 a 5 meses sem gerar), ${pc1(pp(s.esfriando,s.cart))} da carteira${a?` (${sinalN(s.esfriando-a.esfriando)} vs ${lab(a.m)})`:''}.`,
   c:`- Se não voltarem, passam a "parou de gerar" nos próximos 1 a 3 meses\n- Ativos recentes (1 a 2 meses sem gerar): ${fmt(s.recente)}${a?` (${sinalN(s.recente-a.recente)})`:''}, que alimentam o grupo esfriando no mês seguinte`,
-  a:'Régua para quem está esfriando: lembrete com novidades e o último tipo de benefício usado (Gerar bases › Esfriando).'});
+  a:'Régua para quem está esfriando: lembrete com novidades e o último tipo de benefício usado (Clube em números › Gerar bases › Esfriando).'});
  // 5. uso no mês
  rows.push({f:`**${fmt(s.mes)} pessoas da carteira usaram no mês**, ${pc1(pp(s.mes,s.cart))}${a?` (${ppT(dpp('mes',a))} vs ${lab(a.m)}`:''}${l?`; ${ppT(dpp('mes',l))} vs ${lab(l.m)})`:a?')':''}.`,
   c:`- Delas, ${fmt(s.estreou)} estrearam e ${fmt(s.voltou)} voltaram depois de 6+ meses\n- As demais (${fmt(s.mes-s.estreou-s.voltou)}) já vinham usando nos meses anteriores`,
@@ -3891,13 +3912,14 @@ function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(h.startsWith('g-')){pending=h;location.hash='glossario';return}
  const area=areaOf(h);
  if(h==='carga'){location.hash='clube-enviar';return}
+ if(h==='inativos-bases'){location.hash='clube-bases';return}
  if(h==='acessos'){location.hash='admin';return}
  if(area&&!temPainel(area)){app.innerHTML=semAcesso(area);window.scrollTo(0,0);return}
  if(area==='admin'){telaAcessos(h);window.scrollTo(0,0);return}
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
  else if(area==='semanal')rotaSemanal(h);
  else if(area==='parceiros')rotaParceiros(h);
- else if(area==='inativos')rotaInativos(h);
+ else if(area==='inativos'||h==='clube-bases')rotaInativos(h);
  else if(area==='comunicacoes')rotaComunicacoes(h);
  else if(area==='calculadora')rotaCalculadora(h);
  else if(CLUBE_PAGES[h]){if(M.length){app.innerHTML=CLUBE_PAGES[h]();bindClube(h)}else app.innerHTML=shell(h,semDados())}
