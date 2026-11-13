@@ -3701,14 +3701,28 @@ function ciBind(){const p=document.getElementById('ci-p');if(!p)return;
    pílulas com contorno laranja. As fontes do Clube vão embutidas no arquivo (abre certo mesmo sem elas instaladas). */
 function ciLib(){const el=document.getElementById('lib-pptx');if(el&&!el.dataset.ok){const s=document.createElement('script');s.textContent=el.textContent;document.head.appendChild(s);el.dataset.ok='1'}
  if(!CI.img){try{CI.img=JSON.parse(document.getElementById('ci-assets').textContent)}catch(_){CI.img={}}}}
-async function ciPPT(R){ciLib();const I=CI.img;const pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.theme={headFontFace:'Gotham Rounded',bodyFontFace:'Gotham Rounded'};pptx.author='Clube do Assinante GZH';pptx.title=`Check-in ${R.m} · ${R.per}`;
+async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}catch(_){}const I=CI.img;const pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.theme={headFontFace:'Gotham Rounded',bodyFontFace:'Gotham Rounded'};pptx.author='Clube do Assinante GZH';pptx.title=`Check-in ${R.m} · ${R.per}`;
  const W=13.333,H=7.5;const C={V:'721A50',VE:'54143F',L:'ED6E21',G:'7BC4B2',V2:'A06A91',NUDE:'FBF5F1',INK:'2B1422',CINZA:'7A6872',LINHA:'EADDE3',B:'FFFFFF'};
  const FT='Gotham Rounded',FM='Gotham Rounded Medium',FS='Michland';const nome=R.m,per=R.per;const up=t=>String(t).toLocaleUpperCase('pt-BR');
  const LW=0.857; // proporção do logo (largura/altura)
  // ---- peças do key visual
  const titulo=(s,t,o)=>s.addText(up(t),Object.assign({fontFace:FT,bold:true,color:C.V,fontSize:30,charSpacing:7,margin:0,valign:'top'},o));
- // Michland tem desenho pequeno no corpo: compensa 40% para ficar na proporção do key visual
- const script=(s,t,o)=>{const q=Object.assign({fontFace:FS,color:C.L,fontSize:44,margin:0,valign:'bottom'},o);q.fontSize=Math.round(q.fontSize*1.4);q.y-=0.15;q.h+=0.15;s.addText(t,q)};
+ // Palavras em Michland vão como imagem (PNG desenhado com a fonte do portal): Canva e Google Slides não têm a Michland
+ // e trocavam por outra fonte, desconfigurando a página. Michland tem desenho pequeno: compensa 40% no tamanho.
+ const script=(s,t,o)=>{const q=Object.assign({color:C.L,fontSize:44},o),pt=q.fontSize*1.4,k=4,px=pt*k;
+  const c=document.createElement('canvas'),g=c.getContext('2d');g.font=`${px}px Michland`;const m=g.measureText(t),pad=px*0.06;
+  const asc=m.actualBoundingBoxAscent||px*0.8,desc=m.actualBoundingBoxDescent||px*0.25,l=m.actualBoundingBoxLeft||0,r=m.actualBoundingBoxRight||m.width;
+  c.width=Math.ceil(l+r+2*pad);c.height=Math.ceil(asc+desc+2*pad);g.font=`${px}px Michland`;g.fillStyle='#'+q.color;g.fillText(t,pad+l,pad+asc);
+  const w=c.width/(k*72),h=c.height/(k*72),base=(pad+asc)/(k*72);
+  const x=q.align==='center'?q.x+(q.w-w)/2:q.align==='right'?q.x+q.w-w:q.x;
+  s.addImage({data:c.toDataURL('image/png'),x,y:q.y+q.h-0.3-base,w,h,altText:t})};
+ // gráfico de barras desenhado com formas (o gráfico nativo perdia rótulos e formatação ao abrir no Canva)
+ const barras=(s,b,itens,o={})=>{const n=itens.length;if(!n)return;const max=Math.max(...itens.map(i=>i.v),1),labH=0.38,valH=0.32,area=b.h-labH-valH,slot=b.w/n,bw=slot*(o.larg||0.62);
+  itens.forEach((it,i)=>{const hb=Math.max(0.03,area*it.v/max),x=b.x+i*slot+(slot-bw)/2,yb=b.y+valH+area-hb;
+   s.addShape(pptx.ShapeType.rect,{x,y:yb,w:bw,h:hb,fill:{color:it.cor},line:{type:'none'}});
+   s.addText(fmt(it.v),{x:x-0.25,y:yb-valH,w:bw+0.5,h:valH-0.04,fontFace:FT,bold:true,fontSize:o.fv||11,color:it.cor,align:'center',valign:'bottom',margin:0});
+   s.addText(it.lab,{x:b.x+i*slot,y:b.y+valH+area+0.08,w:slot,h:labH-0.08,fontFace:FM,fontSize:o.fl||9,color:C.CINZA,align:'center',valign:'top',margin:0})});
+  s.addShape(pptx.ShapeType.line,{x:b.x,y:b.y+valH+area,w:b.w,h:0,line:{color:C.LINHA,width:1}})};
  const apoio=(s,t,o)=>s.addText(t,Object.assign({fontFace:FT,color:C.INK,fontSize:12,margin:0,valign:'top'},o));
  const pilula=(s,t,x,y,w,o={})=>s.addText(up(t),{x,y,w,h:o.h||0.5,shape:pptx.ShapeType.roundRect,rectRadius:(o.h||0.5)/2,fill:o.fill?{color:o.fill}:{type:'none'},line:{color:o.line||C.L,width:o.fill?0:1.5},
   fontFace:o.bold?FT:FM,fontSize:o.fs||12,bold:!!o.bold,color:o.cor||C.B,charSpacing:o.cs??3,align:'center',valign:'middle',margin:0});
@@ -3751,7 +3765,7 @@ async function ciPPT(R){ciLib();const I=CI.img;const pptx=new PptxGenJS();pptx.l
  // 2 · O PERÍODO EM NÚMEROS
  s=pptx.addSlide();vinho(s,'resultados');
  script(s,'o período',{x:0.65,y:1.6,w:4.6,h:0.8,fontSize:40});titulo(s,'em números',{x:0.65,y:2.35,w:4.6,h:0.55,fontSize:24,charSpacing:7,color:C.B});
- s.addText([{text:'VOUCHERS',options:{fontFace:FM,fontSize:11,charSpacing:4,breakLine:true}},{text:fmt(R.v),options:{fontSize:40,bold:true,breakLine:true}},{text:'GERADOS',options:{fontFace:FM,fontSize:11,charSpacing:4}}],
+ s.addText([{text:'VOUCHERS',options:{fontFace:FM,fontSize:11,charSpacing:4,breakLine:true}},{text:fmt(R.v),options:{fontSize:40,bold:true,charSpacing:0,breakLine:true}},{text:'GERADOS',options:{fontFace:FM,fontSize:11,charSpacing:4}}],
   {x:0.8,y:3.15,w:3.4,h:3.4,shape:pptx.ShapeType.star12,fill:{color:C.L},line:{type:'none'},fontFace:FT,color:C.B,align:'center',valign:'middle',margin:0});
  const KP=[[fmt(R.p),'pessoas que usaram',R.p?`${fmt(R.v/R.p,2)} vouchers por pessoa`:''],
   [varr==null?'—':`${varr>=0?'+':''}${fmt(100*varr,1)}%`,'vs período anterior',R.ant?`${R.antPer}: ${fmt(R.ant.vouchers)} vouchers`:'sem dados do período anterior'],
@@ -3763,10 +3777,9 @@ async function ciPPT(R){ciLib();const I=CI.img;const pptx=new PptxGenJS();pptx.l
  // 3 · EVOLUÇÃO MENSAL
  s=pptx.addSlide();branco(s,'evolução');cab(s,'mês a mês','evolução de vouchers','Vouchers gerados por mês nos últimos 12 meses · em vinho, os meses do período');
  const labs=R.meses.map(x=>lab(x[0])),noP=x=>x[0]>=R.de&&x[0]<=R.ate;
- if(R.meses.length)s.addChart(pptx.ChartType.bar,[{name:'No período',labels:labs,values:R.meses.map(x=>noP(x)?x[1]:0)},{name:'Outros meses',labels:labs,values:R.meses.map(x=>noP(x)?0:x[1])}],
-  {x:0.45,y:3.1,w:12.4,h:3.85,barGrouping:'stacked',chartColors:[C.V,C.V2],showLegend:true,legendPos:'b',legendFontFace:FT,legendFontSize:10,catAxisLabelFontFace:FT,catAxisLabelFontSize:10,
-   valAxisLabelFontFace:FT,valAxisLabelFontSize:9,valGridLine:{color:'EEEEEE',size:0.5},showValue:true,dataLabelPosition:'inEnd',dataLabelFontFace:FT,dataLabelFontSize:10,dataLabelColor:C.B,
-   dataLabelFormatCode:'#,##0;;;',valAxisLabelFormatCode:'#,##0',barGapWidthPct:40});
+ barras(s,{x:0.55,y:3.15,w:12.25,h:3.65},R.meses.map(x=>({lab:lab(x[0]),v:x[1],cor:noP(x)?C.V:C.V2})),{fl:9,fv:10.5});
+ [[C.V,'meses do período'],[C.V2,'outros meses']].forEach(([cor,t],i)=>{s.addShape(pptx.ShapeType.rect,{x:9.6+i*1.75,y:2.78,w:0.16,h:0.16,fill:{color:cor},line:{type:'none'}});
+  s.addText(t,{x:9.82+i*1.75,y:2.72,w:1.5,h:0.28,fontFace:FT,fontSize:9,color:C.CINZA,margin:0,valign:'middle'})});
  // 4 · EXTRATO DE USO
  s=pptx.addSlide();s.background={color:C.B};
  s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:4.3,h:H,fill:{color:C.V},line:{type:'none'}});
@@ -3790,7 +3803,7 @@ async function ciPPT(R){ciLib();const I=CI.img;const pptx=new PptxGenJS();pptx.l
    ...R.coms.slice(0,8).map(c=>[{text:ciDia(c.envio)},{text:c.canal},{text:c.assunto},{text:fmt(c.enviados),options:{align:'right'}},{text:c.canal==='In-app'||c.canal==='Push'?'—':pct(ciPct(c.abriram,c.enviados)),options:{align:'right'}},{text:fmt(c.pess),options:{align:'right'}},{text:fmt(c.vou),options:{align:'right',bold:true,color:C.V}}])]),
    {x:0.55,y:3.15,w:12.25,colW:[1.05,1.35,4.75,1.2,1.15,1.2,1.55],fontSize:9.5});
   const tv=R.coms.reduce((a,c)=>a+c.vou,0),te=R.coms.reduce((a,c)=>a+c.enviados,0);
-  pilula(s,`${fmt(te)} envios · ${fmt(tv)} vouchers do parceiro a partir das comunicações`,0.55,H-1.02,8.2,{h:0.42,fs:9.5,cor:C.V,line:C.L})}
+  pilula(s,`${fmt(te)} envios · ${fmt(tv)} vouchers do parceiro a partir das comunicações`,0.55,H-1.02,10.2,{h:0.42,fs:9,cor:C.V,line:C.L})}
  else caixa(s,0.55,3.15,12.25,3.6,'Nenhuma comunicação analisada no painel destacou o parceiro no período');
  // 7 · UM SLIDE POR COMUNICAÇÃO
  const nomeCanal=c=>({'Newsletter':'newsletter','E-mail pontual':'e-mail','WhatsApp':'WhatsApp','Push':'notificação push','In-app':'mensagem in-app'})[c]||c;
@@ -3814,8 +3827,7 @@ async function ciPPT(R){ciLib();const I=CI.img;const pptx=new PptxGenJS();pptx.l
   s.addText('Slide para completar: apague se não houve divulgação neste canal.',{x:6.5,y:0.75,w:6.3,h:0.25,fontFace:FT,fontSize:8,italic:true,color:C.CINZA,align:'right',margin:0})});
  // 9 · QUANDO O PÚBLICO USA
  s=pptx.addSlide();branco(s,'comportamento');cab(s,'quando o público','usa o benefício','Vouchers por dia da semana no período');
- s.addChart(pptx.ChartType.bar,[{name:'Vouchers',labels:ciSem.map(up),values:R.sem}],{x:0.45,y:3.1,w:7.7,h:3.85,chartColors:[C.L],catAxisLabelFontFace:FT,valAxisLabelFontFace:FT,catAxisLabelFontSize:10,valAxisLabelFontSize:9,
-  showValue:true,dataLabelPosition:'inEnd',dataLabelFontFace:FT,dataLabelFontSize:10,dataLabelColor:C.B,dataLabelFormatCode:'#,##0',valAxisLabelFormatCode:'#,##0',valGridLine:{color:'EEEEEE',size:0.5},barGapWidthPct:35});
+ barras(s,{x:0.55,y:3.15,w:7.6,h:3.65},R.sem.map((v,i)=>({lab:up(ciSem[i]),v,cor:C.L})),{fl:10,fv:11,larg:0.6});
  const topD=R.dias.slice().sort((a,b)=>b[1]-a[1]).slice(0,5);
  s.addShape(pptx.ShapeType.roundRect,{x:8.6,y:3.1,w:4.25,h:3.75,rectRadius:0.2,fill:{color:C.V},line:{type:'none'}});
  s.addText('DIAS COM MAIS VOUCHERS',{x:8.9,y:3.35,w:3.7,h:0.35,fontFace:FT,fontSize:10,bold:true,charSpacing:3,color:C.L,margin:0});
