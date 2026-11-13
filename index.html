@@ -1461,14 +1461,25 @@ function desenharMeses(){const box=document.getElementById('cg-meses');if(!box)r
  ${CG.lendo?`<p class="hint" id="cg-lendo">Lendo vouchers…</p>`:''}${CG.erro?`<div class="note">${esc(CG.erro)}</div>`:''}
  <table class="cmp"><thead><tr><th>Mês</th><th>Carteira</th><th>Vouchers</th><th>Já no portal</th><th>Carregar</th></tr></thead><tbody>${linhas||'<tr><td colspan="5">Nenhum mês ainda.</td></tr>'}</tbody></table>
  <p class="hint">Só dá para carregar meses que tenham a carteira e os vouchers. Se o mês já estiver no portal, ele é substituído pelos arquivos novos.</p>
- <button class="btn" id="cg-go" ${CG.lendo||CG.rodando?'disabled':''}>Carregar meses selecionados</button></div>`;
+ <button class="btn" id="cg-go" ${CG.lendo||CG.rodando?'disabled':''}>Carregar meses selecionados</button>
+ <button class="btn-sec" id="cg-ct" type="button" ${CG.rodando||!CG.cart.some(c=>c.mes)?'disabled':''} style="margin-left:8px">Só guardar CPF, e-mail, telefone e situação das carteiras</button>
+ <p class="hint">O segundo botão não recalcula nada: lê só as carteiras escolhidas (não precisa de vouchers) e atualiza os contatos usados em Gerar bases. Use para completar meses que ficaram sem contatos.</p></div>`;
  box.querySelectorAll('[data-sem]').forEach(s=>s.onchange=()=>{CG.cart[+s.dataset.sem].mes=s.value||null;desenharMeses()});
+ const ctb=document.getElementById('cg-ct');if(ctb)ctb.onclick=()=>rodarContatos(CG.cart.filter(c=>c.mes).map(c=>c.mes).sort());
  const go=document.getElementById('cg-go');if(go)go.onclick=()=>{const sel=[...box.querySelectorAll('.cg-sel:checked')].map(x=>x.value);if(sel.length)rodarCarga(sel)}}
 function logar(t,tipo){CG.log.push({t,tipo});desenharLog()}
 function desenharLog(){const box=document.getElementById('cg-log');if(!box)return;if(!CG.log.length&&!CG.rodando){box.innerHTML='';return}
  box.innerHTML=`<div class="card"><h3>Andamento</h3>${CG.rodando?`<progress id="cg-prog" max="1" value="${CG.prog||0}"></progress><p class="hint" id="cg-etapa">${esc(CG.etapa||'')}</p>`:''}<ol class="cg-log">${CG.log.map(l=>`<li class="${l.tipo||''}">${l.t}</li>`).join('')}</ol></div>`}
 function etapa(t,p){CG.etapa=t;if(p!=null)CG.prog=p;const e=document.getElementById('cg-etapa'),g=document.getElementById('cg-prog');if(e)e.textContent=t;if(g&&p!=null)g.value=p}
 const avisoSaida=e=>{e.preventDefault();e.returnValue=''};
+async function rodarContatos(meses){if(!meses.length)return;CG.rodando=true;CG.log=[];CG.prog=0;addEventListener('beforeunload',avisoSaida);desenharMeses();desenharLog();let ok=0;
+ for(let k=0;k<meses.length;k++){const m=meses[k],nome=lab(m),base=k/meses.length,passo=1/meses.length;
+  try{etapa(`${nome}: lendo a carteira…`,base);const cart=await lerCarteira(CG.cart.find(c=>c.mes===m).file,m);
+   await enviarContatos(m,cart.contatos,(a,b)=>etapa(`${nome}: guardando contatos (${fmt(a)} de ${fmt(b)})…`,base+passo*(.3+.7*a/b)));ok++;
+   logar(`<b>${nome}</b>: ${fmt(cart.contatos.length)} CDASS · CPF${cart.colsContato.email?', e-mail':''}${cart.colsContato.tel?', telefone':''} e situação guardados.`,'ok')}
+  catch(e){logar(`<b>${nome}</b>: contatos não guardados (${esc(e.message||e)}).`,'erro')}}
+ logar(`Pronto: contatos de ${ok} de ${meses.length} ${meses.length===1?'carteira':'carteiras'}. <a href="#clube-bases">Ir para Gerar bases →</a>`,'ok');
+ if(typeof BASE!=='undefined')BASE.cont=null;CG.rodando=false;removeEventListener('beforeunload',avisoSaida);desenharMeses();desenharLog()}
 async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;addEventListener('beforeunload',avisoSaida);desenharMeses();desenharLog();
  const t0=performance.now();
  try{PEPPER=await rpc('pepper');
@@ -1488,12 +1499,12 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    await analisar();await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
-   let txtK='';try{await enviarContatos(m,cart.contatos,(a,b)=>etapa(`${nome}: guardando CPF e contatos (${fmt(a)} de ${fmt(b)})…`,base+passo*.94));
-    txtK=` CPF${cart.colsContato.email?', e-mail':''}${cart.colsContato.tel?', telefone':''} e situação guardados para Gerar bases.`}catch(e){txtK=` Os contatos não foram guardados (${esc(e.message||e)}; rode o 47_contatos_bases.sql).`}
+   let txtK='',ctErr=null;try{await enviarContatos(m,cart.contatos,(a,b)=>etapa(`${nome}: guardando CPF e contatos (${fmt(a)} de ${fmt(b)})…`,base+passo*.94));
+    txtK=` CPF${cart.colsContato.email?', e-mail':''}${cart.colsContato.tel?', telefone':''} e situação guardados para Gerar bases.`}catch(e){txtK='';ctErr=esc(e.message||e)}
    let txtU='';const det=CG.det.get(m);if(det&&det.size){try{etapa(`${nome}: guardando o detalhe para a Calculadora uso…`,base+passo*.95);await enviarUsoMes(m,det);txtU=' Detalhe salvo para a Calculadora uso.'}catch(e){txtU=` O detalhe para a Calculadora uso não foi salvo (${esc(e.message||e)}).`}}
    let txtC='';if(v.cort!=null){const [yy,mm]=m.split('-').map(Number);const fimMes=`${m}-${pad2(new Date(yy,mm,0).getDate())}`;
     try{await rpc('salvar_cortesia',{p_mes:m+'-01',p_valor:v.cort,p_ate:fimMes});txtC=` Cortesia: ${fmt(v.cort)} usos.`}catch(e){txtC=` A cortesia não foi salva (${esc(e.message||e)}).`}}
-   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}${txtK}`,'ok')}
+   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}${txtK}`,'ok');if(ctErr)logar(`<b>${nome}</b>: os contatos (CPF, e-mail, telefone, situação) não foram guardados: ${ctErr}. O mês foi carregado; para completar só os contatos, use o botão "Só guardar CPF, e-mail, telefone e situação".`,'erro')}
  }catch(e){logar(`Parou com erro${CG.etapa?` em "${esc(CG.etapa)}"`:''}: ${esc(e.message||e)}${/statement timeout/.test(e.message||'')?' (tempo limite do banco: rode o 50_tempo_limite_carga.sql no Supabase)':''}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
  try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
    try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
