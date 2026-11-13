@@ -2662,7 +2662,7 @@ async function rotaInativos(h){if(h==='clube-bases'&&!ADMIN){location.hash='club
 /* ---------- página: Clube em números › Gerar bases (administradores) ----------
    Qualquer segmentação da carteira do último mês (com ou sem filtro de uso do Clube) e a base de
    ex-assinantes para reativação. Sai só CDASS + campos de segmentação: sem CPF, nome ou e-mail. */
-const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',cmin:'',cmax:'',res:null,busy:false};
+const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',cmin:'',cmax:'',vsel:[],vmodo:'gerou',vde:'',vate:'',lista:null,res:null,busy:false};
 const PRESETS=[
  ['Mídia paga',[
   ['Inativos legados',{est:['nunca','parou'],f:{tempo:['Legado (10 anos ou mais)']}},'10 anos ou mais de casa e sem gerar voucher há 6 meses ou mais (ou nunca geraram).'],
@@ -2690,32 +2690,60 @@ function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dim
   <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>${T('meses-sem-gerar','Meses sem gerar')}: de</span><input type="number" min="1" id="b-smin" value="${BASE.smin}" placeholder="—" style="width:90px"></label><label class="fld"><span>até</span><input type="number" min="1" id="b-smax" value="${BASE.smax}" placeholder="—" style="width:90px"></label></div>
   <p class="hint">Opcional. Vale para quem já gerou voucher alguma vez (ativo recente, esfriando e parou).</p></div>
  <div class="card"><h3>3. Perfil <small>opcional; dentro de cada grupo, vale qualquer opção marcada</small></h3><div class="ina-filtros">${dims.map(chipsDim).join('')}</div></div>`}
+ ${cardVoucherBase()}
  <div class="acoes"><button class="btn" id="b-gerar" type="button">${BASE.busy?'Gerando…':'Gerar base'}</button><button class="chip" id="b-limpar" type="button">Limpar filtros</button></div>
  <div id="b-res">${R?`<div class="card"><h3>Base pronta: ${fmt(R.linhas.length)} CDASS <small>${fmt(R.pessoas)} pessoas</small></h3>
   <p class="sub">${esc(R.desc)}. Uma pessoa com mais de uma assinatura aparece em mais de uma linha.</p>
   <div class="acoes"><button class="btn" id="b-csv" type="button" ${R.linhas.length?'':'disabled'}>Baixar CSV</button><button class="chip" id="b-cdass" type="button" ${R.linhas.length?'':'disabled'}>Baixar só os CDASS (.txt)</button></div>
   ${R.linhas.length?`<div class="tw"><table class="cmp pa-t"><thead><tr>${colsBase(R).map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.linhas.slice(0,10).map(l=>`<tr>${linhaBase(l,R).map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">Mostrando as 10 primeiras linhas.</p>`:'<p class="hint">Ninguém neste segmento.</p>'}</div>`:''}</div>
  <p class="hint">Carteira ativa de ${lab(D.mes)} (último mês carregado). Uso do Clube e meses sem gerar contam a partir de jul/2023.</p>`)}
+/* "Gerou voucher de": busca por benefício ou marca (detalhe de vouchers por pessoa) */
+const semAc=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function cardVoucherBase(){const L=BASE.lista,cob=L&&L.cobertura&&L.cobertura[0]?`${lab(L.cobertura[0])} a ${lab(L.cobertura[1])}`:null;
+ return `<div class="card"><h3>4. Geração de voucher <small>opcional; benefícios ou marcas específicos</small></h3>
+  <div class="chips"><button class="chip ${BASE.vmodo==='gerou'?'on':''}" data-vmodo="gerou" type="button">Gerou voucher de</button><button class="chip ${BASE.vmodo==='nao'?'on':''}" data-vmodo="nao" type="button">Não gerou voucher de</button></div>
+  <div class="bv-busca" style="position:relative;margin-top:10px;max-width:720px"><input type="search" id="bv-q" placeholder="${L?'Comece a digitar o benefício ou a marca (ex.: Planeta)':'Carregando benefícios…'}" ${L?'':'disabled'} autocomplete="off" style="width:100%">
+   <div id="bv-res" class="bv-res" style="position:absolute;z-index:20;left:0;right:0;top:100%;background:var(--card,#fff);border:1px solid var(--line);border-radius:10px;max-height:340px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none"></div></div>
+  <div class="chips" style="margin-top:10px">${BASE.vsel.map((x,i)=>`<button class="chip on" data-vrem="${i}" type="button" title="Remover">${esc(x.label)} ✕</button>`).join('')||'<span class="hint">Nenhum benefício escolhido: a base não filtra por voucher.</span>'}</div>
+  <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>Período do voucher: de</span><input type="month" id="bv-de" value="${BASE.vde}"></label><label class="fld"><span>até</span><input type="month" id="bv-ate" value="${BASE.vate}"></label></div>
+  <p class="hint">Vale qualquer um dos benefícios ou marcas escolhidos. Período vazio = todo o histórico.${cob?` Detalhe de vouchers por pessoa disponível de ${cob}.`:''} Sem farmácias e sem vouchers ADMIN C.</p></div>`}
+function bvBuscar(q){const L=BASE.lista;const el=document.getElementById('bv-res');if(!el||!L)return;const t=semAc(q).trim();if(t.length<2){el.style.display='none';el.innerHTML='';return}
+ const ws=t.split(/\s+/);const ok=s=>ws.every(w=>s.includes(w));
+ const marcas=new Map();L.beneficios.forEach(b=>{if(ok(semAc(b[1]))){const m=marcas.get(b[1])||{v:0,n:0};m.v+=b[3];m.n++;marcas.set(b[1],m)}});
+ const tits=L.beneficios.filter(b=>ok(semAc(b[2]+' '+b[1]))).slice(0,40);
+ const it=[...[...marcas].sort((a,b)=>b[1].v-a[1].v).slice(0,5).map(([m,x])=>({k:'m:'+m,h:`<b>Marca: ${esc(m)}</b> <small>todos os ${fmt(x.n)} benefícios · ${fmt(x.v)} vouchers</small>`})),
+  ...tits.map(b=>({k:'b:'+b[0],h:`${esc(b[2])} <small>${esc(b[1])} · ${b[4]===b[5]?lab(b[4]):`${lab(b[4])} a ${lab(b[5])}`} · ${fmt(b[3])} vouchers</small>`}))];
+ el.innerHTML=it.length?it.map(x=>`<div class="bv-it" data-vadd="${esc(x.k)}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--line)">${x.h}</div>`).join(''):'<div style="padding:8px 12px" class="hint">Nada encontrado.</div>';el.style.display='block';
+ el.querySelectorAll('[data-vadd]').forEach(d=>{d.onmouseenter=()=>d.style.background='var(--bg,#f6f0f3)';d.onmouseleave=()=>d.style.background='';d.onmousedown=e=>{e.preventDefault();const k=d.dataset.vadd;
+  if(BASE.vsel.some(x=>x.k===k))return;if(k.startsWith('m:'))BASE.vsel.push({k,marca:k.slice(2),label:'Marca: '+k.slice(2)});
+  else{const b=L.beneficios.find(x=>'b:'+x[0]===k);BASE.vsel.push({k,id:b[0],label:b[2]})}BASE.res=null;BASE.vq='';inaRender('clube-bases');setTimeout(()=>document.getElementById('bv-q')?.focus(),0)}})}
 const BASE_COLS=['CDASS','Situação','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família','E-mail','Último mês ativo','Meses desde a saída'];
 const BASE_EX=[0,1,2,4,5,13,14],BASE_AT=[0,1,2,3,4,5,6,7,8,9,10,11,12];
 const ESTN=Object.fromEntries(EST.map(([k,n])=>[k,n]));
 const colsBase=R=>(R.universo==='ex'?BASE_EX:BASE_AT).map(i=>BASE_COLS[i]);
 const linhaBase=(l,R)=>{const v=[l[0],l[1],ESTN[l[2]]||l[2],l[3]??'',l[4]?lab(l[4]):'',...l.slice(5,13).map(x=>x??''),l[13]?lab(l[13]):'',l[14]??''];return (R.universo==='ex'?BASE_EX:BASE_AT).map(i=>v[i])};
 function baixarTexto(nome,txt,tipo){const blob=new Blob([txt],{type:tipo});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-function descBase(){const p=[];if(BASE.univ==='ex'){p.push('Ex-assinantes');if(BASE.cmin||BASE.cmax)p.push(`saíram há ${BASE.cmin||'1'} a ${BASE.cmax||'∞'} meses`);if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '));if(BASE.f.tempo)p.push(`Tempo de casa: ${BASE.f.tempo.join(', ')}`);return p.join(' · ')}
- p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`);return p.join(' · ')}
+function descVoucher(){if(!BASE.vsel.length)return '';const per=BASE.vde||BASE.vate?` (${BASE.vde?lab(BASE.vde):'início'} a ${BASE.vate?lab(BASE.vate):'hoje'})`:'';return `${BASE.vmodo==='nao'?'não gerou':'gerou'} voucher de ${BASE.vsel.map(x=>x.label).join(', ')}${per}`}
+function descBase(){const p=[];if(BASE.univ==='ex'){p.push('Ex-assinantes');if(BASE.cmin||BASE.cmax)p.push(`saíram há ${BASE.cmin||'1'} a ${BASE.cmax||'∞'} meses`);if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '));if(BASE.f.tempo)p.push(`Tempo de casa: ${BASE.f.tempo.join(', ')}`);if(descVoucher())p.push(descVoucher());return p.join(' · ')}
+ p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`);if(descVoucher())p.push(descVoucher());return p.join(' · ')}
 function bindBases(h){const re=()=>inaRender(h);const zera=()=>{BASE.res=null};
+ if(!BASE.lista&&!BASE.carregandoLista){BASE.carregandoLista=true;sb.rpc('lista_beneficios_base').then(({data,error})=>{BASE.carregandoLista=false;if(error){console.warn(error);return}BASE.lista=data;if((location.hash||'').slice(1)===h)re()})}
+ const q=document.getElementById('bv-q');if(q){q.oninput=()=>bvBuscar(q.value);q.onfocus=()=>bvBuscar(q.value);q.onblur=()=>setTimeout(()=>{const r=document.getElementById('bv-res');if(r)r.style.display='none'},150)}
+ document.querySelectorAll('[data-vrem]').forEach(b=>b.onclick=()=>{BASE.vsel.splice(+b.dataset.vrem,1);zera();re()});
+ document.querySelectorAll('[data-vmodo]').forEach(b=>b.onclick=()=>{BASE.vmodo=b.dataset.vmodo;zera();re()});
+ [['bv-de','vde'],['bv-ate','vate']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
  document.querySelectorAll('[data-univ]').forEach(b=>b.onclick=()=>{BASE.univ=b.dataset.univ;zera();re()});
  document.querySelectorAll('[data-be]').forEach(b=>b.onclick=()=>{const k=b.dataset.be;if(k==='*')BASE.est.clear();else BASE.est.has(k)?BASE.est.delete(k):BASE.est.add(k);zera();re()});
  document.querySelectorAll('[data-usou]').forEach(b=>b.onclick=()=>{const k=b.dataset.usou;BASE.usou.has(k)?BASE.usou.delete(k):BASE.usou.add(k);zera();re()});
  document.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{const k=b.dataset.bf,v=b.dataset.bv;const s=new Set(BASE.f[k]||[]);s.has(v)?s.delete(v):s.add(v);BASE.f[k]=[...s];if(!s.size)delete BASE.f[k];zera();re()});
  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRESET_L[+b.dataset.preset][1];BASE.univ=p.univ||'ativos';BASE.est=new Set(p.est||[]);BASE.usou=new Set();BASE.f=JSON.parse(JSON.stringify(p.f||{}));
-  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.cmin=p.cmin??'';BASE.cmax=p.cmax??'';zera();re()});
+  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.cmin=p.cmin??'';BASE.cmax=p.cmax??'';BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
  [['b-smin','smin'],['b-smax','smax'],['b-cmin','cmin'],['b-cmax','cmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
- on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.smin='';BASE.smax='';BASE.cmin='';BASE.cmax='';zera();re()});
+ on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';BASE.smin='';BASE.smax='';BASE.cmin='';BASE.cmax='';zera();re()});
  on('b-gerar',async()=>{BASE.busy=true;re();const ex=BASE.univ==='ex';
-  const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,estados:ex?[]:[...BASE.est],usou:[...BASE.usou],filtros:ex?(BASE.f.tempo?{tempo:BASE.f.tempo}:{}):BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,canc_min:BASE.cmin,canc_max:BASE.cmax}});BASE.busy=false;
+  const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,estados:ex?[]:[...BASE.est],usou:[...BASE.usou],filtros:ex?(BASE.f.tempo?{tempo:BASE.f.tempo}:{}):BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,canc_min:BASE.cmin,canc_max:BASE.cmax,
+   v_benef:BASE.vsel.filter(x=>x.id).map(x=>x.id),v_marcas:BASE.vsel.filter(x=>x.marca).map(x=>x.marca),v_modo:BASE.vmodo,v_de:BASE.vde?BASE.vde+'-01':'',v_ate:BASE.vate?BASE.vate+'-01':''}});BASE.busy=false;
   if(error){BASE.res=null;re();alert('Não foi possível gerar a base: '+error.message+(/gerar_base/.test(error.message)?' (rode o arquivo 46_gerar_bases_clube.sql no Supabase)':''));return}
   BASE.res={...data,desc:descBase()};re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
  const nome=ext=>`base_${BASE.univ==='ex'?'ex-assinantes':(BASE.est.size?[...BASE.est].join('-'):'todos')}_${INA.d.mes}.${ext}`;
