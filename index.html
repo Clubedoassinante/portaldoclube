@@ -1407,6 +1407,8 @@ async function enviarUsoMes(m,det,prog){await codigos([...det.keys()].map(k=>k.s
  const bl=[...B].map(([bk,id])=>{const i=bk.indexOf('\t');return [String(id),bk.slice(0,i),bk.slice(i+1)]});const T=6000;
  for(let i=0;i<L.length;i+=T){const parte=L.slice(i,i+T).map(x=>[x[0],x[1],String(x[2]),x[3]]);const usados=new Set(parte.map(x=>x[2]));
   await rpc('salvar_uso',{p_mes:m+'-01',p_benef:bl.filter(b=>usados.has(b[0])),p_linhas:parte,p_inicio:i===0});if(prog)prog(Math.min(i+T,L.length),L.length)}}
+/* estatísticas das tabelas de passagem depois de cada envio (sem isso o banco cruza carteira x vouchers por um caminho lento e estoura o tempo) */
+async function analisar(){try{await rpc('analisar_carga')}catch(e){if(!/analisar_carga/.test(e.message||''))throw e;throw new Error('rode o arquivo 49_carga_estatisticas.sql no Supabase e carregue de novo')}}
 async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args);if(error)throw new Error(error.message);return data}
 
 /* ---------- tela ---------- */
@@ -1481,9 +1483,9 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    const vrows=[...agg].map(([kk,p])=>{const i=kk.indexOf('\t');return {mes:m+'-01',cpf_h:+kk.slice(0,i),marca:kk.slice(i+1),vouchers:p}});
    await rpc('limpar_carga');
    await enviar('staging_carteira',cart,(a,b)=>etapa(`${nome}: enviando a carteira (${fmt(a)} de ${fmt(b)})…`,base+passo*(.2+.55*a/b)));
-   await rpc('salvar_perfil_pessoas',{p_mes:m+'-01'});
+   await analisar();await rpc('salvar_perfil_pessoas',{p_mes:m+'-01'});
    await enviar('staging_vouchers',vrows,(a,b)=>etapa(`${nome}: enviando os vouchers (${fmt(a)} de ${fmt(b)})…`,base+passo*(.75+.15*a/b)));
-   await rpc('salvar_idade_mes',{p_mes:m+'-01'});
+   await analisar();await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
    let txtK='';try{await enviarContatos(m,cart.contatos,(a,b)=>etapa(`${nome}: guardando CPF e contatos (${fmt(a)} de ${fmt(b)})…`,base+passo*.94));
