@@ -1494,7 +1494,7 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    let txtC='';if(v.cort!=null){const [yy,mm]=m.split('-').map(Number);const fimMes=`${m}-${pad2(new Date(yy,mm,0).getDate())}`;
     try{await rpc('salvar_cortesia',{p_mes:m+'-01',p_valor:v.cort,p_ate:fimMes});txtC=` Cortesia: ${fmt(v.cort)} usos.`}catch(e){txtC=` A cortesia não foi salva (${esc(e.message||e)}).`}}
    logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}${txtK}`,'ok')}
- }catch(e){logar(`Parou com erro: ${esc(e.message||e)}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
+ }catch(e){logar(`Parou com erro${CG.etapa?` em "${esc(CG.etapa)}"`:''}: ${esc(e.message||e)}${/statement timeout/.test(e.message||'')?' (tempo limite do banco: rode o 50_tempo_limite_carga.sql no Supabase)':''}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
  try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
    try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
    logar(`Pronto: ${CG.feito} ${CG.feito===1?'mês carregado':'meses carregados'} em ${Math.round((performance.now()-t0)/1000)} s. <a href="#clube">Ver o Clube em números →</a>`,'ok')}}
