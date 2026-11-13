@@ -2660,15 +2660,19 @@ async function rotaInativos(h){if(h==='clube-bases'&&!ADMIN){location.hash='club
  inaRender(h)}
 
 /* ---------- página: Clube em números › Gerar bases (administradores) ----------
-   Qualquer segmentação da carteira do último mês (com ou sem filtro de uso do Clube) e a base de
-   ex-assinantes para reativação. Sai só CDASS + campos de segmentação: sem CPF, nome ou e-mail. */
-const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',cmin:'',cmax:'',vsel:[],vmodo:'gerou',vde:'',vate:'',lista:null,res:null,busy:false};
+   Qualquer segmentação da carteira (ativos ou cancelados), com ou sem filtro de uso do Clube e de voucher.
+   O banco devolve só CDASS + segmentação. CPF, e-mail e telefone entram aqui no navegador, a partir dos
+   arquivos que o administrador escolhe na hora (carteira e/ou cadastro): não vão para o banco. */
+const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',ctipo:new Set(),cmes:new Set(),kmin:'',kmax:'',tirar:true,
+ vsel:[],vmodo:'gerou',vde:'',vate:'',lista:null,res:null,busy:false,arqs:[],lendo:null};
+const CT={cd:new Map(),cpf:new Map(),canc:new Map()}; // contatos por CDASS e por CPF; cancelados (última situação vista)
+const SIT_CANC={'CANCELADO':'Cancelado','DESATIVADO PARA SEMPRE':'Desativado para sempre'},SIT_ATIVA=new Set(['ATIVO','SUSPENSA','PERIODO ENTREGUE']);
 const PRESETS=[
  ['Mídia paga',[
-  ['Inativos legados',{est:['nunca','parou'],f:{tempo:['Legado (10 anos ou mais)']}},'10 anos ou mais de casa e sem gerar voucher há 6 meses ou mais (ou nunca geraram).'],
+  ['Inativos',{est:['nunca'],f:{tempo:['Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)']}},'7 meses ou mais de assinatura e nunca geraram voucher.'],
   ['Plano Família: não cadastraram ou têm espaço',{f:{familia:['Inativo','Tem espaço']}},'Plano Família inativo (nenhum dependente cadastrado) ou com espaço para mais dependentes. Independe de voucher.'],
   ['Assinantes de até 6 meses',{f:{tempo:['Onboarding (0 a 6 meses)']}},'Até 6 meses de casa, independente da geração de vouchers.'],
-  ['Reativação: ex-assinantes',{univ:'ex',cmin:1,cmax:12},'Assinaturas que saíram da carteira nos últimos 12 meses, de quem não tem outra assinatura ativa.']]],
+  ['Reativação',{est:['parou']},'Já geraram voucher, mas estão há 6 meses ou mais sem gerar (regra do Clube).']]],
  ['Uso do Clube',[
   ['Novos sem uso',{est:['nunca'],f:{tempo:['Onboarding (0 a 6 meses)']}},'Até 6 meses de casa e nunca geraram: a janela de ativação.'],
   ['Esfriando',{est:['esfriando']},'3 a 5 meses sem gerar: ainda dá para recuperar.'],
@@ -2676,29 +2680,73 @@ const PRESETS=[
   ['Inativos sem e-mail',{est:['nunca','parou'],f:{email:['Sem e-mail']}},'Não recebem a News: precisam de outro canal.'],
   ['Ativos recentes',{est:['mes','recente']},'Usaram nos últimos 3 meses: base para fidelização.']]]];
 const PRESET_L=PRESETS.flatMap(g=>g[1]);
-function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);const ex=BASE.univ==='ex';
+
+/* ---- arquivos de contato (lidos só no navegador) ---- */
+const txtCel=v=>{if(v==null)return '';if(typeof v==='number')return String(Math.trunc(v));return String(v).trim().replace(/\.0+$/,'')};
+async function lerContatos(file){libs();const nome=file.name,mes=mesDoArquivo(nome);let linhas;
+ if(/\.csv$/i.test(nome)){const t=await file.text();linhas=Papa.parse(t,{skipEmptyLines:true}).data}
+ else{let wb=XLSX.read(await file.arrayBuffer(),{type:'array',dense:true});linhas=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null,blankrows:false});wb=null}
+ const h=(linhas[0]||[]).map(x=>normU(x));const col=f=>h.findIndex(f);
+ const iC=col(x=>['CDASS','CODASS','CD ASS','ASSINATURA','COD ASSINATURA','CODIGO ASSINATURA'].includes(x)),iCpf=col(x=>x==='CPF'||x.startsWith('CPF ')),
+  iEm=col(x=>/E-?MAIL/.test(x)),iS=col(x=>x.startsWith('SITUA')),iV=col(x=>x.includes('VENDA')),iDDD=col(x=>x==='DDD'||x.startsWith('DDD '));
+ const iTel=h.map((x,i)=>/TELEF|CELULAR|FONE|WHATS/.test(x)&&!/^DDD/.test(x)?i:-1).filter(i=>i>=0);
+ if(iC<0&&iCpf<0)throw new Error(`${nome}: não encontrei a coluna CDASS nem a coluna CPF.`);
+ const [ano,mm]=mes?mes.split('-').map(Number):[null,null];let n=0,nc=0;
+ for(let r=1;r<linhas.length;r++){const L=linhas[r];const cd=iC>=0?Number(String(L[iC]??'').replace(/\.0+$/,'')):NaN;const cpf=iCpf>=0?txtCel(L[iCpf]):'';
+  const em=iEm>=0?String(L[iEm]??'').trim():'';const tel=iTel.map(i=>{const t=txtCel(L[i]);return t?(iDDD>=0&&txtCel(L[iDDD])&&t.length<=9?txtCel(L[iDDD])+t:t):''}).filter(Boolean);
+  const telS=[...new Set(tel)].join(' / ');const m=mes||'';
+  const rec={cpf,em:/\S+@\S+\.\S+/.test(em)?em:'',tel:telS,m};
+  if(Number.isFinite(cd)&&cd>0){const k=Math.trunc(cd);const a=CT.cd.get(k);
+   if(!a)CT.cd.set(k,rec);else{if(!a.m||m>=a.m){a.cpf=rec.cpf||a.cpf;a.em=rec.em||a.em;a.tel=rec.tel||a.tel;a.m=m||a.m}else{a.cpf=a.cpf||rec.cpf;a.em=a.em||rec.em;a.tel=a.tel||rec.tel}}
+   if(iS>=0&&mes){const s=normU(L[iS]);const prev=CT.canc.get(k);
+    if(!prev||mes>=prev.m){if(SIT_CANC[s]){const v=iV>=0?ymDe(L[iV]):null;CT.canc.set(k,{m:mes,tipo:SIT_CANC[s],casa:v&&v[0]>=1950?(ano-v[0])*12+mm-v[1]:null});nc++}
+     else if(SIT_ATIVA.has(s))CT.canc.set(k,{m:mes,ativo:true})}}}
+  const c11=cpf11(cpf);if(c11&&(rec.em||rec.tel)){const a=CT.cpf.get(c11);if(!a||m>=a.m)CT.cpf.set(c11,{em:rec.em||a?.em||'',tel:rec.tel||a?.tel||'',m})}
+  n++}
+ return {nome,mes,linhas:n,cancel:nc,cols:{cdass:iC>=0,cpf:iCpf>=0,email:iEm>=0,tel:iTel.length>0,situacao:iS>=0}}}
+const cancLista=()=>[...CT.canc].filter(([,x])=>!x.ativo);
+function contato(cd){const a=CT.cd.get(cd)||{};const b=a.cpf?CT.cpf.get(cpf11(a.cpf))||{}:{};return {cpf:a.cpf||'',em:a.em||b.em||'',tel:a.tel||b.tel||''}}
+function cardArquivos(){const A=BASE.arqs,ok=k=>A.some(a=>a.cols[k]);const sim=b=>b?'<b style="color:var(--verde-esc,#2f7a4a)">sim</b>':'<span class="falta">não</span>';
+ return `<div class="card"><h3>Arquivos com CPF, e-mail e telefone <small>obrigatório; lidos só aqui no navegador, não vão para o banco</small></h3>
+  <label class="drop" style="margin-top:6px"><b>Carteira do Clube e/ou cadastro com contatos</b><span>.xlsx ou .csv. A carteira traz CPF e situação (para os cancelados); o e-mail e o telefone vêm do arquivo de cadastro que tiver essas colunas. O cruzamento é pelo CDASS ou, se não houver, pelo CPF.</span><input type="file" id="b-arq" accept=".xlsx,.csv" multiple></label>
+  ${BASE.lendo?`<p class="carregando">${esc(BASE.lendo)}</p>`:''}
+  ${A.length?`<div class="tw"><table class="cmp pa-t"><thead><tr><th>Arquivo</th><th>Mês</th><th class="n">Linhas</th><th>CDASS</th><th>CPF</th><th>E-mail</th><th>Telefone</th><th>Situação</th></tr></thead><tbody>
+   ${A.map(a=>`<tr><td>${esc(a.nome)}</td><td>${a.mes?lab(a.mes):'—'}</td><td class="n">${fmt(a.linhas)}</td><td>${sim(a.cols.cdass)}</td><td>${sim(a.cols.cpf)}</td><td>${sim(a.cols.email)}</td><td>${sim(a.cols.tel)}</td><td>${sim(a.cols.situacao)}</td></tr>`).join('')}</tbody></table></div>
+   <div class="acoes"><button class="chip" id="b-arq-limpar" type="button">Tirar os arquivos</button></div>
+   ${!ok('email')||!ok('tel')?`<div class="note">Nenhum arquivo tem ${[!ok('email')&&'e-mail',!ok('tel')&&'telefone'].filter(Boolean).join(' nem ')}: ${!ok('email')&&!ok('tel')?'essas colunas sairão vazias':'essa coluna sairá vazia'}. A carteira do Clube não traz e-mail nem telefone; adicione o arquivo de cadastro que tenha.</div>`:''}`
+  :'<p class="hint">Escolha pelo menos a carteira mais recente (a mesma de Enviar mês). Para cancelados de outros meses, escolha as carteiras desses meses também.</p>'}</div>`}
+
+function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dims[k]);const cc=BASE.univ==='canc';
  const chipsDim=k=>{const cats=linhasDim(k).map(x=>x.k);const sel=new Set(BASE.f[k]||[]);return `<div class="fld"><span>${dimT(k)}</span><div class="chips">${cats.map(c=>`<button class="chip ${sel.has(c)?'on':''}" data-bf="${k}" data-bv="${esc(c)}" type="button">${esc(c)}</button>`).join('')}</div></div>`};
- const R=BASE.res;let pi=0;
- return shell('clube-bases',`<p class="answer">Monte qualquer segmento da carteira de ${lab(D.mes)}, com ou sem filtro de uso do Clube, e baixe os ${T('cdass','CDASS')} para CRM, mídia paga ou análise. A base sai sem CPF, nome e e-mail: o CDASS é a chave para cruzar com o cadastro.</p>${semPerfil()}
+ const R=BASE.res;let pi=0;const CL=cancLista();const mesesC=[...new Set(CL.map(([,x])=>x.m))].sort().reverse();
+ const nT=t=>CL.filter(([,x])=>x.tipo===t).length;
+ return shell('clube-bases',`<p class="answer">Monte qualquer segmento de assinantes ativos ou cancelados, com ou sem filtro de uso do Clube e de voucher, e baixe a base com ${T('cdass','CDASS')}, CPF, e-mail e telefone para CRM ou mídia paga.</p>${semPerfil()}
+ ${cardArquivos()}
  <div class="card"><h3>Atalhos</h3>${PRESETS.map(([g,L])=>`<p class="sub" style="margin:8px 0 6px"><b>${g}</b></p><div class="ina-pres">${L.map(([n,,d])=>`<button class="td-k" data-preset="${pi++}" type="button"><span>${n}</span><small>${d}</small></button>`).join('')}</div>`).join('')}</div>
- <div class="card"><h3>1. Quem entra na base</h3><div class="chips"><button class="chip ${!ex?'on':''}" data-univ="ativos" type="button">Assinantes ativos <small>carteira de ${lab(D.mes)}</small></button><button class="chip ${ex?'on':''}" data-univ="ex" type="button">Ex-assinantes <small>reativação</small></button></div>
-  ${ex?`<div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>Saíram da carteira há: de</span><input type="number" min="1" id="b-cmin" value="${BASE.cmin}" placeholder="1" style="width:90px"></label><label class="fld"><span>até (meses)</span><input type="number" min="1" id="b-cmax" value="${BASE.cmax}" placeholder="—" style="width:90px"></label></div>
-  <p class="hint">Assinaturas que já apareceram ativas em alguma carteira enviada e não estão ativas em ${lab(D.mes)}, de pessoas sem nenhuma outra assinatura ativa. "1" = estava ativa no mês anterior.</p>`:''}</div>
- ${ex?`<div class="card"><h3>2. Uso do Clube quando era assinante <small>opcional; nenhum marcado = todos</small></h3><div class="chips"><button class="chip ${BASE.usou.has('sim')?'on':''}" data-usou="sim" type="button">Já usou o Clube</button><button class="chip ${BASE.usou.has('nao')?'on':''}" data-usou="nao" type="button">Nunca usou</button></div></div>
- <div class="card"><h3>3. Perfil <small>opcional</small></h3><div class="ina-filtros">${chipsDim('tempo')}</div><p class="hint">Para ex-assinantes, o tempo de casa é contado até o último mês ativo. Produto, região, idade e os demais campos só existem para quem está na carteira atual.</p></div>`
+ <div class="card"><h3>1. Quem entra na base</h3><div class="chips"><button class="chip ${!cc?'on':''}" data-univ="ativos" type="button">Assinantes ativos <small>carteira de ${lab(D.mes)}</small></button><button class="chip ${cc?'on':''}" data-univ="canc" type="button">Cancelados <small>das carteiras escolhidas</small></button></div>
+  ${cc?`<p class="hint">Regra de classificação: <b>CANCELADO</b> e <b>DESATIVADO PARA SEMPRE</b> = cancelado; SUSPENSA e PERÍODO ENTREGUE = ativo. Vale a situação na carteira mais recente em que o CDASS aparece entre os arquivos escolhidos.</p>
+  ${CL.length?`<div class="fld" style="margin-top:8px"><span>Tipo</span><div class="chips"><button class="chip ${BASE.ctipo.has('Cancelado')?'on':''}" data-ctipo="Cancelado" type="button">Cancelado <small>${fmt(nT('Cancelado'))}</small></button><button class="chip ${BASE.ctipo.has('Desativado para sempre')?'on':''}" data-ctipo="Desativado para sempre" type="button">Desativado para sempre <small>${fmt(nT('Desativado para sempre'))}</small></button></div></div>
+  <div class="fld" style="margin-top:8px"><span>Mês da carteira em que aparece cancelado</span><div class="chips">${mesesC.map(m=>`<button class="chip ${BASE.cmes.has(m)?'on':''}" data-cmes="${m}" type="button">${lab(m)} <small>${fmt(CL.filter(([,x])=>x.m===m).length)}</small></button>`).join('')}</div></div>
+  <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>Meses de casa ao cancelar: de</span><input type="number" min="0" id="b-kmin" value="${BASE.kmin}" placeholder="—" style="width:90px"></label><label class="fld"><span>até</span><input type="number" min="0" id="b-kmax" value="${BASE.kmax}" placeholder="—" style="width:90px"></label>
+   <label class="fld" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="b-tirar" ${BASE.tirar?'checked':''}><span style="text-transform:none;letter-spacing:0">Tirar quem ainda tem outra assinatura ativa</span></label></div>
+  <p class="hint">Nenhum tipo ou mês marcado = todos. "Desativado para sempre" nos primeiros meses de casa (0 a 1) costuma ser quebra de venda (1ª fatura não paga), não decisão de cancelar: para separar, use os meses de casa.</p>`
+  :'<div class="note">Nenhum cancelado nos arquivos escolhidos. Escolha a carteira do Clube (ela traz a coluna Situação) no quadro de arquivos acima.</div>'}`:''}</div>
+ ${cc?`<div class="card"><h3>2. Uso do Clube quando era assinante <small>opcional; nenhum marcado = todos</small></h3><div class="chips"><button class="chip ${BASE.usou.has('sim')?'on':''}" data-usou="sim" type="button">Já usou o Clube</button><button class="chip ${BASE.usou.has('nao')?'on':''}" data-usou="nao" type="button">Nunca usou</button></div></div>`
  :`<div class="card"><h3>2. Uso do Clube <small>opcional; nenhum marcado = todos, independente da geração de vouchers</small></h3><div class="chips"><button class="chip ${!BASE.est.size?'on':''}" data-be="*" type="button">Todos</button>${EST.map(([k,n])=>`<button class="chip ${BASE.est.has(k)?'on':''}" data-be="${k}" type="button">${T(ETERM[k],n)} <small>${fmt(ultS()[k])}</small></button>`).join('')}</div>
   <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>${T('meses-sem-gerar','Meses sem gerar')}: de</span><input type="number" min="1" id="b-smin" value="${BASE.smin}" placeholder="—" style="width:90px"></label><label class="fld"><span>até</span><input type="number" min="1" id="b-smax" value="${BASE.smax}" placeholder="—" style="width:90px"></label></div>
   <p class="hint">Opcional. Vale para quem já gerou voucher alguma vez (ativo recente, esfriando e parou).</p></div>
  <div class="card"><h3>3. Perfil <small>opcional; dentro de cada grupo, vale qualquer opção marcada</small></h3><div class="ina-filtros">${dims.map(chipsDim).join('')}</div></div>`}
  ${cardVoucherBase()}
- <div class="acoes"><button class="btn" id="b-gerar" type="button">${BASE.busy?'Gerando…':'Gerar base'}</button><button class="chip" id="b-limpar" type="button">Limpar filtros</button></div>
+ <div class="acoes"><button class="btn" id="b-gerar" type="button" ${BASE.arqs.length&&!BASE.busy?'':'disabled'}>${BASE.busy?'Gerando…':'Gerar base'}</button><button class="chip" id="b-limpar" type="button">Limpar filtros</button>${BASE.arqs.length?'':'<span class="hint" style="align-self:center">Escolha os arquivos com CPF, e-mail e telefone para gerar.</span>'}</div>
  <div id="b-res">${R?`<div class="card"><h3>Base pronta: ${fmt(R.linhas.length)} CDASS <small>${fmt(R.pessoas)} pessoas</small></h3>
   <p class="sub">${esc(R.desc)}. Uma pessoa com mais de uma assinatura aparece em mais de uma linha.</p>
+  ${R.semCpf||R.semEm||R.semTel?`<p class="hint">Sem CPF nos arquivos: ${fmt(R.semCpf)} · sem e-mail: ${fmt(R.semEm)} · sem telefone: ${fmt(R.semTel)}.</p>`:''}
   <div class="acoes"><button class="btn" id="b-csv" type="button" ${R.linhas.length?'':'disabled'}>Baixar CSV</button><button class="chip" id="b-cdass" type="button" ${R.linhas.length?'':'disabled'}>Baixar só os CDASS (.txt)</button></div>
-  ${R.linhas.length?`<div class="tw"><table class="cmp pa-t"><thead><tr>${colsBase(R).map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.linhas.slice(0,10).map(l=>`<tr>${linhaBase(l,R).map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">Mostrando as 10 primeiras linhas.</p>`:'<p class="hint">Ninguém neste segmento.</p>'}</div>`:''}</div>
- <p class="hint">Carteira ativa de ${lab(D.mes)} (último mês carregado). Uso do Clube e meses sem gerar contam a partir de jul/2023.</p>`)}
+  ${R.linhas.length?`<div class="tw"><table class="cmp pa-t"><thead><tr>${R.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${R.linhas.slice(0,10).map(l=>`<tr>${l.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="hint">Mostrando as 10 primeiras linhas.</p>`:'<p class="hint">Ninguém neste segmento.</p>'}</div>`:''}</div>
+ <p class="hint">Ativos: carteira de ${lab(D.mes)} (último mês carregado). Uso do Clube e meses sem gerar contam a partir de jul/2023.</p>`)}
+
 /* "Gerou voucher de": busca por benefício ou marca (detalhe de vouchers por pessoa) */
-const semAc=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const semAc=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function cardVoucherBase(){const L=BASE.lista,cob=L&&L.cobertura&&L.cobertura[0]?`${lab(L.cobertura[0])} a ${lab(L.cobertura[1])}`:null;
  return `<div class="card"><h3>4. Geração de voucher <small>opcional; benefícios ou marcas específicos</small></h3>
   <div class="chips"><button class="chip ${BASE.vmodo==='gerou'?'on':''}" data-vmodo="gerou" type="button">Gerou voucher de</button><button class="chip ${BASE.vmodo==='nao'?'on':''}" data-vmodo="nao" type="button">Não gerou voucher de</button></div>
@@ -2716,39 +2764,55 @@ function bvBuscar(q){const L=BASE.lista;const el=document.getElementById('bv-res
  el.innerHTML=it.length?it.map(x=>`<div class="bv-it" data-vadd="${esc(x.k)}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--line)">${x.h}</div>`).join(''):'<div style="padding:8px 12px" class="hint">Nada encontrado.</div>';el.style.display='block';
  el.querySelectorAll('[data-vadd]').forEach(d=>{d.onmouseenter=()=>d.style.background='var(--bg,#f6f0f3)';d.onmouseleave=()=>d.style.background='';d.onmousedown=e=>{e.preventDefault();const k=d.dataset.vadd;
   if(BASE.vsel.some(x=>x.k===k))return;if(k.startsWith('m:'))BASE.vsel.push({k,marca:k.slice(2),label:'Marca: '+k.slice(2)});
-  else{const b=L.beneficios.find(x=>'b:'+x[0]===k);BASE.vsel.push({k,id:b[0],label:b[2]})}BASE.res=null;BASE.vq='';inaRender('clube-bases');setTimeout(()=>document.getElementById('bv-q')?.focus(),0)}})}
-const BASE_COLS=['CDASS','Situação','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família','E-mail','Último mês ativo','Meses desde a saída'];
-const BASE_EX=[0,1,2,4,5,13,14],BASE_AT=[0,1,2,3,4,5,6,7,8,9,10,11,12];
+  else{const b=L.beneficios.find(x=>'b:'+x[0]===k);BASE.vsel.push({k,id:b[0],label:b[2]})}BASE.res=null;inaRender('clube-bases');setTimeout(()=>document.getElementById('bv-q')?.focus(),0)}})}
+
 const ESTN=Object.fromEntries(EST.map(([k,n])=>[k,n]));
-const colsBase=R=>(R.universo==='ex'?BASE_EX:BASE_AT).map(i=>BASE_COLS[i]);
-const linhaBase=(l,R)=>{const v=[l[0],l[1],ESTN[l[2]]||l[2],l[3]??'',l[4]?lab(l[4]):'',...l.slice(5,13).map(x=>x??''),l[13]?lab(l[13]):'',l[14]??''];return (R.universo==='ex'?BASE_EX:BASE_AT).map(i=>v[i])};
 function baixarTexto(nome,txt,tipo){const blob=new Blob([txt],{type:tipo});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 function descVoucher(){if(!BASE.vsel.length)return '';const per=BASE.vde||BASE.vate?` (${BASE.vde?lab(BASE.vde):'início'} a ${BASE.vate?lab(BASE.vate):'hoje'})`:'';return `${BASE.vmodo==='nao'?'não gerou':'gerou'} voucher de ${BASE.vsel.map(x=>x.label).join(', ')}${per}`}
-function descBase(){const p=[];if(BASE.univ==='ex'){p.push('Ex-assinantes');if(BASE.cmin||BASE.cmax)p.push(`saíram há ${BASE.cmin||'1'} a ${BASE.cmax||'∞'} meses`);if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '));if(BASE.f.tempo)p.push(`Tempo de casa: ${BASE.f.tempo.join(', ')}`);if(descVoucher())p.push(descVoucher());return p.join(' · ')}
- p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`);if(descVoucher())p.push(descVoucher());return p.join(' · ')}
+function descBase(){const p=[];
+ if(BASE.univ==='canc'){p.push('Cancelados');p.push(BASE.ctipo.size?[...BASE.ctipo].join(', '):'cancelado e desativado para sempre');if(BASE.cmes.size)p.push('carteiras de '+[...BASE.cmes].sort().map(lab).join(', '));
+  if(BASE.kmin||BASE.kmax)p.push(`${BASE.kmin||'0'} a ${BASE.kmax||'∞'} meses de casa ao cancelar`);if(BASE.tirar)p.push('sem quem ainda tem assinatura ativa');if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '))}
+ else{p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`)}
+ if(descVoucher())p.push(descVoucher());return p.join(' · ')}
+function montarBase(data){const canc=data.universo==='canc';let semCpf=0,semEm=0,semTel=0;
+ const cols=canc?['CDASS','CPF','E-mail','Telefone','Tipo de cancelamento','Carteira em que aparece cancelado','Meses de casa ao cancelar','Uso do Clube','Último voucher']
+  :['CDASS','CPF','E-mail','Telefone','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família'];
+ const linhas=data.linhas.map(l=>{const c=contato(l[0]);if(!c.cpf)semCpf++;if(!c.em)semEm++;if(!c.tel)semTel++;
+  if(canc){const k=CT.canc.get(l[0])||{};return [l[0],c.cpf,c.em,c.tel,k.tipo||'',k.m?lab(k.m):'',k.casa??'',l[2],l[4]?lab(l[4]):'']}
+  return [l[0],c.cpf,c.em,c.tel,ESTN[l[2]]||l[2],l[3]??'',l[4]?lab(l[4]):'',...l.slice(5,12).map(x=>x??'')]});
+ return {...data,cols,linhas,semCpf,semEm,semTel,desc:descBase()}}
 function bindBases(h){const re=()=>inaRender(h);const zera=()=>{BASE.res=null};
  if(!BASE.lista&&!BASE.carregandoLista){BASE.carregandoLista=true;sb.rpc('lista_beneficios_base').then(({data,error})=>{BASE.carregandoLista=false;if(error){console.warn(error);return}BASE.lista=data;if((location.hash||'').slice(1)===h)re()})}
+ const fa=document.getElementById('b-arq');if(fa)fa.onchange=async()=>{const fs=[...fa.files];if(!fs.length)return;
+  try{for(const f of fs){BASE.lendo=`Lendo ${f.name}…`;re();await new Promise(r=>setTimeout(r,30));BASE.arqs.push(await lerContatos(f))}}catch(e){alert(e.message||e)}
+  BASE.lendo=null;zera();re()};
+ const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+ on('b-arq-limpar',()=>{BASE.arqs=[];CT.cd.clear();CT.cpf.clear();CT.canc.clear();BASE.cmes.clear();zera();re()});
  const q=document.getElementById('bv-q');if(q){q.oninput=()=>bvBuscar(q.value);q.onfocus=()=>bvBuscar(q.value);q.onblur=()=>setTimeout(()=>{const r=document.getElementById('bv-res');if(r)r.style.display='none'},150)}
  document.querySelectorAll('[data-vrem]').forEach(b=>b.onclick=()=>{BASE.vsel.splice(+b.dataset.vrem,1);zera();re()});
  document.querySelectorAll('[data-vmodo]').forEach(b=>b.onclick=()=>{BASE.vmodo=b.dataset.vmodo;zera();re()});
- [['bv-de','vde'],['bv-ate','vate']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
+ [['bv-de','vde'],['bv-ate','vate'],['b-smin','smin'],['b-smax','smax'],['b-kmin','kmin'],['b-kmax','kmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
+ const ti=document.getElementById('b-tirar');if(ti)ti.onchange=()=>{BASE.tirar=ti.checked;zera()};
+ const tog=(sel,key,set)=>document.querySelectorAll(`[${sel}]`).forEach(b=>b.onclick=()=>{const k=b.getAttribute(sel);set.has(k)?set.delete(k):set.add(k);zera();re()});
+ tog('data-ctipo','ctipo',BASE.ctipo);tog('data-cmes','cmes',BASE.cmes);tog('data-usou','usou',BASE.usou);
  document.querySelectorAll('[data-univ]').forEach(b=>b.onclick=()=>{BASE.univ=b.dataset.univ;zera();re()});
  document.querySelectorAll('[data-be]').forEach(b=>b.onclick=()=>{const k=b.dataset.be;if(k==='*')BASE.est.clear();else BASE.est.has(k)?BASE.est.delete(k):BASE.est.add(k);zera();re()});
- document.querySelectorAll('[data-usou]').forEach(b=>b.onclick=()=>{const k=b.dataset.usou;BASE.usou.has(k)?BASE.usou.delete(k):BASE.usou.add(k);zera();re()});
  document.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{const k=b.dataset.bf,v=b.dataset.bv;const s=new Set(BASE.f[k]||[]);s.has(v)?s.delete(v):s.add(v);BASE.f[k]=[...s];if(!s.size)delete BASE.f[k];zera();re()});
  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRESET_L[+b.dataset.preset][1];BASE.univ=p.univ||'ativos';BASE.est=new Set(p.est||[]);BASE.usou=new Set();BASE.f=JSON.parse(JSON.stringify(p.f||{}));
-  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.cmin=p.cmin??'';BASE.cmax=p.cmax??'';BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
- [['b-smin','smin'],['b-smax','smax'],['b-cmin','cmin'],['b-cmax','cmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
- const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
- on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';BASE.smin='';BASE.smax='';BASE.cmin='';BASE.cmax='';zera();re()});
- on('b-gerar',async()=>{BASE.busy=true;re();const ex=BASE.univ==='ex';
-  const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,estados:ex?[]:[...BASE.est],usou:[...BASE.usou],filtros:ex?(BASE.f.tempo?{tempo:BASE.f.tempo}:{}):BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,canc_min:BASE.cmin,canc_max:BASE.cmax,
+  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.ctipo=new Set();BASE.cmes=new Set();BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
+ on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.smin='';BASE.smax='';BASE.ctipo=new Set();BASE.cmes=new Set();BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
+ on('b-gerar',async()=>{const canc=BASE.univ==='canc';let cdass=[];
+  if(canc){const kn=BASE.kmin===''?null:+BASE.kmin,kx=BASE.kmax===''?null:+BASE.kmax;
+   cdass=cancLista().filter(([,x])=>(!BASE.ctipo.size||BASE.ctipo.has(x.tipo))&&(!BASE.cmes.size||BASE.cmes.has(x.m))&&(kn==null||(x.casa!=null&&x.casa>=kn))&&(kx==null||(x.casa!=null&&x.casa<=kx))).map(([k])=>k);
+   if(!cdass.length){alert('Nenhum cancelado com esses filtros nos arquivos escolhidos.');return}}
+  BASE.busy=true;re();
+  const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,cdass,tirar_ativos:BASE.tirar,estados:canc?[]:[...BASE.est],usou:[...BASE.usou],filtros:canc?{}:BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,
    v_benef:BASE.vsel.filter(x=>x.id).map(x=>x.id),v_marcas:BASE.vsel.filter(x=>x.marca).map(x=>x.marca),v_modo:BASE.vmodo,v_de:BASE.vde?BASE.vde+'-01':'',v_ate:BASE.vate?BASE.vate+'-01':''}});BASE.busy=false;
   if(error){BASE.res=null;re();alert('Não foi possível gerar a base: '+error.message+(/gerar_base/.test(error.message)?' (rode o arquivo 46_gerar_bases_clube.sql no Supabase)':''));return}
-  BASE.res={...data,desc:descBase()};re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
- const nome=ext=>`base_${BASE.univ==='ex'?'ex-assinantes':(BASE.est.size?[...BASE.est].join('-'):'todos')}_${INA.d.mes}.${ext}`;
+  BASE.res=montarBase(data);re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
+ const nome=ext=>`base_${BASE.univ==='canc'?'cancelados':(BASE.est.size?[...BASE.est].join('-'):'ativos')}_${INA.d.mes}.${ext}`;
  on('b-csv',()=>{const R=BASE.res;const q=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  const txt='﻿'+[colsBase(R),...R.linhas.map(l=>linhaBase(l,R))].map(r=>r.map(q).join(';')).join('\r\n');baixarTexto(nome('csv'),txt,'text/csv;charset=utf-8')});
+  const txt='﻿'+[R.cols,...R.linhas].map(r=>r.map(q).join(';')).join('\r\n');baixarTexto(nome('csv'),txt,'text/csv;charset=utf-8')});
  on('b-cdass',()=>baixarTexto(nome('txt'),BASE.res.linhas.map(l=>l[0]).join('\r\n'),'text/plain'))}
 
 /* ---------- página: FCA do mês ---------- */
