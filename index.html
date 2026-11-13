@@ -3740,7 +3740,7 @@ async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}c
   fontFace:FM,fontSize:10,charSpacing:3,color:escuro?'E9CFDF':C.CINZA,align:'center',valign:'middle'});
  const kpi=(s,x,y,w,h,val,lab,sub,escuro)=>{if(h<1.6){s.addShape(pptx.ShapeType.roundRect,{x,y,w,h,rectRadius:0.16,fill:{color:escuro?C.B:C.NUDE},line:{type:'none'}});
    s.addText(up(lab),{x:x+0.2,y:y+0.14,w:w-0.4,h:0.3,fontFace:FT,fontSize:8.5,bold:true,charSpacing:2,color:C.L,margin:0,valign:'top'});
-   s.addText(val,{x:x+0.2,y:y+0.46,w:w-0.4,h:h-0.56,fontFace:FT,fontSize:24,bold:true,color:C.V,margin:0,valign:'middle',fit:'shrink'});return}
+   s.addText(val,{x:x+0.2,y:y+0.46,w:w-0.4,h:h-0.56,fontFace:FT,fontSize:w<2?20:24,bold:true,color:C.V,margin:0,valign:'middle',fit:'shrink'});return}
   s.addShape(pptx.ShapeType.roundRect,{x,y,w,h,rectRadius:0.18,fill:{color:escuro?C.B:C.NUDE},line:{type:'none'}});
   s.addText(up(lab),{x:x+0.25,y:y+0.25,w:w-0.5,h:0.45,fontFace:FT,fontSize:9,bold:true,charSpacing:2.5,color:C.L,margin:0,valign:'top'});
   s.addText(val,{x:x+0.25,y:y+0.72,w:w-0.5,h:0.7,fontFace:FT,fontSize:30,bold:true,color:C.V,margin:0,valign:'top',fit:'shrink'});
@@ -3765,8 +3765,10 @@ async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}c
  // 2 · O PERÍODO EM NÚMEROS
  s=pptx.addSlide();vinho(s,'resultados');
  script(s,'o período',{x:0.65,y:1.6,w:4.6,h:0.8,fontSize:40});titulo(s,'em números',{x:0.65,y:2.35,w:4.6,h:0.55,fontSize:24,charSpacing:7,color:C.B});
- s.addText([{text:'VOUCHERS',options:{fontFace:FM,fontSize:11,charSpacing:4,breakLine:true}},{text:fmt(R.v),options:{fontSize:40,bold:true,charSpacing:0,breakLine:true}},{text:'GERADOS',options:{fontFace:FM,fontSize:11,charSpacing:4}}],
-  {x:0.8,y:3.15,w:3.4,h:3.4,shape:pptx.ShapeType.star12,fill:{color:C.L},line:{type:'none'},fontFace:FT,color:C.B,align:'center',valign:'middle',margin:0});
+ s.addShape(pptx.ShapeType.star12,{x:0.8,y:3.15,w:3.4,h:3.4,fill:{color:C.L},line:{type:'none'}});
+ s.addText('VOUCHERS',{x:1.2,y:4.05,w:2.6,h:0.3,fontFace:FM,fontSize:11,charSpacing:4,color:C.B,align:'center',valign:'middle',margin:0});
+ s.addText(fmt(R.v),{x:1.0,y:4.35,w:3.0,h:0.8,fontFace:FT,fontSize:40,bold:true,color:C.B,align:'center',valign:'middle',margin:0,fit:'shrink'});
+ s.addText('GERADOS',{x:1.2,y:5.15,w:2.6,h:0.3,fontFace:FM,fontSize:11,charSpacing:4,color:C.B,align:'center',valign:'middle',margin:0});
  const KP=[[fmt(R.p),'pessoas que usaram',R.p?`${fmt(R.v/R.p,2)} vouchers por pessoa`:''],
   [varr==null?'—':`${varr>=0?'+':''}${fmt(100*varr,1)}%`,'vs período anterior',R.ant?`${R.antPer}: ${fmt(R.ant.vouchers)} vouchers`:'sem dados do período anterior'],
   [fmt(R.novos),'primeira vez no parceiro',R.p?`${fmt(100*R.novos/R.p,0)}% das pessoas usaram o parceiro pela 1ª vez`:''],
@@ -3799,16 +3801,16 @@ async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}c
  else caixa(s,0.55,3.15,12.25,3.6,'Liste aqui as promoções ativas do parceiro no período');
  // 6 · COMUNICAÇÕES (resumo)
  s=pptx.addSlide();branco(s,'comunicações');cab(s,'com o Clube','comunicações',`${fmt(R.coms.length)} ${R.coms.length===1?'comunicação analisada':'comunicações analisadas'} no período · newsletter, e-mail, WhatsApp, push e in-app`);
- if(R.coms.length){tab(s,zebra([[cabT('Envio',C.V),cabT('Canal',C.V),cabT('Comunicação',C.V),cabT('Envios',C.V,'right'),cabT('Abertura',C.V,'right'),cabT('Geraram',C.V,'right'),cabT('Vouchers do parceiro',C.V,'right')],
-   ...R.coms.slice(0,8).map(c=>[{text:ciDia(c.envio)},{text:c.canal},{text:c.assunto},{text:fmt(c.enviados),options:{align:'right'}},{text:c.canal==='In-app'||c.canal==='Push'?'—':pct(ciPct(c.abriram,c.enviados)),options:{align:'right'}},{text:fmt(c.pess),options:{align:'right'}},{text:fmt(c.vou),options:{align:'right',bold:true,color:C.V}}])]),
-   {x:0.55,y:3.15,w:12.25,colW:[1.05,1.35,4.75,1.2,1.15,1.2,1.55],fontSize:9.5});
-  const tv=R.coms.reduce((a,c)=>a+c.vou,0),te=R.coms.reduce((a,c)=>a+c.enviados,0);
-  pilula(s,`${fmt(te)} envios · ${fmt(tv)} vouchers do parceiro a partir das comunicações`,0.55,H-1.02,10.2,{h:0.42,fs:9,cor:C.V,line:C.L})}
+ if(R.coms.length){tab(s,zebra([[cabT('Envio',C.V),cabT('Canal',C.V),cabT('Comunicação',C.V),cabT('Envios',C.V,'right'),cabT('Abertura',C.V,'right'),cabT('Cliques',C.V,'right')],
+   ...R.coms.slice(0,8).map(c=>[{text:ciDia(c.envio)},{text:c.canal},{text:c.assunto},{text:fmt(c.enviados),options:{align:'right'}},{text:c.canal==='In-app'||c.canal==='Push'?'—':pct(ciPct(c.abriram,c.enviados)),options:{align:'right'}},{text:c.leit?'—':fmt(c.clicaram),options:{align:'right'}}])]),
+   {x:0.55,y:3.15,w:12.25,colW:[1.1,1.45,6.0,1.25,1.2,1.25],fontSize:9.5});
+  const te=R.coms.reduce((a,c)=>a+c.enviados,0);
+  pilula(s,`${fmt(te)} envios no período`,0.55,H-1.02,4.2,{h:0.42,fs:9,cor:C.V,line:C.L})}
  else caixa(s,0.55,3.15,12.25,3.6,'Nenhuma comunicação analisada no painel destacou o parceiro no período');
  // 7 · UM SLIDE POR COMUNICAÇÃO
  const nomeCanal=c=>({'Newsletter':'newsletter','E-mail pontual':'e-mail','WhatsApp':'WhatsApp','Push':'notificação push','In-app':'mensagem in-app'})[c]||c;
  R.coms.forEach(c=>{s=pptx.addSlide();vinho(s,`comunicações · ${nomeCanal(c.canal)}`);
-  const retrato=['WhatsApp','Push','In-app'].includes(c.canal);const wP=retrato?3.3:5.3;
+  const retrato=['WhatsApp','Push','In-app'].includes(c.canal);const wP=retrato?3.3:4.6;
   caixa(s,2.0,1.15,wP,5.55,'cole aqui o print da comunicação',true);
   const x0=2.0+wP+0.55,wR=W-x0-0.6;
   pilula(s,ciDiaCurto(c.envio),x0,1.2,1.5,{h:0.45,fill:C.L,fs:12,bold:true,cs:2});
@@ -3816,9 +3818,9 @@ async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}c
   s.addText(c.assunto,{x:x0,y:1.85,w:wR,h:0.9,fontFace:FT,fontSize:18,bold:true,color:C.B,margin:0,valign:'top',fit:'shrink'});
   c.ls.slice(0,2).forEach((l,i)=>pilula(s,'destaque: '+l.chamada,x0,2.8+i*0.55,Math.min(wR,0.11*(l.chamada.length+10)+0.9),{h:0.42,fs:9,cs:1.5}));
   const KC=[[fmt(c.enviados),c.canal==='In-app'?'pessoas impactadas':'envios'],[c.canal==='In-app'||c.canal==='Push'?'—':pct(ciPct(c.abriram,c.enviados)),c.leit?'leitura':'abertura'],
-   [c.leit?'—':fmt(c.clicaram),c.leit?'cliques (não medidos)':'cliques'],[fmt(c.vou),'vouchers do parceiro']];
-  const wk=(wR-0.3)/2;KC.forEach((k,i)=>kpi(s,x0+(i%2)*(wk+0.3),3.95+Math.floor(i/2)*1.35,wk,1.2,k[0],k[1],'',true));
-  s.addText(`${fmt(c.pess)} ${c.pess===1?'pessoa':'pessoas'} ${c.leit?'leram':'clicaram'} e geraram voucher do parceiro no prazo do canal${c.recV?` · ${fmt(c.recV)} vouchers do parceiro entre todos que receberam`:''}.`,{x:x0,y:6.72,w:wR,h:0.3,fontFace:FT,fontSize:8.5,color:'E9CFDF',margin:0})});
+   [c.leit?'—':fmt(c.clicaram),c.leit?'cliques (não medidos)':'cliques']];
+  const wk=(wR-0.4)/3;KC.forEach((k,i)=>kpi(s,x0+i*(wk+0.2),4.1,wk,1.35,k[0],k[1],'',true));
+  });
  // 8 · SLIDES PARA COMPLETAR
  [['redes sociais','Instagram e Facebook · feed',2],['redes sociais','Instagram e Facebook · stories',3],['redes sociais','WhatsApp · canal do Clube',3],['plataforma','App GZH e site do Clube · banners de destaque',2],['plataforma','App GZH e site · categorias e vitrines',1],['jornais','Zero Hora e Pioneiro · anúncios do Clube',2]]
  .forEach(([t,sub,n])=>{s=pptx.addSlide();branco(s,t);titulo(s,t,{x:0.57,y:1.25,w:7,h:0.5,fontSize:24,charSpacing:7});pilula(s,sub,0.55,1.95,Math.min(8,0.12*sub.length+1),{h:0.42,fs:9.5,cor:C.V,line:C.L});
@@ -3832,14 +3834,17 @@ async function ciPPT(R){ciLib();try{await document.fonts.load('40px Michland')}c
  s.addShape(pptx.ShapeType.roundRect,{x:8.6,y:3.1,w:4.25,h:3.75,rectRadius:0.2,fill:{color:C.V},line:{type:'none'}});
  s.addText('DIAS COM MAIS VOUCHERS',{x:8.9,y:3.35,w:3.7,h:0.35,fontFace:FT,fontSize:10,bold:true,charSpacing:3,color:C.L,margin:0});
  s.addText(topD.length?topD.map(([d,v],i)=>({text:`${i+1}.  ${ciDia(d)} (${ciSem[new Date(d+'T12:00:00').getDay()]})  ·  ${fmt(v)}`,options:{breakLine:true}})):[{text:'—'}],{x:8.9,y:3.85,w:3.75,h:2.85,fontFace:FT,fontSize:13,color:C.B,valign:'top',margin:0,paraSpaceAfter:9});
- // 10 · ENCERRAMENTO — mesmo layout da capa, fundo vinho
- s=pptx.addSlide();s.background={color:C.V};
- bolha(s);lateral(s);cartaoParceiro(s);
- script(s,'obrigado',{x:1.3,y:2.2,w:7,h:1.0,fontSize:60});
- titulo(s,'pela parceria!',{x:1.3,y:3.25,w:6.9,h:0.7,fontSize:34,charSpacing:8,color:C.B});
- s.addText([{text:'PORQUE ',options:{}},{text:'VIVER BEM',options:{color:C.L,bold:true}},{text:' É O MELHOR BENEFÍCIO DE QUEM FAZ PARTE DO CLUBE!',options:{}}],
-  {x:1.3,y:4.4,w:6.2,h:0.95,shape:pptx.ShapeType.roundRect,rectRadius:0.47,fill:{type:'none'},line:{color:C.L,width:1.5},fontFace:FM,fontSize:11,charSpacing:3,color:C.B,align:'center',valign:'middle',margin:[0,0.3,0,0.3]});
- apoio(s,'Contato da equipe do Clube do Assinante',{x:1.3,y:5.6,w:7,h:0.4,color:C.B,fontSize:13});
+ // 10 · ENCERRAMENTO — fundo vinho, logo do Clube em destaque ao lado do logo do parceiro (sem a bolha do canto)
+ s=pptx.addSlide();s.background={color:C.V};lateral(s);
+ {const hl=2.3,wl=hl*LW,wc=3.0,gap=0.9,tot=wl+gap+wc,x0=(W-tot)/2,y0=1.05;
+  s.addImage({data:I['logo_branco.png'],x:x0,y:y0,w:wl,h:hl});
+  s.addText('+',{x:x0+wl,y:y0,w:gap,h:hl,fontFace:FT,fontSize:30,bold:true,color:C.L,align:'center',valign:'middle',margin:0});
+  s.addShape(pptx.ShapeType.roundRect,{x:x0+wl+gap,y:y0+0.1,w:wc,h:hl-0.2,rectRadius:0.3,fill:{color:C.B},line:{type:'none'}});
+  s.addText('COLE AQUI O LOGO DO PARCEIRO',{x:x0+wl+gap+0.2,y:y0+0.3,w:wc-0.4,h:hl-0.6,shape:pptx.ShapeType.roundRect,rectRadius:0.15,fontFace:FM,fontSize:9,charSpacing:3,color:C.CINZA,align:'center',valign:'middle',line:{color:C.V2,width:1,dashType:'dash'},margin:0.15});}
+ script(s,'obrigado',{x:0.8,y:3.55,w:W-1.6,h:1.0,fontSize:60,align:'center'});
+ titulo(s,'pela parceria!',{x:0.8,y:4.6,w:W-1.6,h:0.7,fontSize:34,charSpacing:8,color:C.B,align:'center'});
+ s.addText([{text:'CLUBE DO ASSINANTE',options:{bold:true}},{text:'  ·  ',options:{color:C.L}},{text:'O CLUBE DE QUEM VIVE AQUI!',options:{color:C.L,bold:true}}],
+  {x:(W-7.6)/2,y:5.75,w:7.6,h:0.7,shape:pptx.ShapeType.roundRect,rectRadius:0.35,fill:{type:'none'},line:{color:C.L,width:1.5},fontFace:FT,fontSize:13,charSpacing:3,color:C.B,align:'center',valign:'middle',margin:0});
  const arq=`Check-in ${R.m.replace(/[\\/:*?"<>|]/g,'')} - ${R.per.replace(/\//g,'-')}.pptx`;
  const blob=await ciFontes(await pptx.write({outputType:'arraybuffer'}));const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=arq;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000)}
 
