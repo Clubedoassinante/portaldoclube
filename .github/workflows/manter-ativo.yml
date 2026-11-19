@@ -1,0 +1,16 @@
+# Mantém o Supabase gratuito acordado: projetos sem uso por 7 dias são pausados.
+# Roda toda segunda e quinta às 9h (Brasília) e só chama a função "ping", que não lê dados.
+name: Manter Supabase ativo
+on:
+  schedule:
+    - cron: '0 12 * * 1,4'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping
+        run: |
+          curl -sf -X POST "https://pzpwpqnomqrcdhelueee.supabase.co/rest/v1/rpc/ping" \
+            -H "apikey: sb_publishable_kRn6HhR5mN6u-pVnEc8Kgg_XjUxceaE" \
+            -H "Content-Type: application/json" -d '{}'
