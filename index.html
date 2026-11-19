@@ -957,7 +957,7 @@ function renderVisao(kind){const box=document.getElementById('res');const P=peri
  <div class="sec">
   ${KPI('','carteira-ativa',fmt(A.cart),d2(A.cart,B?.cart),'',n>1?'Carteira no fim':'Carteira ativa')}${KPI('','novos',fmt(A.novos),d2(A.novos,B?.novos))}${KPI('','cancelamentos',fmt(A.canc),d2(A.canc,B?.canc,'%',true))}${KPI('','saldo',sinal(A.saldo),d2(A.saldo,B?.saldo,'abs'))}${KPI('','usuarios-unicos',fmt(A.unicos),d2(A.unicos,B?.unicos),n>1&&A.unicos&&A.rows[A.rows.length-1].pessoas?`<div class="d">${T('alcance','alcance')}: ${fmt(100*A.unicos/A.rows[A.rows.length-1].pessoas,1)}% da carteira do fim</div>`:'',n>1?'Usuários únicos sem repetir':'Usuários únicos')}${KPI('','plano-familia',fmt(A.pf,1)+'%',d2(A.pf,B?.pf,'pp'),'',n>1?'Plano Família no fim':'Plano Família')}</div>
  ${kind==='mes'?blocoMes(P,A,B):blocoAno(P,A,B,hl)}<div id="fa-blk"></div>`;
- faBloco(P.a,P.b,P.ca,P.cb,P.lab,P.labB||'');
+ faBloco(P.a,P.b,P.ca,P.cb,P.lab,P.labB||'',A.vou,B?B.vou:null);
  if(kind==='ano'){renderQuemGerou(kind,P,hl);renderHist(kind,P,A);renderAtiv();document.querySelector('#det-coorte>div').innerHTML=coorteTabela(kind,P)}
  const rec=document.getElementById('det-rec');rec.addEventListener('toggle',()=>{if(rec.open&&!rec.dataset.ok){rec.dataset.ok=1;renderRecorrencia(rec.querySelector('div'),P.b)}})}
 
@@ -1148,7 +1148,7 @@ function renderComp(){const box=document.getElementById('res');for(const [a,b] o
  box.innerHTML=`${nA!==nB?`<div class="note">Os períodos têm tamanhos diferentes (${nA} e ${nB} meses). Somas não são comparáveis diretamente: veja as médias por mês no fim da tabela.</div>`:''}${ressalvas([...A.rows,...B.rows])}
  <div class="card tablecard"><div class="tw"><table class="cmp comp"><thead><tr><th>Indicador</th><th>A · ${pA}</th><th>B · ${pB}</th><th>Diferença (A − B)</th><th>Variação</th></tr></thead><tbody>${rows.map(r=>{if(r.length===1)return `<tr class="grp"><td colspan="5">${r[0]}</td></tr>`;
   const [t,n,tipo,a,b,f,k,inv]=r;return `<tr><td>${T(t,n)}<small>${tipo}</small></td><td>${f(a)}</td><td>${f(b)}</td><td>${dif(a,b,k,f)}</td><td class="d">${k==='pp'||k==='abs'?'—':delta(a,b,'%',inv)}</td></tr>`}).join('')}</tbody></table></div>
- <p class="hint">Diferença em pontos percentuais (p.p.) para indicadores que já são porcentagens. Usuários únicos de vários meses contam cada pessoa uma vez no período inteiro.</p></div><div id="fa-blk"></div>`;faBloco(sc.a1,sc.b1,sc.a2,sc.b2,'A · '+pA,'B · '+pB)}
+ <p class="hint">Diferença em pontos percentuais (p.p.) para indicadores que já são porcentagens. Usuários únicos de vários meses contam cada pessoa uma vez no período inteiro.</p></div><div id="fa-blk"></div>`;faBloco(sc.a1,sc.b1,sc.a2,sc.b2,'A · '+pA,'B · '+pB,A.vou,B.vou)}
 
 /* ---- relatório: perfil de quem usa ---- */
 const DIMS={produto:'Produto',modalidade:'Modalidade',geracao:'Geração',tempo:'Tempo de casa',familia:'Plano Família',safra:'Safra'};
@@ -3667,8 +3667,15 @@ function faPagina(){const D=FA.d;
  <div class="sec">
   ${k('Na carteira no período',faPc(C.carteira,P),`${fmt(C.carteira)} pessoas com assinatura ativa em algum mês do período`)}
   ${k('Fora da carteira',faPc(P-(C.carteira||0),P),`${fmt(P-(C.carteira||0))} pessoas: dependentes do Plano Família ou ex-assinantes`)}
-  ${k(`${T('alcance','Alcance')} só com voucher`,faPc(A.cart_clube,A.carteira_fim),`${fmt(A.cart_clube)} pessoas da carteira de ${A.mes_fim?lab(A.mes_fim):'—'}`)}
-  ${k('Alcance com farmácia',faPc(A.cart_uniao,A.carteira_fim),`${fmt(A.cart_uniao)} pessoas · +${fmt((A.cart_uniao||0)-(A.cart_clube||0))} só por causa da farmácia`)}</div>
+  ${k(FA.de===FA.ate?'Penetração sem farmácia':'Penetração do período sem farmácia',A.carteira_fim?fmt(100*A.clube/A.carteira_fim,2)+'%':'—',`${fmt(A.clube)} pessoas com voucher ÷ ${fmt(A.carteira_fim)} da carteira de ${A.mes_fim?lab(A.mes_fim):'—'}`)}
+  ${k(FA.de===FA.ate?'Penetração com farmácia':'Penetração do período com farmácia',A.carteira_fim?fmt(100*A.uniao/A.carteira_fim,2)+'%':'—',`${fmt(A.uniao)} pessoas com voucher ou farmácia (cada CPF uma vez) · ${A.carteira_fim?sinal(100*(A.uniao-A.clube)/A.carteira_fim,2)+' p.p.':''} pela farmácia`)}</div>
+ ${(()=>{const vo=has(FA.de)&&has(FA.ate)?agg(FA.de,FA.ate).vou:null;if(vo==null)return '';const tot=vo+(C.compras||0);
+  return `<div class="card tablecard"><h3>Camada de uso: vouchers + farmácia</h3><p class="sub">Tudo o que o sócio usou do Clube no período, somando os vouchers gerados na plataforma com as compras com desconto nas farmácias.</p>
+  <div class="tw"><table class="cmp"><thead><tr><th></th><th class="n">Uso</th><th class="n">% do total</th><th class="n">Pessoas únicas</th><th class="n">Uso por pessoa</th></tr></thead><tbody>
+  <tr><td>Vouchers gerados<small>totais da plataforma</small></td><td class="n">${fmt(vo)}</td><td class="n">${faPc(vo,tot)}</td><td class="n">${fmt(A.clube)}</td><td class="n">${A.clube?fmt(vo/A.clube,2):'—'}</td></tr>
+  <tr><td>Usos de farmácia<small>compras com desconto</small></td><td class="n">${fmt(C.compras)}</td><td class="n">${faPc(C.compras,tot)}</td><td class="n">${fmt(P)}</td><td class="n">${P?fmt(C.compras/P,2):'—'}</td></tr>
+  <tr class="tot"><td>Uso total</td><td class="n">${fmt(tot)}</td><td class="n">100%</td><td class="n">${fmt(A.uniao)}</td><td class="n">${A.uniao?fmt(tot/A.uniao,2):'—'}</td></tr></tbody></table></div>
+  <p class="hint">Pessoas únicas do total contam cada CPF uma vez, mesmo quem gerou voucher e usou farmácia.</p></div>`})()}
  <div class="grid2">
   <div class="card tablecard"><h3>Sobreposição entre as farmácias</h3><p class="sub">Cada pessoa conta uma vez, na combinação de redes que usou no período.</p>
    <div class="tw"><table class="cmp"><thead><tr><th>Usou</th><th class="n">Pessoas</th><th class="n">% das pessoas</th><th class="n">Usos</th><th class="n">Desconto</th></tr></thead><tbody>
@@ -3695,7 +3702,7 @@ function faBind(){const de=document.getElementById('fa-de'),ate=document.getElem
 /* bloco das visões mensal, anual e comparar: resumo do período (sem a série), com a comparação escolhida */
 function faResumo(a,b){const k=a+'|'+b;if(FA.cache.has(k))return FA.cache.get(k);
  const pr=sb.rpc('dados_farmacia',{p_de:a+'-01',p_ate:b+'-01',p_serie:false}).then(({data,error})=>{if(error)throw error;return data});FA.cache.set(k,pr);pr.catch(()=>FA.cache.delete(k));return pr}
-async function faBloco(a,b,ca,cb,la,lb){const box=document.getElementById('fa-blk');if(!box)return;const tok=[a,b,ca,cb].join('|');box.dataset.tok=tok;
+async function faBloco(a,b,ca,cb,la,lb,vA,vB){const box=document.getElementById('fa-blk');if(!box)return;const tok=[a,b,ca,cb].join('|');box.dataset.tok=tok;
  box.innerHTML='<div class="card"><h3>Farmácias</h3><p class="carregando">Cruzando os relatórios da Raia e da Panvel…</p></div>';
  let X,Y=null;try{X=await faResumo(a,b);if(ca&&cb)Y=await faResumo(ca,cb)}
  catch(e){if(box.dataset.tok!==tok)return;box.innerHTML=/dados_farmacia|function|schema cache/i.test(e.message||'')?'':`<div class="card"><h3>Farmácias</h3><p class="hint">Não foi possível carregar: ${esc(e.message||e)}</p></div>`;return}
@@ -3705,18 +3712,30 @@ async function faBloco(a,b,ca,cb,la,lb){const box=document.getElementById('fa-bl
  const v=D=>{const C=D.cruz||{},A=D.alcance||{},K=D.combos||[];const so=n=>K.filter(x=>x[0].length===1&&faRede(x[0][0])===n).reduce((t,x)=>t+x[1],0);
   return {p:C.pessoas,u:C.compras,raia:so('Raia'),panvel:so('Panvel'),duas:K.filter(x=>x[0].length>1).reduce((t,x)=>t+x[1],0),
    ger:C.pessoas?100*C.gerou_periodo/C.pessoas:null,nunca:C.pessoas?100*C.nunca_gerou/C.pessoas:null,
-   alc:A.carteira_fim?100*A.cart_clube/A.carteira_fim:null,alcF:A.carteira_fim?100*A.cart_uniao/A.carteira_fim:null,falta:(D.redes||[]).filter(r=>r.meses<r.meses_periodo)}};
+   cl:A.clube,un:A.uniao,pen:A.carteira_fim?100*A.clube/A.carteira_fim:null,penF:A.carteira_fim?100*A.uniao/A.carteira_fim:null,falta:(D.redes||[]).filter(r=>r.meses<r.meses_periodo)}};
  const x=v(X),y=tem(Y)?v(Y):null;
- const L=[['Pessoas que usaram farmácia','sem repetir entre as redes','p'],['Só na Raia','','raia'],['Só na Panvel','','panvel'],['Nas duas','','duas'],['Usos','compras com desconto','u'],
-  ['Também geraram voucher no Clube','% de quem usou farmácia','ger',1],['Nunca geraram voucher','% de quem usou farmácia','nunca',1,1],['Alcance só com voucher','% da carteira do fim do período','alc',1],['Alcance com farmácia','% da carteira do fim do período','alcF',1]];
- const f=(pp,val)=>val==null?'—':pp?fmt(val,1)+'%':fmt(val);
- const dd=(pp,a2,b2,inv)=>a2==null||b2==null?'—':pp?`<span class="${(a2>=b2)!==!!inv?'up':'down'}">${sinal(a2-b2,1)} p.p.</span>`:delta(a2,b2,'%');
+ const camada=(o,vou)=>{o.vou=vou;o.tot=vou!=null&&o.u!=null?vou+o.u:null;o.shF=o.tot?100*o.u/o.tot:null;o.upp=o.tot&&o.un?o.tot/o.un:null;o.ganho=o.pen!=null&&o.penF!=null?o.penF-o.pen:null};camada(x,vA);if(y)camada(y,vB);
+ const per=a!==b;
+ const L=[['Penetração'],
+  [per?'Penetração do período sem farmácia':'Penetração sem farmácia',per?'pessoas únicas com voucher no período ÷ carteira do fim':'pessoas únicas com voucher ÷ carteira ativa','pen',2],
+  [per?'Penetração do período com farmácia':'Penetração com farmácia','voucher ou farmácia, cada CPF uma vez ÷ mesma carteira','penF',2],
+  ['Ganho com a farmácia','diferença entre as duas penetrações','ganho',3],
+  ['Pessoas'],
+  ['Usuários únicos com voucher','','cl'],['Pessoas que usaram farmácia','sem repetir entre as redes','p'],['Só na Raia','','raia'],['Só na Panvel','','panvel'],['Nas duas','','duas'],
+  ['Pessoas únicas no total','voucher ou farmácia, cada CPF uma vez','un'],
+  ['Uso'],
+  ['Vouchers gerados','totais da plataforma','vou'],['Usos de farmácia','compras com desconto','u'],['Uso total','vouchers + farmácia','tot'],['Parte do uso que vem da farmácia','% do uso total','shF',1],['Uso total por pessoa única','uso total ÷ pessoas únicas no total','upp',4],
+  ['Quem usa farmácia'],
+  ['Também geraram voucher no Clube','% de quem usou farmácia','ger',1],['Nunca geraram voucher','% de quem usou farmácia','nunca',1,1]];
+ const f=(pp,val)=>val==null?'—':pp===4?fmt(val,2):pp===3?sinal(val,2)+' p.p.':pp===2?fmt(val,2)+'%':pp?fmt(val,1)+'%':fmt(val);
+ const dd=(pp,a2,b2,inv)=>a2==null||b2==null?'—':pp===4?delta(a2,b2,'%'):pp?`<span class="${(a2>=b2)!==!!inv?'up':'down'}">${sinal(a2-b2,pp===1?1:2)} p.p.</span>`:delta(a2,b2,'%');
  const falta=[...x.falta.map(r=>`${esc(faRede(r.rede))}: ${r.meses} de ${r.meses_periodo} meses em ${la}`),...(y?y.falta.map(r=>`${esc(faRede(r.rede))}: ${r.meses} de ${r.meses_periodo} meses em ${lb}`):[])];
  box.innerHTML=`<div class="card tablecard"><div class="row-head"><div><h3>Farmácias</h3><p class="sub">Relatórios da Raia e da Panvel cruzados com a carteira e com os vouchers do Clube. Ficam fora dos números oficiais acima.</p></div><a class="chip" href="#clube-farmacias">Ver detalhes →</a></div>
  ${falta.length?`<div class="note">Faltam relatórios de farmácia (os números ficam subestimados): ${falta.join(' · ')}.</div>`:''}
- <div class="tw"><table class="cmp"><thead><tr><th></th><th class="n">${la}</th>${y?`<th class="n">${lb}</th><th class="n">Diferença</th>`:''}</tr></thead><tbody>
- ${L.map(([n,sub,k,pp,inv])=>`<tr><td>${n}${sub?`<small>${sub}</small>`:''}</td><td class="n"><b>${f(pp,x[k])}</b></td>${y?`<td class="n">${f(pp,y[k])}</td><td class="n d">${dd(pp,x[k],y[k],inv)}</td>`:''}</tr>`).join('')}</tbody></table></div>
- ${ca&&!y?`<p class="hint">Sem relatório de farmácia em ${lb} para comparar.</p>`:''}</div>`}
+ <div class="tw no-ord"><table class="cmp"><thead><tr><th></th><th class="n">${la}</th>${y?`<th class="n">${lb}</th><th class="n">Diferença</th>`:''}</tr></thead><tbody>
+ ${L.map(([n,sub,k,pp,inv])=>sub===undefined?`<tr class="grp"><td colspan="${y?4:2}">${n}</td></tr>`:`<tr><td>${n}${sub?`<small>${sub}</small>`:''}</td><td class="n"><b>${f(pp,x[k])}</b></td>${y?`<td class="n">${f(pp,y[k])}</td><td class="n d">${dd(pp,x[k],y[k],inv)}</td>`:''}</tr>`).join('')}</tbody></table></div>
+ ${ca&&!y?`<p class="hint">Sem relatório de farmácia em ${lb} para comparar.</p>`:''}
+ <p class="hint">Penetração e pessoas vêm das bases por pessoa (código do CPF) e incluem quem gerou ou comprou sem estar na carteira, como na penetração do Clube; por isso a penetração sem farmácia pode diferir um pouco da do topo, que usa os totais da plataforma. Vouchers = totais da plataforma; usos de farmácia = linhas dos relatórios.</p></div>`}
 async function rotaFarmacia(h){if(!FA.d){app.innerHTML=shell(h,'<p class="carregando">Cruzando farmácias, carteira e vouchers…</p>');
   try{await faCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar: ${esc(e.message||e)}${/dados_farmacia|function|schema cache/i.test(e.message||'')?'. Confira se o arquivo 53_farmacias_clube.sql já foi rodado no Supabase.':''}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
