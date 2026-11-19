@@ -701,6 +701,7 @@ const GL=[
   ['vouchers','Vouchers gerados','Total de vouchers gerados no período.','Se a pessoa gerou 2 vouchers (por exemplo, para ela e um acompanhante), conta como 2. Vem da base de vouchers enviada em Enviar mês, sem as farmácias de resgate automático e sem a conta de testes.'],
   ['usuarios-unicos','Usuários únicos','Pessoas diferentes que geraram pelo menos 1 voucher no período.','Quem gerou em mais de um mês conta uma vez só. Vem da base de vouchers, por CPF.'],
   ['alcance','Alcance do período','Usuários únicos do período (cada pessoa conta uma vez) dividido pelas pessoas da carteira ativa no último mês do período.','É diferente da penetração média: mostra quanta gente da carteira o Clube alcançou no período inteiro. Aparece na visão anual e em períodos de mais de um mês.'],
+  ['comparar-data','Comparar por data','Em Clube em números › Comparar períodos, o modo Por data compara quaisquer datas de início e fim, com diagnóstico por parceiro e farmácia.','Vouchers, usuários únicos, frequência, média por dia, penetração do período e primeira vez vêm do detalhe de vouchers por pessoa e dia. Carteira, novos, cancelamentos, Plano Família e farmácia são mensais e usam os meses que o período toca. Períodos de tamanhos diferentes são comparados pela média por dia.'],
   ['frequencia','Frequência de uso','Vouchers gerados dividido por usuários únicos: quantos vouchers cada pessoa gerou, em média.',''],
   ['media-dia','Média de uso por dia','Vouchers gerados dividido pelo número de dias do período.',''],
   ['primeira-vez','Primeira vez','Pessoas que geraram voucher pela primeira vez no mês, considerando o histórico desde jul/2023.','Nos primeiros meses da série quase todo mundo aparece como primeira vez, porque não há histórico antes de jul/2023.'],
@@ -1143,8 +1144,10 @@ function usuariosExplica(P,A,r){const m=r.m;const tot=null; /* desde nov/2026 os
  <table class="cmp usu"><tbody>${linhas.map(([a,b,c])=>`<tr><td>${a}<small>${c}</small></td><td class="n"><b>${b}</b></td></tr>`).join('')}</tbody></table>`}
 
 /* ---- relatório: comparar períodos ---- */
-function comparar(){const sel=(id,v)=>`<select id="${id}">${monthOpts(v)}</select>`;
- return shell('clube-comparar',`<div class="bar"><div class="fld"><span>Período A</span><div class="pair">${sel('a1',sc.a1)}<em>até</em>${sel('b1',sc.b1)}</div></div><div class="fld"><span>Período B</span><div class="pair">${sel('a2',sc.a2)}<em>até</em>${sel('b2',sc.b2)}</div></div></div><p class="hint" style="margin:-4px 0 0">Para um mês só, escolha o mesmo mês nos dois campos. Os períodos podem atravessar a virada do ano.</p><div id="res"></div>`)}
+function comparar(){const sel=(id,v)=>`<select id="${id}">${monthOpts(v)}</select>`;const modo=sc.modo||'mes';
+ const chips=`<div class="chips" style="margin-bottom:10px"><button class="chip ${modo==='mes'?'on':''}" data-cmodo="mes" type="button">Por mês</button><button class="chip ${modo==='data'?'on':''}" data-cmodo="data" type="button">Por data (calendário) + diagnóstico</button></div>`;
+ if(modo==='data'){cdPadrao();return shell('clube-comparar',chips+cdBarra()+'<div id="res"></div>')}
+ return shell('clube-comparar',chips+`<div class="bar"><div class="fld"><span>Período A</span><div class="pair">${sel('a1',sc.a1)}<em>até</em>${sel('b1',sc.b1)}</div></div><div class="fld"><span>Período B</span><div class="pair">${sel('a2',sc.a2)}<em>até</em>${sel('b2',sc.b2)}</div></div></div><p class="hint" style="margin:-4px 0 0">Para um mês só, escolha o mesmo mês nos dois campos. Os períodos podem atravessar a virada do ano.</p><div id="res"></div>`)}
 function renderComp(){const box=document.getElementById('res');for(const [a,b] of [['a1','b1'],['a2','b2']])if(idx(sc[a])>idx(sc[b]))[sc[a],sc[b]]=[sc[b],sc[a]];
  const A=agg(sc.a1,sc.b1),B=agg(sc.a2,sc.b2);const nA=A.n,nB=B.n;const pl=(a,b)=>a===b?lab(a):`${lab(a)} a ${lab(b)}`;const pA=pl(sc.a1,sc.b1),pB=pl(sc.a2,sc.b2);
  const pct=v=>fmt(v,2)+'%',int=v=>fmt(v);
@@ -1215,7 +1218,9 @@ function renderPerfil(){const box=document.getElementById('res');if(idx(sp.a)>id
 function bindClube(h){if(h==='clube-idade'){renderIdade();return}if(h==='clube-churn'){renderChurn();return}const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onchange=()=>fn(el.value)};
  if(h==='clube'){on('mm',v=>{sm.m=v;renderVisao('mes')});on('mcmp',v=>{sm.cmp=v;renderVisao('mes')});renderVisao('mes')}
  if(h==='clube-ano'){on('ay',v=>{sa.y=v;sa.cmp=YEARS.includes(String(+v-1))?String(+v-1):String(+v+1);const c=document.getElementById('acmp');c.innerHTML=YEARS.filter(y=>y!==sa.y).map(y=>`<option value="${y}" ${y===sa.cmp?'selected':''}>${y}${y===String(+sa.y-1)?' (ano anterior)':''}</option>`).join('');renderVisao('ano')});on('acmp',v=>{sa.cmp=v;renderVisao('ano')});renderVisao('ano')}
- if(h==='clube-comparar'){['a1','b1','a2','b2'].forEach(k=>on(k,v=>{sc[k]=v;renderComp()}));renderComp()}
+ if(h==='clube-comparar'){document.querySelectorAll('[data-cmodo]').forEach(b=>b.onclick=()=>{sc.modo=b.dataset.cmodo;app.innerHTML=comparar();bindClube('clube-comparar')});
+  if((sc.modo||'mes')==='data'){cdBind();return}
+  ['a1','b1','a2','b2'].forEach(k=>on(k,v=>{sc[k]=v;renderComp()}));renderComp()}
  if(h==='clube-perfil'){on('pm',v=>{sp.m=v;renderPerfil()});on('pa',v=>{sp.a=v;renderPerfil()});document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sp.d=b.dataset.d;document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x===b));renderPerfil()});renderPerfil()}}
 const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-comparar':comparar,'clube-perfil':perfil,'clube-idade':()=>idadePagina(),'clube-churn':()=>churnPagina()};
 
@@ -2313,6 +2318,130 @@ async function dgPlanilha(s,Z,get,put){await dgPrepara(s);const X=dgCalc(s);cons
  put('xl/workbook.xml',get('xl/workbook.xml').replace('</sheets>','<sheet name="Diagnóstico" sheetId="30" r:id="rId30"/></sheets>'));
  put('xl/_rels/workbook.xml.rels',get('xl/_rels/workbook.xml.rels').replace('</Relationships>','<Relationship Id="rId30" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet8.xml"/></Relationships>'));
  put('[Content_Types].xml',get('[Content_Types].xml').replace('</Types>','<Override PartName="/xl/worksheets/sheet8.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'))}
+
+/* =====================================================================
+   Clube em números › Comparar períodos › Por data (calendário)
+   Períodos de dia a dia, pelo detalhe de vouchers por pessoa e dia (mesmas regras do Clube em números).
+   Carteira e farmácia são mensais: entram pelos meses que o período toca.
+   ===================================================================== */
+const CD={a1:'',b1:'',a2:'',b2:'',cache:new Map(),fm:new Set(),dir:'',abre:null,todos:false};
+const cdIso=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const cdBR=s=>{const [y,m,d]=String(s).slice(0,10).split('-');return `${d}/${m}/${y}`};
+function cdPadrao(){if(CD.a1)return;const ult=LAST||cdIso(new Date()).slice(0,7);const [y,m]=ult.split('-').map(Number);
+ CD.a1=`${ult}-01`;CD.b1=cdIso(new Date(y,m,0));CD.a2=`${y-1}-${pad2(m)}-01`;CD.b2=cdIso(new Date(y-1,m,0))}
+function cdBuscar(a,b){const k=a+'|'+b;if(CD.cache.has(k))return CD.cache.get(k);
+ const pr=sb.rpc('dados_periodo',{p_de:a,p_ate:b}).then(({data,error})=>{if(error)throw error;return data});CD.cache.set(k,pr);pr.catch(()=>CD.cache.delete(k));return pr}
+function cdGrupo(m){if(typeof PA!=='undefined'&&PA.d){const t=(PA.d.info.get(m)||infoMarca(PA.d,m)).tipo;return t==='Agregadores online'?'Lojas online':t==='Laçador de Ofertas'?'Laçador':t}
+ return m===CLUBE_MARCA?'Ações do Clube':m===CLUBE_OUTROS_M?'Outros benefícios do Clube':m===LACADOR?'Laçador':AGREG.has(m)?'Lojas online':(m===PLANETA||PROD_RE.test(semAcento(m)))?'Eventos e shows':'Parceiros diretos'}
+const cdMarca=(marca,titulo)=>{let m=String(marca||'').trim();if(/^\d+\.0+$/.test(m))m=m.replace(/\.0+$/,'');m=marcaDoClube(m,'',titulo);return m==='GZH'?CLUBE_MARCA:m};
+function cdAgg(D){const M=new Map();(D.itens||[]).forEach(([marca,titulo,v,p])=>{const m=cdMarca(marca,titulo);let g=M.get(m);if(!g){g={v:0,t:new Map(),mes:new Map()};M.set(m,g)}g.v+=v;const t=String(titulo||m).trim();g.t.set(t,(g.t.get(t)||0)+v)});
+ (D.itens_mes||[]).forEach(([marca,titulo,mes,v])=>{const g=M.get(cdMarca(marca,titulo));if(g)g.mes.set(mes,(g.mes.get(mes)||0)+v)});return M}
+const cdMesesDe=(a,b)=>{const o=[];let m=a.slice(0,7);const f=b.slice(0,7);while(m<=f){o.push(m);m=shift(m,1)}return o};
+function cdDiasNoMes(m,a,b){const [y,mm]=m.split('-').map(Number);const ini=new Date(y,mm-1,1),fim=new Date(y,mm,0);const A=dt(a),B=dt(b);const i=ini<A?A:ini,f=fim>B?B:fim;return Math.round((f-i)/864e5)+1}
+function cdCalc(DA,DB){const fa=DA.dias,fb=DB.dias,esc=fa/fb;const A=cdAgg(DA),B=cdAgg(DB);const P=[];const mA=cdMesesDe(DA.de,DA.ate),mB=cdMesesDe(DB.de,DB.ate);
+ const ms=new Set([...A.keys(),...B.keys()]);
+ ms.forEach(m=>{const a=A.get(m),b=B.get(m);const va=a?a.v:0,vb=(b?b.v:0)*esc;const d=va-vb;if(Math.round(d)===0&&!va&&!vb)return;
+  const ts=new Set([...(a?a.t.keys():[]),...(b?b.t.keys():[])]);const T=[...ts].map(t=>{const x=a?a.t.get(t)||0:0,y=(b?b.t.get(t)||0:0)*esc;return {t,a:x,b:y,d:x-y}}).sort((p,q)=>Math.abs(q.d)-Math.abs(p.d));
+  const g=cdGrupo(m);let tipo='varia',mot='Variou ao longo do período';const info=(typeof PA!=='undefined'&&PA.d)?(PA.d.info.get(m)||infoMarca(PA.d,m)):null;const top=T[0];
+  if(!va&&vb>0){tipo='saiu';mot=info&&info.status==='Encerrado ou pausado'?'Encerrado ou pausado na lista de parceiros':'Sem uso no período A'}
+  else if(va>0&&!vb){tipo='novo';mot='Não existia no período B'}
+  else if(top&&Math.abs(d)>=5&&Math.sign(top.d)===Math.sign(d)&&Math.abs(top.d)>=0.6*Math.abs(d)&&(top.a===0||top.b===0)&&(g==='Eventos e shows'||g==='Ações do Clube')){tipo='pontual';mot=`${g==='Ações do Clube'?'Ação':'Evento'} só no período ${top.b===0?'A':'B'}: ${top.t}`}
+  else{const n=Math.min(mA.length,mB.length);
+   if(n>=2){const di=[];for(let i=0;i<n;i++){const x=(a&&a.mes.get(mA[i])||0)/cdDiasNoMes(mA[i],DA.de,DA.ate),y=(b&&b.mes.get(mB[i])||0)/cdDiasNoMes(mB[i],DB.de,DB.ate);di.push(x-y)}
+    if(di.every(x=>Math.sign(x)===Math.sign(d)&&x!==0)){tipo='constante';mot=`${d<0?'Abaixo':'Acima'} em todos os ${n} meses do período`}
+    else{const lado=d<0?b:a,ml=d<0?mB:mA;const tot=ml.reduce((t,mm)=>t+(lado&&lado.mes.get(mm)||0),0);const mx=ml.map(mm=>[mm,lado&&lado.mes.get(mm)||0]).sort((p,q)=>q[1]-p[1])[0];
+     if(tot&&mx&&mx[1]>=0.7*tot){tipo='concentrada';mot=`Concentrada em ${lab(mx[0])} (${fmt(100*mx[1]/tot,0)}% do período ${d<0?'B':'A'})`}}}
+   if(top&&Math.abs(top.d)>=0.6*Math.abs(d)&&Math.abs(d)>=10&&T.length>1&&tipo!=='pontual')mot+=` · mais em ${top.t}`}
+  P.push({m,g,a:va,b:vb,d,T,tipo,mot})});
+ const quedas=P.filter(p=>p.d<0).reduce((t,p)=>t+p.d,0),altas=P.filter(p=>p.d>0).reduce((t,p)=>t+p.d,0);
+ P.forEach(p=>p.peso=p.d<0?(quedas?p.d/quedas:0):(altas?p.d/altas:0));P.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+ const grupos=[...new Set(P.map(p=>p.g))];const G=grupos.map(n=>{const ps=P.filter(p=>p.g===n);const a=ps.reduce((t,p)=>t+p.a,0),b=ps.reduce((t,p)=>t+p.b,0);return {n,a,b,d:a-b}}).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+ return {P,G,quedas,altas,esc}}
+const CD_TAG={saiu:'Saiu ou parou',novo:'Novo',pontual:'Pontual',constante:'Constante',concentrada:'Concentrada',varia:'Variou'};
+const CD_CLS={saiu:'saiu',novo:'novo',pontual:'pontual',constante:'repete',concentrada:'oscila',varia:'oscila'};
+const cdNome=m=>m===CLUBE_MARCA?'Ações do Clube (Clube do Assinante)':m===CLUBE_OUTROS_M?'Outros benefícios do Clube':exibir(m);
+function cdMesInd(de,ate,k){const ms=cdMesesDe(de,ate).filter(m=>idx(m)>=0);if(!ms.length)return null;
+ if(k==='novos'||k==='canc'){const v=ms.map(m=>M[idx(m)][k]);return v.some(x=>x==null)?null:v.reduce((t,x)=>t+x,0)}
+ const r=M[idx(ms[ms.length-1])];return k==='pf'?r.pf:r[k]}
+function cdFarm(D){const F=D.farmacia||{};const pen=D.carteira?100*D.unicos/D.carteira:null,penF=D.carteira&&F.uniao!=null?100*F.uniao/D.carteira:null;
+ const so=n=>(F.combos||[]).filter(x=>x[0].length===1&&faRede(x[0][0])===n).reduce((t,x)=>t+x[1],0),duas=(F.combos||[]).filter(x=>x[0].length>1).reduce((t,x)=>t+x[1],0);
+ return {tem:(F.meses||[]).length>0,meses:F.meses||[],falta:(F.redes||[]).filter(r=>r.meses<F.meses_periodo).map(r=>`${faRede(r.rede)}: ${r.meses} de ${F.meses_periodo} meses`),
+  p:F.pessoas||0,raia:so('Raia'),panvel:so('Panvel'),duas,u:F.compras||0,ambos:F.ambos||0,uniao:F.uniao||0,pen,penF,ganho:pen!=null&&penF!=null?penF-pen:null,tot:D.vouchers+(F.compras||0)}}
+function cdHtml(DA,DB){const pA=`${cdBR(DA.de)} a ${cdBR(DA.ate)}`,pB=`${cdBR(DB.de)} a ${cdBR(DB.ate)}`;const X=cdCalc(DA,DB);const esc_=X.esc;
+ const fA=DA.unicos?DA.vouchers/DA.unicos:null,fB=DB.unicos?DB.vouchers/DB.unicos:null;const pnA=DA.carteira?100*DA.unicos/DA.carteira:null,pnB=DB.carteira?100*DB.unicos/DB.carteira:null;
+ const dVou=DA.vouchers-DB.vouchers*esc_;const dif=DA.dias!==DB.dias;
+ const k=(t,v,sub,cl)=>`<div class="dg-k ${cl||''}"><span>${t}</span><b>${v}</b><small>${sub||''}</small></div>`;
+ const pv=DB.vouchers?(DA.vouchers/(DB.vouchers*esc_)-1)*100:null;
+ // pessoas × frequência (com B ajustado por dia nos vouchers; usuários não se ajustam)
+ let ver='';if(DB.unicos&&DA.unicos&&!dif){const dp=(DA.unicos-DB.unicos)*fB,df=(fA-fB)*DA.unicos;ver=Math.abs(dp)>=2*Math.abs(df)?(dp<0?'menos pessoas usaram':'mais pessoas usaram'):Math.abs(df)>=2*Math.abs(dp)?(df<0?'cada pessoa usou menos':'cada pessoa usou mais'):'mudaram as pessoas e a frequência'}
+ const row=(n,sub,a,b,f,tp,inv)=>{const d=a!=null&&b!=null?a-b:null;return `<tr><td>${n}${sub?`<small>${sub}</small>`:''}</td><td class="n"><b>${a==null?'—':f(a)}</b></td><td class="n">${b==null?'—':f(b)}</td><td class="n">${d==null?'—':tp==='pp'?`<span class="${(d>=0)!==!!inv?'up':'down'}">${sinal(d,2)} p.p.</span>`:sinal(d,f===int0?0:2)}</td><td class="n d">${tp==='pp'||a==null||b==null?'—':delta(a,b,'%',inv)}</td></tr>`};
+ const int0=v=>fmt(v),dec=v=>fmt(v,2),pc=v=>fmt(v,2)+'%';
+ const mm=(de,ate)=>{const ms=cdMesesDe(de,ate);return ms.length===1?lab(ms[0]):`${lab(ms[0])} a ${lab(ms[ms.length-1])}`};
+ const FA_=cdFarm(DA),FB_=cdFarm(DB);
+ const it=p=>`<li><div class="dg-it-top"><b>${esc(cdNome(p.m))}</b><span class="dg-d ${p.d<0?'down':'up'}">${sinalN(Math.round(p.d))}</span></div><div class="dg-it-sub">${fmt(Math.round(p.b))} → ${fmt(p.a)} <span class="dg-tag dg-${CD_CLS[p.tipo]}">${CD_TAG[p.tipo]}</span></div><div class="dg-it-mot">${esc(p.mot)}</div></li>`;
+ const dn=X.P.filter(p=>p.d<=-1).slice(0,5),up=X.P.filter(p=>p.d>=1).slice(0,5);
+ const mov=X.P.filter(p=>Math.round(p.d)!==0&&(!CD.fm.size||CD.fm.has(p.tipo))&&(!CD.dir||(CD.dir==='down'?p.d<0:p.d>0)));const lst=CD.todos?mov:mov.slice(0,15);
+ const top=[...X.P.filter(p=>p.d<0).slice(0,8),...X.P.filter(p=>p.d>0).slice(0,8)].sort((a,b)=>a.d-b.d);
+ const cob=DA.cobertura&&DA.cobertura[0]?` Detalhe por dia disponível de ${lab(DA.cobertura[0])} a ${lab(DA.cobertura[1])}.`:'';
+ const fora=[DA,DB].some(D=>D.cobertura&&(D.de.slice(0,7)<D.cobertura[0]||D.ate.slice(0,7)>D.cobertura[1]));
+ return `${dif?`<div class="note">Os períodos têm tamanhos diferentes (A: ${DA.dias} dias, B: ${DB.dias} dias). Variações de vouchers e o diagnóstico usam B ajustado para ${DA.dias} dias (média por dia); usuários únicos e penetração não se ajustam.</div>`:''}
+ ${fora?`<div class="note">Parte do período está fora do detalhe por dia carregado.${cob} Os números desses dias ficam de fora.</div>`:''}
+ <div class="dg-kpis">${k('Vouchers no período A',fmt(DA.vouchers),pA)}${k('Período B',fmt(DB.vouchers),pB+(dif?` · ajustado: ${fmt(Math.round(DB.vouchers*esc_))}`:''))}
+  ${k('Variação',sinalP(pv),`${sinalN(Math.round(dVou))} vouchers`,pv<0?'neg':'pos')}${k('Usuários únicos',fmt(DA.unicos),`${sinalP(DB.unicos?(DA.unicos/DB.unicos-1)*100:null)} vs ${fmt(DB.unicos)}`,DA.unicos<DB.unicos?'neg':'pos')}${k('Penetração do período',pnA==null?'—':fmt(pnA,2)+'%',pnB==null?'':`contra ${fmt(pnB,2)}%`)}</div>
+ ${ver?`<p class="dg-veredito">O período A ${dVou<0?'ficou abaixo':'ficou acima'} principalmente porque <b>${ver}</b>.</p>`:''}
+ <div class="card tablecard"><div class="tw no-ord"><table class="cmp comp"><thead><tr><th>Indicador</th><th>A · ${pA}</th><th>B · ${pB}</th><th>Diferença (A − B)</th><th>Variação</th></tr></thead><tbody>
+  <tr class="grp"><td colspan="5">Uso dos benefícios (dia a dia)</td></tr>
+  ${row('Vouchers gerados','soma do período',DA.vouchers,DB.vouchers,int0)}${row('Usuários únicos','cada pessoa conta uma vez no período',DA.unicos,DB.unicos,int0)}
+  ${row('Frequência de uso','vouchers por pessoa no período',fA,fB,dec)}${row('Média por dia','vouchers por dia',DA.vouchers/DA.dias,DB.vouchers/DB.dias,v=>fmt(v,1))}
+  ${row('Penetração do período',`usuários únicos ÷ carteira de ${lab(DA.carteira_mes)} (A) e ${lab(DB.carteira_mes)} (B)`,pnA,pnB,pc,'pp')}
+  ${row('Primeira vez','pessoas que geraram o primeiro voucher (desde jul/2023) no período',DA.primeira,DB.primeira,int0)}
+  <tr class="grp"><td colspan="5">Carteira (mensal: meses que o período toca)</td></tr>
+  ${row('Carteira ativa',`fim de ${lab(DA.carteira_mes)} (A) e ${lab(DB.carteira_mes)} (B)`,cdMesInd(DA.de,DA.ate,'cart'),cdMesInd(DB.de,DB.ate,'cart'),int0)}
+  ${row('Novos assinantes',`${mm(DA.de,DA.ate)} (A) e ${mm(DB.de,DB.ate)} (B)`,cdMesInd(DA.de,DA.ate,'novos'),cdMesInd(DB.de,DB.ate,'novos'),int0)}
+  ${row('Cancelamentos','mesmos meses',cdMesInd(DA.de,DA.ate,'canc'),cdMesInd(DB.de,DB.ate,'canc'),int0,null,true)}
+  ${row('Plano Família','no último mês',cdMesInd(DA.de,DA.ate,'pf'),cdMesInd(DB.de,DB.ate,'pf'),v=>fmt(v,1)+'%','pp')}
+ </tbody></table></div><p class="hint">Uso dos benefícios: detalhe de vouchers por pessoa e dia (sem farmácias de resgate automático e sem a conta de testes), exatamente nas datas escolhidas.${cob} Carteira, novos, cancelamentos e Plano Família existem só por mês e usam os meses que cada período toca.</p></div>
+ <div class="card tablecard"><div class="row-head"><div><h3>Farmácias</h3><p class="sub">Relatórios da Raia e da Panvel nos meses que cada período toca (A: ${FA_.meses.length?FA_.meses.map(lab).join(', '):'nenhum'} · B: ${FB_.meses.length?FB_.meses.map(lab).join(', '):'nenhum'}), cruzados com os vouchers do período.</p></div><a class="chip" href="#clube-farmacias">Ver detalhes →</a></div>
+  ${[...FA_.falta.map(t=>'A · '+t),...FB_.falta.map(t=>'B · '+t)].length?`<div class="note">Faltam relatórios de farmácia: ${[...FA_.falta.map(t=>'A · '+t),...FB_.falta.map(t=>'B · '+t)].join(' · ')}.</div>`:''}
+  ${!FA_.tem&&!FB_.tem?'<p class="hint">Sem relatórios de farmácia nos meses dos dois períodos.</p>':`<div class="tw no-ord"><table class="cmp"><thead><tr><th></th><th class="n">A</th><th class="n">B</th><th class="n">Diferença</th></tr></thead><tbody>
+   ${[['Penetração sem farmácia','pen',2],['Penetração com farmácia','penF',2],['Ganho com a farmácia','ganho',3],['Pessoas que usaram farmácia','p'],['Só na Raia','raia'],['Só na Panvel','panvel'],['Nas duas','duas'],['Também geraram voucher','ambos'],['Pessoas únicas no total (voucher ou farmácia)','uniao'],['Usos de farmácia','u'],['Uso total (vouchers + farmácia)','tot']].map(([n,k2,t])=>{const a=FA_.tem||k2==='pen'?FA_[k2]:null,b=FB_.tem||k2==='pen'?FB_[k2]:null;const f=v=>v==null?'—':t===2?fmt(v,2)+'%':t===3?sinal(v,2)+' p.p.':fmt(v);const d=a!=null&&b!=null?a-b:null;
+    return `<tr><td>${n}</td><td class="n"><b>${f(a)}</b></td><td class="n">${f(b)}</td><td class="n">${d==null?'—':t?`<span class="${d>=0?'up':'down'}">${sinal(d,2)} p.p.</span>`:`<span class="${d>=0?'up':'down'}">${sinalN(d)}</span>`}</td></tr>`}).join('')}</tbody></table></div>
+   <p class="hint">Penetração: cada CPF conta uma vez (voucher ou farmácia) ÷ carteira do mês final. Farmácia é mensal, então um período que pega só parte de um mês leva o mês inteiro da farmácia.</p>`}</div>
+ <div class="grid2">
+  <div class="card dg-lista"><h3>Puxaram para baixo</h3><p class="sub">${dn.length?`Estes ${dn.length} explicam ${fmt(100*dn.reduce((t,q)=>t+q.d,0)/(X.quedas||1),0)}% de todas as quedas.`:'Nenhum parceiro caiu.'}</p><ul>${dn.map(it).join('')}</ul></div>
+  <div class="card dg-lista"><h3>Puxaram para cima</h3><p class="sub">${up.length?`Estes ${up.length} explicam ${fmt(100*up.reduce((t,q)=>t+q.d,0)/(X.altas||1),0)}% de todas as altas.`:'Nenhum parceiro cresceu.'}</p><ul>${up.map(it).join('')}</ul></div>
+ </div>
+ <div class="grid2">
+  <div class="card"><h3>Por grupo</h3><p class="sub">Quanto cada grupo somou (verde) ou tirou (laranja), A em relação a B.</p>${dgBarras(X.G.map(g=>({lab:g.n,d:g.d})),{titulo:'Variação por grupo'})}</div>
+  <div class="card"><h3>Parceiros que mais mudaram</h3><p class="sub">Até 8 que mais caíram e 8 que mais cresceram.</p>${dgBarras(top.map(p=>({lab:cdNome(p.m),d:p.d})),{titulo:'Variação por parceiro'})}</div>
+ </div>
+ <div class="card tablecard"><h3>Quem puxou para cima e para baixo</h3>
+  <div class="dg-filtros"><div class="fld"><span>Motivo <small>nenhum marcado = todos</small></span><div class="chips">${Object.entries(CD_TAG).map(([k2,t])=>`<button class="chip ${CD.fm.has(k2)?'on':''}" data-cdm="${k2}" type="button">${t} <small>${X.P.filter(q=>Math.round(q.d)!==0&&q.tipo===k2).length}</small></button>`).join('')}</div></div>
+  <div class="fld"><span>Direção</span><div class="chips">${[['','Todos'],['down','Caíram'],['up','Cresceram']].map(([k2,t])=>`<button class="chip ${CD.dir===k2?'on':''}" data-cdd="${k2}" type="button">${t}</button>`).join('')}</div></div></div>
+  <p class="sub">${fmt(mov.length)} ${mov.length===1?'parceiro':'parceiros'}. Clique no parceiro para ver as promoções que mais mudaram. "Peso" = parte de todas as quedas (ou altas).</p>
+  <div class="tw"><table class="cmp dg-t"><thead><tr><th>Parceiro</th><th>Grupo</th><th class="n">A</th><th class="n">B${dif?' (ajustado)':''}</th><th class="n">Diferença</th><th class="n">Peso</th><th>Motivo provável</th></tr></thead><tbody>
+  ${lst.map((p,j)=>`<tr class="dg-row" data-cd="${j}" style="cursor:pointer"><td><b>${esc(cdNome(p.m))}</b></td><td>${esc(p.g)}</td><td class="n">${fmt(p.a)}</td><td class="n" data-v="${p.b}">${fmt(Math.round(p.b))}</td><td class="n" data-v="${p.d}"><span class="${p.d>=0?'up':'down'}">${sinalN(Math.round(p.d))}</span></td><td class="n" data-v="${p.peso}">${fmt(100*p.peso,0)}%</td><td><span class="dg-tag dg-${CD_CLS[p.tipo]}">${CD_TAG[p.tipo]}</span> ${esc(p.mot)}</td></tr>
+   ${CD.abre===p.m?`<tr class="dg-det"><td colspan="7"><table class="cmp"><thead><tr><th>Promoção</th><th class="n">A</th><th class="n">B</th><th class="n">Diferença</th></tr></thead><tbody>${p.T.slice(0,10).map(t=>`<tr><td>${esc(t.t)}</td><td class="n">${fmt(t.a)}</td><td class="n">${fmt(Math.round(t.b))}</td><td class="n"><span class="${t.d>=0?'up':'down'}">${sinalN(Math.round(t.d))}</span></td></tr>`).join('')}</tbody></table></td></tr>`:''}`).join('')}
+  </tbody></table></div>${mov.length>15?`<p><button class="chip" id="cd-todos" type="button">${CD.todos?'Mostrar só os 15 maiores':`Mostrar todos os ${mov.length}`}</button></p>`:''}
+  <p class="hint">Motivos: saiu (encerrado na lista de parceiros ou sem uso no período A), novo (sem uso no período B), pontual (evento ou ação do Clube que existiu só num dos períodos), constante (diferença na mesma direção em todos os meses), concentrada (a maior parte do uso está num mês só) ou variou. Planeta Atlântida (desconto) conta como evento; Ações do Clube = só cortesias, como no restante do portal.</p></div>`}
+function cdBarra(){return `<div class="bar"><div class="fld"><span>Período A</span><div class="pair"><input type="date" id="cd-a1" value="${CD.a1}"><em>até</em><input type="date" id="cd-b1" value="${CD.b1}"></div></div>
+ <div class="fld"><span>Período B</span><div class="pair"><input type="date" id="cd-a2" value="${CD.a2}"><em>até</em><input type="date" id="cd-b2" value="${CD.b2}"></div></div>
+ <div class="fld"><span>&nbsp;</span><button class="btn" id="cd-go" type="button">Comparar</button></div></div>
+ <p class="hint" style="margin:-4px 0 0">Escolha qualquer data de início e de fim. Os dois períodos podem ter tamanhos diferentes.</p>`}
+async function cdRender(){const box=document.getElementById('res');if(!box)return;
+ for(const [a,b] of [['a1','b1'],['a2','b2']])if(CD[a]&&CD[b]&&CD[a]>CD[b])[CD[a],CD[b]]=[CD[b],CD[a]];
+ if(!CD.a1||!CD.b1||!CD.a2||!CD.b2){box.innerHTML='<p class="hint">Escolha as datas dos dois períodos.</p>';return}
+ box.innerHTML='<p class="carregando">Comparando os períodos…</p>';const tok=[CD.a1,CD.b1,CD.a2,CD.b2].join('|');box.dataset.tok=tok;
+ try{if(temPainel('parceiros')){try{await paCarregar()}catch(_){}}const [DA,DB]=await Promise.all([cdBuscar(CD.a1,CD.b1),cdBuscar(CD.a2,CD.b2)]);if(box.dataset.tok!==tok)return;
+  const desenha=()=>{box.innerHTML=cdHtml(DA,DB);
+   box.querySelectorAll('[data-cdm]').forEach(b=>b.onclick=()=>{const k=b.dataset.cdm;CD.fm.has(k)?CD.fm.delete(k):CD.fm.add(k);CD.abre=null;desenha()});
+   box.querySelectorAll('[data-cdd]').forEach(b=>b.onclick=()=>{CD.dir=b.dataset.cdd;CD.abre=null;desenha()});
+   box.querySelectorAll('.dg-row').forEach(tr=>tr.onclick=()=>{const X=cdCalc(DA,DB);const mv=X.P.filter(p=>Math.round(p.d)!==0&&(!CD.fm.size||CD.fm.has(p.tipo))&&(!CD.dir||(CD.dir==='down'?p.d<0:p.d>0)));const p=(CD.todos?mv:mv.slice(0,15))[+tr.dataset.cd];CD.abre=CD.abre===p.m?null:p.m;desenha()});
+   const t=document.getElementById('cd-todos');if(t)t.onclick=()=>{CD.todos=!CD.todos;desenha()}};desenha()}
+ catch(e){if(box.dataset.tok!==tok)return;box.innerHTML=`<div class="note">Não foi possível comparar: ${esc(e.message||e)}${/dados_periodo|function|schema cache/i.test(e.message||'')?'. Confira se o arquivo 59_comparar_por_data.sql já foi rodado no Supabase.':''}</div>`}}
+function cdBind(){const on=id=>document.getElementById(id);const go=on('cd-go');if(!go)return;
+ go.onclick=()=>{CD.a1=on('cd-a1').value;CD.b1=on('cd-b1').value;CD.a2=on('cd-a2').value;CD.b2=on('cd-b2').value;CD.abre=null;cdRender()};
+ ['cd-a1','cd-b1','cd-a2','cd-b2'].forEach(id=>on(id).onkeydown=e=>{if(e.key==='Enter')go.click()});cdRender()}
 
 const PA={d:null,a:null,b:null,cat:null,tipo:'',loc:'',q:'',ord:'v',sel:null,grupo:'risco',pend:{}};
 const nk=s=>semAcento(String(s||'')).toLowerCase().replace(/[^a-z0-9]/g,'');
