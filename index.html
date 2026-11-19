@@ -1281,7 +1281,7 @@ const ADMIN_C_H=5070411802619859;
 function ehAdminC(nome,cpf){if(normU(nome).startsWith('ADMIN C'))return true;const c=cpf11(cpf);return !!c&&cyrb53(c)===ADMIN_C_H}
 const PRODUTO={'DIGITAL':'Digital','IMPRESSO':'Impresso','IMP+DIG':'Impresso + Digital'};
 const FAMILIA={'PLANO FAMILIA ATIVO':'Ativo','AINDA TEM ESPACO NO PLANO FAMILIA':'Tem espaço','PLANO FAMILIA INATIVO':'Inativo','NAO TEM PLANO FAMILIA':'Não tem direito'};
-const CG={cart:[],vou:new Map(),det:new Map(),vouArq:[],lendo:false,rodando:false,sit:null,log:[],erro:null,feito:0};
+const CG={cart:[],vou:new Map(),sem:new Map(),det:new Map(),vouArq:[],lendo:false,rodando:false,sit:null,log:[],erro:null,feito:0};
 
 function libs(){for(const id of ['lib-xlsx','lib-papa']){const el=document.getElementById(id);if(el&&!el.dataset.ok){const s=document.createElement('script');s.textContent=el.textContent;document.head.appendChild(s);el.dataset.ok='1'}}}
 function mesDoArquivo(nome){const n=normU(nome).replace(/[^A-Z0-9]/g,' ');const m=n.match(/(JANEIRO|FEVEREIRO|MARCO|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)\s*(20\d\d)/);return m?`${m[2]}-${pad2(NOMES_MES[m[1]])}`:null}
@@ -1378,6 +1378,8 @@ function colunasVoucher(campos,nome){const f=(campos||[]).map(x=>[x,normU(x)]);c
  const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD'),desc:ach(x=>x[1].startsWith('DESCRI')),tit:ach(x=>x[1].startsWith('TITULO')),nome:ach(x=>x[1].startsWith('NOME'))}; // quantidade de vouchers da linha: nunca ignorar
  if(!c.cpf||!c.marca||!c.data)throw new Error(`${nome} não parece um arquivo de vouchers (precisa das colunas CPF, Marca e Data).`);return c}
 function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
+ /* números do mês do Relatório semanal: mesma base, regra do semanal (farmácias contam; só a conta de testes sai) */
+ if(!ehAdminC(nomeRaw,cpfRaw)){const ms=`${ym[0]}-${pad2(ym[1])}`;let q=CG.sem.get(ms);if(!q){q={usos:0,cpfs:new Set()};CG.sem.set(ms,q)}const pq=parseInt(prodRaw,10);q.usos+=pq>0?pq:1;const cs=cpf11(cpfRaw);if(cs)q.cpfs.add(cs)}
  let marca=String(marcaRaw??'').trim();if(/^\d+\.0+$/.test(marca))marca=marca.replace(/\.0+$/,'');
  if(FARMACIAS.has(normL(marca))){est.farm++;return}
  const c=cpf11(cpfRaw);if(!c){est.semCpf++;return}
@@ -1452,7 +1454,7 @@ function bindCarga(){libs();
    box.innerHTML=`<div class="note ok">${esc(f.name)}: ${fmt(n)} linhas guardadas (${[d.email&&'e-mail',d.tel&&'telefone'].filter(Boolean).join(' e ')}), referência ${lab(mes)}.</div>`}
   catch(err){box.innerHTML=`<div class="note">${esc(err.message||err)}</div>`}};
  document.getElementById('f-cart').onchange=e=>{CG.cart=[...e.target.files].map(f=>({file:f,mes:mesDoArquivo(f.name)}));desenharMeses()};
- document.getElementById('f-vou').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CG.vou=new Map();CG.det=new Map();CG.vouEst=[];CG.vouArq=fs.map(f=>f.name);CG.lendo=true;CG.erro=null;desenharMeses();
+ document.getElementById('f-vou').onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CG.vou=new Map();CG.det=new Map();CG.sem=new Map();CG.vouEst=[];CG.vouArq=fs.map(f=>f.name);CG.lendo=true;CG.erro=null;desenharMeses();
   try{for(const f of fs){const est0=await lerVouchers(f,est=>{const el=document.getElementById('cg-lendo');if(el)el.textContent=`Lendo ${f.name}: ${fmt(est.ok)} vouchers válidos…`});CG.vouEst.push([f.name,est0])}}
   catch(err){CG.erro=err.message}finally{CG.lendo=false;desenharMeses()}};
  desenharMeses();desenharLog();atualizarSituacao()}
@@ -1517,46 +1519,20 @@ async function rodarCarga(meses){CG.rodando=true;CG.log=[];CG.prog=0;CG.feito=0;
    await analisar();await rpc('salvar_idade_mes',{p_mes:m+'-01'});
    etapa(`${nome}: calculando…`,base+passo*.92);
    const r=await rpc('processar_mes',{p_mes:m+'-01'});CG.feito++;
+   let txtS='';const sq=CG.sem.get(m);if(sq){try{await rpc('salvar_mes_semanal',{p_mes:m+'-01',p_usos:sq.usos,p_usuarios:sq.cpfs.size,p_carteira:r.pessoas??null});txtS=' Números do mês do Relatório semanal atualizados.'}catch(e){txtS=` Os números do mês do Relatório semanal não foram salvos (${esc(e.message||e)}${/salvar_mes_semanal|function/.test(e.message||'')?'; rode o 55_semanal_mesma_fonte.sql':''}).`}}
    let txtK='',ctErr=null;try{await enviarContatos(m,cart.contatos,(a,b)=>etapa(`${nome}: guardando CPF e contatos (${fmt(a)} de ${fmt(b)})…`,base+passo*.94));
     txtK=` CPF${cart.colsContato.email?', e-mail':''}${cart.colsContato.tel?', telefone':''} e situação guardados para Gerar bases.`}catch(e){txtK='';ctErr=esc(e.message||e)}
    let txtU='';const det=CG.det.get(m);if(det&&det.size){try{etapa(`${nome}: guardando o detalhe para a Calculadora uso…`,base+passo*.95);await enviarUsoMes(m,det);txtU=' Detalhe salvo para a Calculadora uso.'}catch(e){txtU=` O detalhe para a Calculadora uso não foi salvo (${esc(e.message||e)}).`}}
    let txtC='';if(v.cort!=null){const [yy,mm]=m.split('-').map(Number);const fimMes=`${m}-${pad2(new Date(yy,mm,0).getDate())}`;
     try{await rpc('salvar_cortesia',{p_mes:m+'-01',p_valor:v.cort,p_ate:fimMes});txtC=` Cortesia: ${fmt(v.cort)} usos.`}catch(e){txtC=` A cortesia não foi salva (${esc(e.message||e)}).`}}
-   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}${txtK}`,'ok');if(ctErr)logar(`<b>${nome}</b>: os contatos (CPF, e-mail, telefone, situação) não foram guardados: ${ctErr}. O mês foi carregado; para completar só os contatos, use o botão "Só guardar CPF, e-mail, telefone e situação".`,'erro')}
+   logar(`<b>${nome}</b>: ${fmt(r.cart)} assinaturas ativas, ${fmt(r.ger)} pessoas geraram ${fmt(r.vou)} vouchers.${txtC}${txtU}${txtS}${txtK}`,'ok');if(ctErr)logar(`<b>${nome}</b>: os contatos (CPF, e-mail, telefone, situação) não foram guardados: ${ctErr}. O mês foi carregado; para completar só os contatos, use o botão "Só guardar CPF, e-mail, telefone e situação".`,'erro')}
  }catch(e){logar(`Parou com erro${CG.etapa?` em "${esc(CG.etapa)}"`:''}: ${esc(e.message||e)}${/statement timeout/.test(e.message||'')?' (tempo limite do banco: rode o 50_tempo_limite_carga.sql no Supabase)':''}. Os meses anteriores a este já foram salvos; corrija o arquivo e carregue o mês de novo.`,'erro')}
  try{if(CG.feito){etapa('Atualizando os números do portal…',.98);await rpc('recalcular');
-   try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
+   try{etapa('Atualizando o painel Inativos…',.99);await rpc('preencher_inativos');if(typeof INA!=='undefined')INA.d=null;if(typeof SEM!=='undefined')SEM.dados=null}catch(e){logar(`O painel Inativos não foi atualizado (${esc(e.message||e)}). Para atualizar, rode no Supabase: select public.preencher_inativos();`,'erro')}await carregarDados(true);
    logar(`Pronto: ${CG.feito} ${CG.feito===1?'mês carregado':'meses carregados'} em ${Math.round((performance.now()-t0)/1000)} s. <a href="#clube">Ver o Clube em números →</a>`,'ok')}}
  catch(e){logar(`Os meses foram salvos, mas a atualização final falhou: ${esc(e.message||e)}. Carregue qualquer mês de novo para refazer.`,'erro')}
  CG.rodando=false;removeEventListener('beforeunload',avisoSaida);desenharMeses();desenharLog();atualizarSituacao()}
 
-/* ---------- totais mensais da plataforma ---------- */
-const MES_ABREV={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
-async function lerTotais(file){let linhas;
- if(/\.xlsx?$/i.test(file.name)){const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});linhas=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:null,blankrows:false})}
- else{const buf=await file.arrayBuffer();let txt;try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(_){txt=new TextDecoder('windows-1252').decode(buf)}
-  linhas=Papa.parse(txt,{skipEmptyLines:true,delimiter:''}).data}
- const hi=linhas.findIndex(r=>(r||[]).some(x=>normU(x)==='MES')&&(r||[]).some(x=>normU(x).startsWith('USUARIOS')));
- if(hi<0)throw new Error('Não encontrei as colunas Mês e Usuários únicos. Envie o arquivo de uso na plataforma.');
- const h=linhas[hi].map(normU);const col=f=>h.findIndex(f);
- const iM=col(x=>x==='MES'),iA=col(x=>x==='ANO'),iC=col(x=>x.startsWith('CARTEIRA')),iB=col(x=>x.startsWith('BENEFICIOS')||x.startsWith('VOUCHERS')||x.startsWith('USOS')),iU=col(x=>x.startsWith('USUARIOS'));
- if(iB<0)throw new Error('Não encontrei a coluna de benefícios gerados.');
- const num=v=>{if(v==null||v==='')return null;if(typeof v==='number')return Math.round(v);const s=String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');return s?Math.round(+s):null};
- const out=[];for(let r=hi+1;r<linhas.length;r++){const L=linhas[r]||[];const lab=normL(L[iM]);const m=lab.match(/^([a-z]{3})[a-z]*\/?(\d{2,4})?/);if(!m||!MES_ABREV[m[1]])continue;
-  let ano=iA>=0?num(L[iA]):null;if(!ano&&m[2])ano=m[2].length===2?2000+ +m[2]:+m[2];if(!ano)continue;
-  out.push({m:`${ano}-${pad2(MES_ABREV[m[1]])}`,carteira:iC>=0?num(L[iC]):null,usos:num(L[iB]),usuarios:iU>=0?num(L[iU]):null})}
- if(!out.length)throw new Error('O arquivo não tem nenhum mês reconhecível.');return out}
-async function desenharTotais(rows){const box=document.getElementById('cg-tot');const atual={};
- Object.entries(TOT||{}).forEach(([m,v])=>atual[m]={usos:v[0],usuarios:v[1]});
- const dif=(a,b)=>a!=null&&b!=null&&a!==b;
- const muda=rows.filter(r=>{const a=atual[r.m];return !a||dif(r.usos,a.usos)||dif(r.usuarios,a.usuarios)});
- box.innerHTML=`<p class="hint" style="margin-top:10px">${rows.length} meses no arquivo, de ${lab(rows[0].m)} a ${lab(rows[rows.length-1].m)}. ${muda.length?`${muda.length} ${muda.length>1?'meses novos ou com números diferentes':'mês novo ou com números diferentes'}:`:'Nenhum número muda.'}</p>
- ${muda.length?`<div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Vouchers gerados</th><th class="n">Usuários únicos</th></tr></thead><tbody>${muda.map(r=>{const a=atual[r.m]||{};const c=(v,o)=>`${fmt(v)}${o!=null&&o!==v?` <small>era ${fmt(o)}</small>`:''}`;
-  return `<tr><td>${lab(r.m)}</td><td class="n">${c(r.usos,a.usos)}</td><td class="n">${c(r.usuarios,a.usuarios)}</td></tr>`}).join('')}</tbody></table></div>
- <div class="acoes"><button class="btn" id="cg-tot-ok" type="button">Salvar totais</button><span class="hint" id="cg-tot-msg"></span></div>`:''}`;
- const b=document.getElementById('cg-tot-ok');if(b)b.onclick=async()=>{const m=document.getElementById('cg-tot-msg');b.disabled=true;m.textContent='Salvando…';
-  const {data,error}=await sb.rpc('salvar_totais_clube',{p:rows});if(error){b.disabled=false;m.textContent='Não salvou: '+error.message;return}
-  await carregarDados(true);m.textContent=`Pronto: ${data} meses salvos. O Clube em números já usa estes totais.`}}
 
 /* =====================================================================
    Relatório semanal — semana de sexta a quinta.
@@ -1659,7 +1635,8 @@ const MESN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agost
 const MES3=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const diasNoMes=(y,m)=>new Date(y,m,0).getDate();
 function plat(y,m){return (SEM.dados.plataforma||[]).find(r=>r.m===`${y}-${pad2(m)}`)||{}}
-/* números mensais do relatório: totais da plataforma (arquivo Uso na plataforma); se faltar, a última base do mês enviada no próprio semanal.
+/* números mensais do relatório: meses fechados vêm da base de vouchers de Clube em números › Enviar mês, com a regra do semanal (farmácias contam,
+   só a conta de testes sai); se faltar, a última base do mês enviada no próprio semanal.
    Não usa os números do Clube em números, que seguem outras regras (sem farmácias). */
 function mtdDoMes(y,m){const k=`${y}-${pad2(m)}`;let r=null;for(const w of SEM.dados.semanas){const t=w.mtd;if(t&&!t.antiga&&(t.mes||w.f.slice(0,7))===k&&(!r||w.f>r.f))r={f:w.f,usos:t.usos,unicos:t.unicos}}return r}
 function mesNum(y,m,k,soFechado){const P=plat(y,m);const v=P[k==='usos'?'usos':'usuarios'];if(v!=null)return v;
@@ -2146,7 +2123,7 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
   <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th>${ed?'<th></th>':''}</tr></thead><tbody>
   ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button" title="Remover linha">×</button></td></tr>`
    :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')||'<tr><td colspan="3" class="hint">Sem dados suficientes para o FCA desta semana.</td></tr>'}</tbody></table></div></div>`;
- const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: números do mês da plataforma (Enviar semana › Números do mês).${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
+ const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: meses fechados pela base de vouchers enviada em Clube em números › Enviar mês (no semanal, farmácias contam).${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
  box.innerHTML=`<div class="td-status td-${cls}"><span>${T('status-mes','Status')} de ${P.mesLab}</span><p>${status}</p></div>
  ${kp?`<div class="td-kpis">${kp}</div>`:''}
  <div class="td-grid">${ritmo}${tend}</div>${fca}${metodo}`;
