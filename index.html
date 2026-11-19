@@ -812,6 +812,7 @@ const GL=[
  ]],
  ['Regras',[
   ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora dos painéis mensais (Clube em números, Parceiros e Inativos), porque são gerados automaticamente.','Panvel continua contando. No Relatório semanal todas as farmácias contam.'],
+  ['relatorios-farmacia','Relatórios de farmácia','Relatórios mensais da Raia e da Panvel com o CPF, a data e o desconto de cada compra. Alimentam a Calculadora farmácia e a página Farmácias, em Clube em números.','Não entram nos números oficiais do Clube (vouchers, usuários únicos e penetração). Na Raia, o mês do relatório vai do dia 6 ao dia 5.'],
   ['admin-c','ADMIN C','Conta de testes da equipe. Fica fora de todos os números.',''],
   ['ressalva','Mês com ressalva','Mês com problema conhecido nos dados. Aparece com ⚠ nos gráficos e nos números.',''],
  ]],
@@ -1198,8 +1199,8 @@ const CLUBE_PAGES={clube:()=>visao('mes'),'clube-ano':()=>visao('ano'),'clube-co
 
 /* ---------- áreas e relatórios ---------- */
 const AREAS={
- clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos e perfil de quem usa.',c:'var(--vinho)',st:['ok','Pronto'],
-  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-bases','Gerar bases','bases'],['clube-enviar','Enviar mês',1]]},
+ clube:{n:'Clube em números',t:'Clube em',s:'números',d:'O Clube está crescendo em uso e em base? Visão mensal, visão anual, comparação de períodos, perfil de quem usa e farmácias.',c:'var(--vinho)',st:['ok','Pronto'],
+  r:[['clube','Visão mensal'],['clube-ano','Visão anual'],['clube-comparar','Comparar períodos'],['clube-perfil','Perfil de quem usa'],['clube-idade','Idade e gerações'],['clube-churn','Churn do 1º ano'],['clube-farmacias','Farmácias'],['clube-bases','Gerar bases','bases'],['clube-enviar','Enviar mês',1],['clube-enviar-farmacia','Enviar farmácias',1]]},
  semanal:{n:'Relatório semanal',t:'Relatório',s:'semanal',d:'Uso da semana, de sexta a quinta: rankings de parceiros, promoções, eventos, Laçador, Online e Premium, com insights e planilha para enviar.',c:'var(--verde-esc)',st:['ok','Pronto'],
   r:[['semanal','Insights e gráficos'],['semanal-rankings','Top 5 e rankings'],['semanal-tendencia','Tendência e FCA'],['semanal-evolucao','Evolução'],['semanal-enviar','Enviar semana',1]]},
  inativos:{n:'Inativos',t:'Quem não',s:'usa',d:'Quem tem o Clube e não usa: quem são, o que os diferencia de quem usa, hipóteses do porquê, quem nunca gerou, quem parou e quem voltou.',c:'var(--laranja)',st:['ok','Pronto'],
@@ -1209,7 +1210,7 @@ const AREAS={
  comunicacoes:{n:'Comunicações',t:'Desempenho das',s:'comunicações',d:'Newsletter, e-mail pontual, WhatsApp, push e in-app: quem recebeu, abriu e clicou, e quem gerou voucher do benefício divulgado.',c:'var(--vinho-esc)',st:['ok','Pronto'],
   r:[['comunicacoes','Canais'],['comunicacoes-mes','Visão geral mês a mês'],['comunicacoes-analisar','Analisar comunicação',1]],subs:['Newsletter','E-mail pontual','In-app','Push','WhatsApp','Visão geral mês a mês']},
  calculadora:{n:'Calculadoras',t:'Calculadoras do',s:'Clube',d:'Digite o CPF do sócio e veja quanto ele economizou nas farmácias parceiras e a retrospectiva de uso do Clube.',c:'var(--verde-esc, #2f7a4a)',st:['ok','Novo'],
-  r:[['calculadora','Calculadora farmácia'],['calculadora-uso','Calculadora uso'],['calculadora-enviar','Enviar bases',1]]},
+  r:[['calculadora','Calculadora farmácia'],['calculadora-uso','Calculadora uso']]},
  glossario:{n:'Glossário',t:'Glossário do',s:'Clube',d:'O que significa cada termo, faixa e regra usada no portal.',c:'var(--laranja-esc)',st:['ok','Pronto'],
   r:GL.map(([g],i)=>['glossario-'+i,g])},
  admin:{n:'Área do administrador',t:'Área do',s:'administrador',d:'Pedidos de acesso ao portal, quem tem login e quais painéis cada pessoa vê.',c:'var(--ink)',st:['ok','Só admin'],adm:1,
@@ -2728,7 +2729,7 @@ async function rotaInativos(h){if(h==='clube-bases'&&!podeBases()){location.hash
    Qualquer segmentação da carteira (ativos ou cancelados), com ou sem filtro de uso do Clube e de voucher.
    CPF, e-mail e telefone vêm da tabela de contatos (47_contatos_bases.sql), que só administradores leem. */
 const BASE={univ:'ativos',est:new Set(),usou:new Set(),f:{},smin:'',smax:'',ctipo:new Set(),cmin:'',cmax:'',kmin:'',kmax:'',tirar:true,
- vsel:[],vmodo:'gerou',vde:'',vate:'',lista:null,cont:null,res:null,busy:false};
+ vsel:[],vmodo:'gerou',vde:'',vate:'',farm:'',fde:'',fate:'',lista:null,cont:null,res:null,busy:false};
 const PRESETS=[
  ['Mídia paga',[
   ['Inativos',{est:['nunca'],f:{tempo:['Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)']}},'7 meses ou mais de assinatura e nunca geraram voucher.'],
@@ -2765,9 +2766,10 @@ function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dim
  ${cc?`<div class="card"><h3>2. Uso do Clube quando era assinante <small>opcional; nenhum marcado = todos</small></h3><div class="chips"><button class="chip ${BASE.usou.has('sim')?'on':''}" data-usou="sim" type="button">Já usou o Clube</button><button class="chip ${BASE.usou.has('nao')?'on':''}" data-usou="nao" type="button">Nunca usou</button></div></div>`
  :`<div class="card"><h3>2. Uso do Clube <small>opcional; nenhum marcado = todos, independente da geração de vouchers</small></h3><div class="chips"><button class="chip ${!BASE.est.size?'on':''}" data-be="*" type="button">Todos</button>${EST.map(([k,n])=>`<button class="chip ${BASE.est.has(k)?'on':''}" data-be="${k}" type="button">${T(ETERM[k],n)} <small>${fmt(ultS()[k])}</small></button>`).join('')}</div>
   <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>${T('meses-sem-gerar','Meses sem gerar')}: de</span><input type="number" min="1" id="b-smin" value="${BASE.smin}" placeholder="—" style="width:90px"></label><label class="fld"><span>até</span><input type="number" min="1" id="b-smax" value="${BASE.smax}" placeholder="—" style="width:90px"></label></div>
-  <p class="hint">Opcional. Vale para quem já gerou voucher alguma vez (ativo recente, esfriando e parou).</p></div>
+  <p class="hint">Opcional. Vale para quem já gerou voucher alguma vez (ativo recente, esfriando e parou). "Nunca gerou" olha só os vouchers do Clube: quem usa só o desconto da farmácia aparece aqui. Para tirar essas pessoas, use o item 5.</p></div>
  <div class="card"><h3>3. Perfil <small>opcional; dentro de cada grupo, vale qualquer opção marcada</small></h3><div class="ina-filtros">${dims.map(chipsDim).join('')}</div></div>`}
  ${cardVoucherBase()}
+ ${cardFarmaciaBase()}
  <div class="acoes"><button class="btn" id="b-gerar" type="button" ${BASE.busy?'disabled':''}>${BASE.busy?'Gerando…':'Gerar base'}</button><button class="chip" id="b-limpar" type="button">Limpar filtros</button></div>
  <div id="b-res">${R?`<div class="card"><h3>Base pronta: ${fmt(R.linhas.length)} CDASS <small>${fmt(R.pessoas)} pessoas</small></h3>
   <p class="sub">${esc(R.desc)}. Uma pessoa com mais de uma assinatura aparece em mais de uma linha.</p>
@@ -2780,6 +2782,12 @@ function inaBases(){const D=INA.d;const dims=Object.keys(DIMS_I).filter(k=>D.dim
 const semAc=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function bvMeses(sel,vazio){const L=BASE.lista,c=L&&L.cobertura||[];const a=c[0]||'2023-07',b=c[1]||LAST||a;const o=[];for(let m=a;m<=b&&o.length<240;m=shift(m,1))o.push(m);
  return `<option value="">${vazio}</option>`+o.reverse().map(m=>`<option value="${m}"${m===sel?' selected':''}>${lab(m)}</option>`).join('')}
+function cardFarmaciaBase(){const hoje=new Date().toISOString().slice(0,7),o=[];for(let m='2023-07';m<=hoje&&o.length<240;m=shift(m,1))o.push(m);
+ const ms=(sel,vz)=>`<option value="">${vz}</option>`+o.slice().reverse().map(m=>`<option value="${m}"${m===sel?' selected':''}>${lab(m)}</option>`).join('');
+ return `<div class="card"><h3>5. Farmácia <small>opcional; relatórios da Raia e da Panvel</small></h3>
+  <div class="chips"><button class="chip ${!BASE.farm?'on':''}" data-bfarm="" type="button">Independente</button><button class="chip ${BASE.farm==='usou'?'on':''}" data-bfarm="usou" type="button">Usou farmácia</button><button class="chip ${BASE.farm==='nao'?'on':''}" data-bfarm="nao" type="button">Não usou farmácia</button></div>
+  <div class="bar" style="margin-top:10px;box-shadow:none;border:0;padding:0"><label class="fld"><span>Período da farmácia: de</span><select id="b-fde">${ms(BASE.fde,'início')}</select></label><label class="fld"><span>até</span><select id="b-fate">${ms(BASE.fate,'hoje')}</select></label></div>
+  <p class="hint">Usou farmácia = aparece em algum relatório da Raia ou da Panvel no período (vazio = todos os relatórios carregados). A base sai com a coluna "Último mês com farmácia". ${T('relatorios-farmacia','Ver definição')}.</p></div>`}
 function cardVoucherBase(){const L=BASE.lista,cob=L&&L.cobertura&&L.cobertura[0]?`${lab(L.cobertura[0])} a ${lab(L.cobertura[1])}`:null;
  return `<div class="card"><h3>4. Geração de voucher <small>opcional; benefícios ou marcas específicos</small></h3>
   <div class="chips"><button class="chip ${BASE.vmodo==='gerou'?'on':''}" data-vmodo="gerou" type="button">Gerou voucher de</button><button class="chip ${BASE.vmodo==='nao'?'on':''}" data-vmodo="nao" type="button">Não gerou voucher de</button></div>
@@ -2806,13 +2814,13 @@ function descBase(){const p=[];
  if(BASE.univ==='canc'){p.push('Cancelados');p.push(BASE.ctipo.size?[...BASE.ctipo].map(t=>t==='CANCELADO'?'cancelado':'desativado para sempre').join(', '):'cancelado e desativado para sempre');if(BASE.cmin||BASE.cmax)p.push(`saíram há ${BASE.cmin||'1'} a ${BASE.cmax||'∞'} meses`);
   if(BASE.kmin||BASE.kmax)p.push(`${BASE.kmin||'0'} a ${BASE.kmax||'∞'} meses de casa ao cancelar`);if(BASE.tirar)p.push('sem quem ainda tem assinatura ativa');if(BASE.usou.size)p.push([...BASE.usou].map(k=>k==='sim'?'já usou o Clube':'nunca usou').join(', '))}
  else{p.push('Assinantes ativos');p.push(BASE.est.size?[...BASE.est].map(k=>ESTN[k]).join(', '):'independente do uso do Clube');if(BASE.smin||BASE.smax)p.push(`meses sem gerar ${BASE.smin||'1'} a ${BASE.smax||'∞'}`);for(const k in BASE.f)if(BASE.f[k].length)p.push(`${DIMS_I[k]}: ${BASE.f[k].join(', ')}`)}
- if(descVoucher())p.push(descVoucher());return p.join(' · ')}
+ if(descVoucher())p.push(descVoucher());if(BASE.farm)p.push(`${BASE.farm==='usou'?'usou':'não usou'} farmácia${BASE.fde||BASE.fate?` (${BASE.fde?lab(BASE.fde):'início'} a ${BASE.fate?lab(BASE.fate):'hoje'})`:''}`);return p.join(' · ')}
 function montarBase(data){const canc=data.universo==='canc';let semCpf=0,semEm=0,semTel=0;
- const cols=canc?['CDASS','CPF','E-mail','Telefone','Tipo de cancelamento','Último mês ativo','Meses desde a saída','Meses de casa ao cancelar','Uso do Clube','Último voucher']
-  :['CDASS','CPF','E-mail','Telefone','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família'];
+ const cols=canc?['CDASS','CPF','E-mail','Telefone','Tipo de cancelamento','Último mês ativo','Meses desde a saída','Meses de casa ao cancelar','Uso do Clube','Último voucher','Último mês com farmácia']
+  :['CDASS','CPF','E-mail','Telefone','Uso do Clube','Meses sem gerar','Último voucher','Tempo de casa','Produto','Modalidade','Geração','Região','Cidade','Plano Família','Último mês com farmácia'];
  const linhas=data.linhas.map(l=>{if(!l[1])semCpf++;if(!l[2])semEm++;if(!l[3])semTel++;
-  if(canc)return [l[0],l[1]??'',l[2]??'',l[3]??'',l[4],l[5]?lab(l[5]):'',l[6]??'',l[7]??'',l[8],l[9]?lab(l[9]):''];
-  return [l[0],l[1]??'',l[2]??'',l[3]??'',ESTN[l[4]]||l[4],l[5]??'',l[6]?lab(l[6]):'',...l.slice(7,14).map(x=>x??'')]});
+  if(canc)return [l[0],l[1]??'',l[2]??'',l[3]??'',l[4],l[5]?lab(l[5]):'',l[6]??'',l[7]??'',l[8],l[9]?lab(l[9]):'',l[10]?lab(l[10]):''];
+  return [l[0],l[1]??'',l[2]??'',l[3]??'',ESTN[l[4]]||l[4],l[5]??'',l[6]?lab(l[6]):'',...l.slice(7,14).map(x=>x??''),l[14]?lab(l[14]):'']});
  return {...data,cols,linhas,semCpf,semEm,semTel,desc:descBase()}}
 function bindBases(h){const re=()=>inaRender(h);const zera=()=>{BASE.res=null};
  if(!BASE.lista&&!BASE.carregandoLista){BASE.carregandoLista=true;sb.rpc('lista_beneficios_base').then(({data,error})=>{BASE.carregandoLista=false;if(error){console.warn(error);return}BASE.lista=data;if((location.hash||'').slice(1)===h)re()})}
@@ -2822,20 +2830,21 @@ function bindBases(h){const re=()=>inaRender(h);const zera=()=>{BASE.res=null};
  const q=document.getElementById('bv-q');if(q){q.oninput=()=>bvBuscar(q.value);q.onfocus=()=>bvBuscar(q.value);q.onblur=()=>setTimeout(()=>{const r=document.getElementById('bv-res');if(r)r.style.display='none'},150)}
  document.querySelectorAll('[data-vrem]').forEach(b=>b.onclick=()=>{BASE.vsel.splice(+b.dataset.vrem,1);zera();re()});
  document.querySelectorAll('[data-vmodo]').forEach(b=>b.onclick=()=>{BASE.vmodo=b.dataset.vmodo;zera();re()});
- [['bv-de','vde'],['bv-ate','vate'],['b-smin','smin'],['b-smax','smax'],['b-cmin','cmin'],['b-cmax','cmax'],['b-kmin','kmin'],['b-kmax','kmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
+ [['bv-de','vde'],['bv-ate','vate'],['b-fde','fde'],['b-fate','fate'],['b-smin','smin'],['b-smax','smax'],['b-cmin','cmin'],['b-cmax','cmax'],['b-kmin','kmin'],['b-kmax','kmax']].forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.onchange=()=>{BASE[k]=el.value;zera()}});
  const ti=document.getElementById('b-tirar');if(ti)ti.onchange=()=>{BASE.tirar=ti.checked;zera()};
  const tog=(sel,key,set)=>document.querySelectorAll(`[${sel}]`).forEach(b=>b.onclick=()=>{const k=b.getAttribute(sel);set.has(k)?set.delete(k):set.add(k);zera();re()});
+ document.querySelectorAll('[data-bfarm]').forEach(b=>b.onclick=()=>{BASE.farm=b.dataset.bfarm;zera();re()});
  tog('data-ctipo','ctipo',BASE.ctipo);tog('data-usou','usou',BASE.usou);
  document.querySelectorAll('[data-univ]').forEach(b=>b.onclick=()=>{BASE.univ=b.dataset.univ;zera();re()});
  document.querySelectorAll('[data-be]').forEach(b=>b.onclick=()=>{const k=b.dataset.be;if(k==='*')BASE.est.clear();else BASE.est.has(k)?BASE.est.delete(k):BASE.est.add(k);zera();re()});
  document.querySelectorAll('[data-bf]').forEach(b=>b.onclick=()=>{const k=b.dataset.bf,v=b.dataset.bv;const s=new Set(BASE.f[k]||[]);s.has(v)?s.delete(v):s.add(v);BASE.f[k]=[...s];if(!s.size)delete BASE.f[k];zera();re()});
  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=PRESET_L[+b.dataset.preset][1];BASE.univ=p.univ||'ativos';BASE.est=new Set(p.est||[]);BASE.usou=new Set();BASE.f=JSON.parse(JSON.stringify(p.f||{}));
-  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.ctipo=new Set();BASE.cmin='';BASE.cmax='';BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
- on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.smin='';BASE.smax='';BASE.ctipo=new Set();BASE.cmin='';BASE.cmax='';BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';zera();re()});
+  BASE.smin=p.smin??'';BASE.smax=p.smax??'';BASE.ctipo=new Set();BASE.cmin='';BASE.cmax='';BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';BASE.farm='';BASE.fde='';BASE.fate='';zera();re()});
+ on('b-limpar',()=>{BASE.est=new Set();BASE.usou=new Set();BASE.f={};BASE.smin='';BASE.smax='';BASE.ctipo=new Set();BASE.cmin='';BASE.cmax='';BASE.kmin='';BASE.kmax='';BASE.tirar=true;BASE.vsel=[];BASE.vmodo='gerou';BASE.vde='';BASE.vate='';BASE.farm='';BASE.fde='';BASE.fate='';zera();re()});
  on('b-gerar',async()=>{const canc=BASE.univ==='canc';
   BASE.busy=true;re();
   const {data,error}=await sb.rpc('gerar_base',{p:{universo:BASE.univ,tirar_ativos:BASE.tirar,ctipo:[...BASE.ctipo],canc_min:BASE.cmin,canc_max:BASE.cmax,casa_min:BASE.kmin,casa_max:BASE.kmax,estados:canc?[]:[...BASE.est],usou:[...BASE.usou],filtros:canc?{}:BASE.f,sem_min:BASE.smin,sem_max:BASE.smax,
-   v_benef:BASE.vsel.filter(x=>x.id).map(x=>x.id),v_marcas:BASE.vsel.filter(x=>x.marca).map(x=>x.marca),v_modo:BASE.vmodo,v_de:BASE.vde?BASE.vde+'-01':'',v_ate:BASE.vate?BASE.vate+'-01':''}});BASE.busy=false;
+   v_benef:BASE.vsel.filter(x=>x.id).map(x=>x.id),v_marcas:BASE.vsel.filter(x=>x.marca).map(x=>x.marca),v_modo:BASE.vmodo,v_de:BASE.vde?BASE.vde+'-01':'',v_ate:BASE.vate?BASE.vate+'-01':'',farm:BASE.farm,farm_de:BASE.fde?BASE.fde+'-01':'',farm_ate:BASE.fate?BASE.fate+'-01':''}});BASE.busy=false;
   if(error){BASE.res=null;re();alert('Não foi possível gerar a base: '+error.message+(/gerar_base|contatos/.test(error.message)?' (rode os arquivos 46 e 47 no Supabase)':''));return}
   BASE.res=montarBase(data);re();document.getElementById('b-res')?.scrollIntoView({behavior:'smooth'})});
  const nome=ext=>`base_${BASE.univ==='canc'?'cancelados':(BASE.est.size?[...BASE.est].join('-'):'ativos')}_${INA.d.mes}.${ext}`;
@@ -3425,7 +3434,7 @@ function caCobertura(){const D=CA.d;if(!D.meses.length)return '';
 
 /* ---------- Consultar CPF ---------- */
 function caConsulta(){const D=CA.d;
- if(!D.meses.length)return shell('calculadora',`<div class="note"><b>Calculadora farmácia:</b> ainda não há bases de farmácia carregadas.${ADMIN?' Envie em <a href="#calculadora-enviar">Enviar bases</a>.':' Peça a um administrador para enviar as bases.'}</div>`);
+ if(!D.meses.length)return shell('calculadora',`<div class="note"><b>Calculadora farmácia:</b> ainda não há bases de farmácia carregadas.${ADMIN?' Envie em <a href="#clube-enviar-farmacia">Clube em números › Enviar farmácias</a>.':' Peça a um administrador para enviar as bases.'}</div>`);
  const opt=v=>D.meses.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
  const at=caAtalhos();
  return shell('calculadora',`<p class="answer"><b>Calculadora farmácia.</b> Digite o CPF do sócio para ver quanto ele economizou nas farmácias parceiras do Clube no período.</p>
@@ -3528,7 +3537,7 @@ function caEnviar(){const D=CA.d;const U=CA.up;
     ${ms.map(m=>{const g=A.por.get(m);let c=0,n=0;g.forEach(x=>{c+=x[0];n+=x[1]});const ja=D.env.find(x=>x.mes===m&&x.rede===A.rede);return `<tr><td>${lab(m)}</td><td class="n">${fmt(g.size)}</td><td class="n">${fmt(n)}</td><td class="n">${brl(c)}</td><td>${ja?'<small class="hint">substitui o que já está carregado</small>':''}</td></tr>`}).join('')||'<tr><td colspan="5" class="hint">Nenhuma linha válida.</td></tr>'}</tbody></table></div>
     <p class="hint">${fmt(e.ok)} linhas válidas${e.semCpf?` · ${fmt(e.semCpf)} sem CPF`:''}${e.cpfInv?` · ${fmt(e.cpfInv)} com CPF inválido (fora)`:''}${e.zero?` · ${fmt(e.zero)} ${e.zero===1?'pessoa':'pessoas'} com desconto zero (fora)`:''}${e.semValor?` · ${fmt(e.semValor)} sem valor`:''}${e.semMes?` · ${fmt(e.semMes)} sem mês (escolha o mês)`:''}${e.neg?` · ${fmt(e.neg)} com valor negativo (contado como positivo)`:''}.</p>`}</div>`}).join(''):'';
  const pode=U&&U.length&&U.every(A=>A.iVal>=0&&A.rede&&A.por.size);
- return shell('calculadora-enviar',`<p class="answer"><b>Calculadora farmácia:</b> suba os relatórios das farmácias (um arquivo por farmácia; pode ter vários meses). Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
+ return shell('clube-enviar-farmacia',`<p class="answer"><b>Farmácias:</b> suba os relatórios mensais da Raia e da Panvel (um arquivo por farmácia; pode ter vários meses). Eles alimentam a Calculadora farmácia e a página Clube em números › Farmácias, que cruza com a carteira e com os vouchers. Cada mês de cada farmácia que vier no arquivo substitui o que já estava carregado.</p>
  <div class="card"><h3>Enviar bases das farmácias</h3><p class="sub">Arquivos .xlsx ou .csv no padrão das farmácias: coluna A = CPF do sócio (CPFs com menos de 11 dígitos são completados com zeros à esquerda), coluna B = data competência (mês/dia/ano) e coluna C = desconto acumulado. O portal reconhece as colunas e você confere antes de salvar. O CPF vira código antes de sair do seu computador.</p>
   <label class="drop"><b>Relatórios das farmácias</b><input type="file" id="ca-up" accept=".csv,.xlsx,.xls,.txt" multiple></label>
   <datalist id="ca-redes">${[...new Set([...CA_REDES,...D.redes])].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
@@ -3540,13 +3549,13 @@ function caEnviar(){const D=CA.d;const U=CA.up;
  </tbody></table></div></div>`)}
 function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
  up.onchange=async e=>{const fs=[...e.target.files];if(!fs.length)return;CA.msg=null;app.querySelector('#ca-up').closest('.card').insertAdjacentHTML('beforeend','<p class="carregando">Lendo…</p>');
-  try{CA.up=[];for(const f of fs)CA.up.push(caResumoArq(await caLerArquivo(f)))}catch(err){CA.up=null;CA.msg={t:esc(err.message||err)}}caRender('calculadora-enviar')};
+  try{CA.up=[];for(const f of fs)CA.up.push(caResumoArq(await caLerArquivo(f)))}catch(err){CA.up=null;CA.msg={t:esc(err.message||err)}}caRender('clube-enviar-farmacia')};
  document.querySelectorAll('.ca-arq').forEach(card=>{const A=CA.up[+card.dataset.k];
-  card.querySelectorAll('[data-ca-col]').forEach(s=>s.onchange=()=>{A[s.dataset.caCol]=+s.value;caResumoArq(A);caRender('calculadora-enviar')});
-  card.querySelector('[data-ca-mdy]').onchange=ev=>{A.mdy=ev.target.value==='1';caResumoArq(A);caRender('calculadora-enviar')};
-  card.querySelector('[data-ca-modo]').onchange=ev=>{A.modo=ev.target.value;caResumoArq(A);caRender('calculadora-enviar')};
-  card.querySelector('[data-ca-mes]').onchange=ev=>{A.mesFixo=ev.target.value;caResumoArq(A);caRender('calculadora-enviar')};
-  card.querySelector('[data-ca-rede]').onchange=ev=>{A.rede=ev.target.value.trim();caRender('calculadora-enviar')}});
+  card.querySelectorAll('[data-ca-col]').forEach(s=>s.onchange=()=>{A[s.dataset.caCol]=+s.value;caResumoArq(A);caRender('clube-enviar-farmacia')});
+  card.querySelector('[data-ca-mdy]').onchange=ev=>{A.mdy=ev.target.value==='1';caResumoArq(A);caRender('clube-enviar-farmacia')};
+  card.querySelector('[data-ca-modo]').onchange=ev=>{A.modo=ev.target.value;caResumoArq(A);caRender('clube-enviar-farmacia')};
+  card.querySelector('[data-ca-mes]').onchange=ev=>{A.mesFixo=ev.target.value;caResumoArq(A);caRender('clube-enviar-farmacia')};
+  card.querySelector('[data-ca-rede]').onchange=ev=>{A.rede=ev.target.value.trim();caRender('clube-enviar-farmacia')}});
  const sv=document.getElementById('ca-salvar');if(sv)sv.onclick=async()=>{sv.disabled=true;const pr=document.getElementById('ca-prog');
   try{PEPPER=PEPPER||await rpc('pepper');const todos=[];CA.up.forEach(A=>A.por.forEach(g=>g.forEach((_,c)=>todos.push(c))));pr.textContent='Gerando códigos dos CPFs…';await codigos(todos);
    let feitos=0;const tot=CA.up.reduce((s,A)=>s+[...A.por.values()].reduce((t,g)=>t+g.size,0),0);
@@ -3555,10 +3564,10 @@ function caBindEnviar(){const up=document.getElementById('ca-up');if(!up)return;
     const rows=[...agg].map(([h,x])=>[h,x[0],x[1]]);const T=5000;
     for(let i=0;i<rows.length;i+=T){await rpc('salvar_farmacia',{p_mes:m+'-01',p_rede:A.rede,p_arquivo:A.arq,p_linhas:rows.slice(i,i+T),p_inicio:i===0});
      feitos+=Math.min(T,rows.length-i);pr.textContent=`Salvando… ${fmt(Math.round(100*feitos/tot))}%`}}
-   const n=CA.up.reduce((s,A)=>s+A.por.size,0);CA.up=null;CA.res=null;CA.msg={ok:1,t:`Bases salvas: ${fmt(n)} ${n===1?'mês':'meses'} de farmácia atualizados.`};await caCarregar(true);caRender('calculadora-enviar')}
+   const n=CA.up.reduce((s,A)=>s+A.por.size,0);CA.up=null;CA.res=null;FA.d=null;CA.msg={ok:1,t:`Bases salvas: ${fmt(n)} ${n===1?'mês':'meses'} de farmácia atualizados.`};await caCarregar(true);caRender('clube-enviar-farmacia')}
   catch(err){sv.disabled=false;pr.textContent='Não salvou: '+(err.message||err)}};
  document.querySelectorAll('[data-ca-del]').forEach(b=>b.onclick=async()=>{const [m,r]=b.dataset.caDel.split('|');if(!confirm(`Apagar a base de ${r} de ${lab(m)}?`))return;b.disabled=true;
-  try{await rpc('apagar_farmacia',{p_mes:m+'-01',p_rede:r});await caCarregar(true);CA.res=null;caRender('calculadora-enviar')}catch(err){alert(err.message);b.disabled=false}})}
+  try{await rpc('apagar_farmacia',{p_mes:m+'-01',p_rede:r});FA.d=null;await caCarregar(true);CA.res=null;caRender('clube-enviar-farmacia')}catch(err){alert(err.message);b.disabled=false}})}
 
 
 /* ---------- Calculadora uso: retrospectiva do CPF ---------- */
@@ -3616,9 +3625,78 @@ function cuBind(){const i=document.getElementById('cu-cpf');if(!i)return;
  cuBindTabela();i.focus()}
 
 /* ---------- roteamento ---------- */
-const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'calculadora-enviar':caEnviar};
+/* =====================================================================
+   Clube em números › Farmácias
+   Relatórios da Raia e da Panvel (enviados em Clube em números › Enviar farmácias) cruzados, por pessoa (código do CPF),
+   com a carteira e com os vouchers do Clube. Farmácia continua fora dos números oficiais do Clube (Metodologia).
+   ===================================================================== */
+const FA={d:null,de:'',ate:'',busy:false,erro:null};
+const faRede=r=>r==='Droga Raia'?'Raia':r;
+const faPc=(a,b)=>b?fmt(100*a/b,1)+'%':'—';
+async function faCarregar(){const {data,error}=await sb.rpc('dados_farmacia',{p_de:FA.de?FA.de+'-01':null,p_ate:FA.ate?FA.ate+'-01':null});if(error)throw error;
+ FA.d=data;if(data.de)FA.de=data.de;if(data.ate)FA.ate=data.ate}
+function faAtalhos(){const M=(FA.d&&FA.d.meses)||[];if(!M.length)return [];const u=M[M.length-1];const ate=(k)=>M.filter(m=>m<=u&&m>=shift(u,-(k-1)));
+ const out=[['Último mês',u,u]];const a3=ate(3),a12=ate(12);if(a3.length>1)out.push(['Últimos 3 meses',a3[0],u]);if(a12.length>3)out.push(['Últimos 12 meses',a12[0],u]);
+ [...new Set(M.map(m=>m.slice(0,4)))].forEach(y=>{const a=M.filter(m=>m.startsWith(y));if(a.length>1)out.push([`Ano ${y}`,a[0],a[a.length-1]])});return out}
+function faPagina(){const D=FA.d;
+ if(!D||!(D.meses||[]).length)return shell('clube-farmacias',`<div class="note">Ainda não há relatórios de farmácia carregados.${ADMIN?' Envie em <a href="#clube-enviar-farmacia">Clube em números › Enviar farmácias</a>.':' Peça a um administrador para enviar os relatórios da Raia e da Panvel.'}</div>`);
+ const M=D.meses,opt=v=>M.map(m=>`<option value="${m}"${m===v?' selected':''}>${lab(m)}</option>`).join('');
+ const per=FA.de===FA.ate?lab(FA.de):`${lab(FA.de)} a ${lab(FA.ate)}`;
+ const bar=`<div class="bar"><label class="fld"><span>De</span><select id="fa-de">${opt(FA.de)}</select></label><label class="fld"><span>Até</span><select id="fa-ate">${opt(FA.ate)}</select></label>
+  <div class="fld"><span>Atalhos</span><div class="chips">${faAtalhos().map(([t,a,b])=>`<button class="chip${a===FA.de&&b===FA.ate?' on':''}" type="button" data-fa-a="${a}" data-fa-b="${b}">${t}</button>`).join('')}</div></div></div>`;
+ if(FA.busy)return shell('clube-farmacias',bar+'<p class="carregando">Cruzando farmácias, carteira e vouchers…</p>');
+ if(FA.erro)return shell('clube-farmacias',bar+`<div class="note">${esc(FA.erro)}</div>`);
+ const C=D.cruz||{},A=D.alcance||{},R=D.redes||[],K=D.combos||[];const P=C.pessoas||0;
+ const faltam=R.filter(r=>r.meses<r.meses_periodo);
+ const avisos=[];
+ if(faltam.length)avisos.push(`Faltam meses no período: ${faltam.map(r=>`<b>${esc(faRede(r.rede))}</b> tem ${r.meses} de ${r.meses_periodo}`).join(' · ')}. As pessoas dessa rede ficam subestimadas.`);
+ if(D.clube_ate&&FA.ate>D.clube_ate)avisos.push(`Os vouchers e a carteira do Clube vão até <b>${lab(D.clube_ate)}</b>: o cruzamento com o Clube não cobre os meses depois disso.`);
+ const k=(t,v,s)=>`<div class="kpi"><div class="k">${t}</div><div class="v">${v}</div><div class="d">${s||''}</div></div>`;
+ const so=n=>K.filter(x=>x[0].length===1&&faRede(x[0][0])===n).reduce((t,x)=>t+x[1],0);const duas=K.filter(x=>x[0].length>1).reduce((t,x)=>t+x[1],0);
+ return shell('clube-farmacias',`${bar}
+ <p class="answer">Quantas pessoas de fato usam o desconto nas farmácias, quantas usam as duas redes e quanto isso se sobrepõe a quem gera voucher no Clube. ${per}.</p>
+ ${avisos.map(t=>`<div class="note">${t}</div>`).join('')}
+ <div class="kpis">
+  ${k('Usos (compras com desconto)',fmt(C.compras),`${brl(C.centavos)} de desconto`)}
+  ${k('Pessoas que usaram farmácia',fmt(P),`sem repetir entre as redes · ${fmt(so('Raia'))} só na Raia, ${fmt(so('Panvel'))} só na Panvel, ${fmt(duas)} nas duas`)}
+  ${k('Também geraram voucher no Clube',faPc(C.gerou_periodo,P),`${fmt(C.gerou_periodo)} pessoas geraram voucher no mesmo período`)}
+  ${k('Nunca geraram voucher',faPc(C.nunca_gerou,P),`${fmt(C.nunca_gerou)} pessoas · ${fmt(C.carteira_nunca)} delas estão na carteira e aparecem como "Nunca gerou"`)}</div>
+ <div class="sec">
+  ${k('Na carteira no período',faPc(C.carteira,P),`${fmt(C.carteira)} pessoas com assinatura ativa em algum mês do período`)}
+  ${k('Fora da carteira',faPc(P-(C.carteira||0),P),`${fmt(P-(C.carteira||0))} pessoas: dependentes do Plano Família ou ex-assinantes`)}
+  ${k(`${T('alcance','Alcance')} só com voucher`,faPc(A.cart_clube,A.carteira_fim),`${fmt(A.cart_clube)} pessoas da carteira de ${A.mes_fim?lab(A.mes_fim):'—'}`)}
+  ${k('Alcance com farmácia',faPc(A.cart_uniao,A.carteira_fim),`${fmt(A.cart_uniao)} pessoas · +${fmt((A.cart_uniao||0)-(A.cart_clube||0))} só por causa da farmácia`)}</div>
+ <div class="grid2">
+  <div class="card tablecard"><h3>Sobreposição entre as farmácias</h3><p class="sub">Cada pessoa conta uma vez, na combinação de redes que usou no período.</p>
+   <div class="tw"><table class="cmp"><thead><tr><th>Usou</th><th class="n">Pessoas</th><th class="n">% das pessoas</th><th class="n">Usos</th><th class="n">Desconto</th></tr></thead><tbody>
+   ${K.map(([r,p,n,c])=>`<tr><td>${r.length>1?'Nas duas ('+r.map(faRede).join(' e ')+')':'Só '+esc(faRede(r[0]))}</td><td class="n" data-v="${p}">${fmt(p)}</td><td class="n" data-v="${p}">${faPc(p,P)}</td><td class="n" data-v="${n}">${fmt(n)}</td><td class="n" data-v="${c}">${brl(c)}</td></tr>`).join('')}
+   <tr class="tot"><td>Pessoas que usaram farmácia</td><td class="n">${fmt(P)}</td><td class="n">100%</td><td class="n">${fmt(C.compras)}</td><td class="n">${brl(C.centavos)}</td></tr></tbody></table></div>
+   <p class="hint">Por rede, sem cruzar: ${R.map(r=>`${esc(faRede(r.rede))} ${fmt(r.pessoas)} pessoas e ${fmt(r.compras)} usos`).join(' · ')}. A soma das redes passa do total de pessoas porque quem usa as duas conta nas duas.</p></div>
+  <div class="card tablecard"><h3>Farmácia e voucher do Clube</h3><p class="sub">Pessoas que usaram o Clube no período, por voucher, por farmácia ou pelos dois. Cada pessoa conta uma vez.</p>
+   <div class="tw"><table class="cmp"><thead><tr><th>Usou</th><th class="n">Pessoas</th><th class="n">%</th></tr></thead><tbody>
+   <tr><td>Voucher e farmácia</td><td class="n">${fmt(A.ambos)}</td><td class="n">${faPc(A.ambos,A.uniao)}</td></tr>
+   <tr><td>Só voucher</td><td class="n">${fmt((A.clube||0)-(A.ambos||0))}</td><td class="n">${faPc((A.clube||0)-(A.ambos||0),A.uniao)}</td></tr>
+   <tr><td>Só farmácia</td><td class="n">${fmt(P-(A.ambos||0))}</td><td class="n">${faPc(P-(A.ambos||0),A.uniao)}</td></tr>
+   <tr class="tot"><td>Usaram o Clube de algum jeito</td><td class="n">${fmt(A.uniao)}</td><td class="n">100%</td></tr></tbody></table></div>
+   <p class="hint">Voucher = gerado na plataforma do Clube (sem as farmácias de resgate automático; Panvel com voucher conta). Inclui quem está fora da carteira, como nos usuários únicos do Clube.</p></div>
+ </div>
+ <div class="card tablecard"><h3>Mês a mês</h3><p class="sub">Pessoas diferentes em cada mês. "Geraram voucher" e "na carteira" olham o mesmo mês.</p>
+  <div class="tw"><table class="cmp"><thead><tr><th>Mês</th><th class="n">Pessoas</th>${(D.redes_todas||[]).map(r=>`<th class="n">${esc(faRede(r))}</th>`).join('')}<th class="n">Nas duas</th><th class="n">Usos</th><th class="n">Desconto</th><th class="n">Geraram voucher no mês</th><th class="n">Na carteira</th></tr></thead><tbody>
+  ${(D.serie||[]).slice().reverse().map(s=>`<tr${s.m>=FA.de&&s.m<=FA.ate?' class="sel"':''}><td data-v="${s.m.replace('-','')}">${lab(s.m)}</td><td class="n">${fmt(s.pessoas)}</td>${(D.redes_todas||[]).map(r=>`<td class="n">${s.redes&&s.redes[r]!=null?fmt(s.redes[r]):'—'}</td>`).join('')}<td class="n">${fmt(s.duas)}</td><td class="n">${fmt(s.compras)}</td><td class="n" data-v="${s.centavos}">${brl(s.centavos)}</td>
+   <td class="n" data-v="${s.pessoas?s.gerou/s.pessoas:''}">${s.m>D.clube_ate?'—':faPc(s.gerou,s.pessoas)}</td><td class="n" data-v="${s.pessoas?s.carteira/s.pessoas:''}">${s.m>D.clube_ate?'—':faPc(s.carteira,s.pessoas)}</td></tr>`).join('')}</tbody></table></div></div>
+ <p class="hint">Fonte: relatórios mensais da Raia e da Panvel (CPF, data e desconto), enviados em Clube em números › Enviar farmácias; o CPF vira código antes de ir para o banco e é cruzado com a carteira e com os vouchers pelo mesmo código. O mês de cada rede é o mês do relatório (na Raia, do dia 6 ao dia 5). Usos = linhas do relatório. A farmácia continua fora dos números oficiais do Clube (vouchers, usuários únicos e penetração), como manda a metodologia. Quem usa farmácia e não está na carteira provavelmente é dependente do Plano Família, que compra com o próprio CPF.</p>`)}
+function faBind(){const de=document.getElementById('fa-de'),ate=document.getElementById('fa-ate');
+ const ir=async(a,b)=>{FA.de=a<=b?a:b;FA.ate=a<=b?b:a;FA.busy=true;FA.erro=null;app.innerHTML=faPagina();try{await faCarregar()}catch(e){FA.erro='Não foi possível carregar: '+(e.message||e)}FA.busy=false;app.innerHTML=faPagina();faBind()};
+ if(de)de.onchange=()=>ir(de.value,ate.value);if(ate)ate.onchange=()=>ir(de.value,ate.value);
+ document.querySelectorAll('[data-fa-a]').forEach(b=>b.onclick=()=>ir(b.dataset.faA,b.dataset.faB))}
+async function rotaFarmacia(h){if(!FA.d){app.innerHTML=shell(h,'<p class="carregando">Cruzando farmácias, carteira e vouchers…</p>');
+  try{await faCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar: ${esc(e.message||e)}${/dados_farmacia|function|schema cache/i.test(e.message||'')?'. Confira se o arquivo 53_farmacias_clube.sql já foi rodado no Supabase.':''}</div>`);return}
+  if((location.hash||'#home').slice(1)!==h)return}
+ app.innerHTML=faPagina();faBind()}
+
+const CA_PAGES={calculadora:caConsulta,'calculadora-uso':cuPagina,'clube-enviar-farmacia':caEnviar};
 function caRender(h){app.innerHTML=CA_PAGES[h]();if(h==='calculadora')caBindConsulta();else if(h==='calculadora-uso')cuBind();else caBindEnviar()}
-async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if(h==='calculadora-enviar'&&!ADMIN){location.hash='calculadora';return}
+async function rotaCalculadora(h){if(!CA_PAGES[h]){location.hash='calculadora';return}if(h==='clube-enviar-farmacia'&&!ADMIN){location.hash='clube';return}
  if(!CA.d){app.innerHTML=shell(h,'<p class="carregando">Carregando…</p>');
   try{await caCarregar()}catch(e){app.innerHTML=shell(h,`<div class="note">Não foi possível carregar a calculadora: ${esc(e.message||e)}${/function|does not exist|schema cache/i.test(e.message||'')?'. Confira se o arquivo 41_calculadora_farmacias.sql já foi rodado no Supabase.':''}</div>`);return}
   if((location.hash||'#home').slice(1)!==h)return}
@@ -4032,11 +4110,14 @@ function route(){const h=(location.hash||'#home').slice(1);hidePop();
  if(h.startsWith('g-')){pending=h;location.hash='glossario';return}
  const area=areaOf(h);
  if(h==='carga'){location.hash='clube-enviar';return}
+ if(h==='calculadora-enviar'){location.hash='clube-enviar-farmacia';return}
  if(h==='inativos-bases'){location.hash='clube-bases';return}
  if(h==='acessos'){location.hash='admin';return}
  if(area&&!temPainel(area)&&!(h==='clube-bases'&&podeBases())){app.innerHTML=semAcesso(area);window.scrollTo(0,0);return}
  if(area==='admin'){telaAcessos(h);window.scrollTo(0,0);return}
  if(h==='clube-enviar'){if(ADMIN){app.innerHTML=telaCarga();bindCarga()}else{location.hash='clube';return}}
+ else if(h==='clube-enviar-farmacia'){if(ADMIN)rotaCalculadora(h);else{location.hash='clube';return}}
+ else if(h==='clube-farmacias')rotaFarmacia(h);
  else if(area==='semanal')rotaSemanal(h);
  else if(area==='parceiros')rotaParceiros(h);
  else if(area==='inativos'||h==='clube-bases')rotaInativos(h);
@@ -4097,7 +4178,7 @@ async function carregarDados(silencioso){
  const {data,error}=await sb.rpc('dados_portal');
  if(error)throw error;
  prepararDados(data);PAIN=Array.isArray(data.paineis)?new Set(data.paineis):null;PAIN_T=Date.now();
- if(typeof PA!=='undefined')PA.d=null;if(typeof CO!=='undefined')CO.d=null;if(typeof INA!=='undefined')INA.d=null;if(typeof CA!=='undefined')CA.d=null;if(typeof AC!=='undefined')AC.d=null;if(typeof CI!=='undefined'){CI.B=null;CI.res=null} // parceiros recarregam com os meses novos
+ if(typeof PA!=='undefined')PA.d=null;if(typeof CO!=='undefined')CO.d=null;if(typeof INA!=='undefined')INA.d=null;if(typeof CA!=='undefined')CA.d=null;if(typeof AC!=='undefined')AC.d=null;if(typeof CI!=='undefined'){CI.B=null;CI.res=null}if(typeof FA!=='undefined')FA.d=null; // parceiros recarregam com os meses novos
  const at=document.getElementById('atualizado');
  at.textContent=M.length?`Dados até ${lab(LAST)}`:(temPainel('clube')?'Sem dados':'');
 }
