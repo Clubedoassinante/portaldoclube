@@ -739,7 +739,7 @@ const GL=[
  ]],
  ['Relatório semanal',[
   ['semana','Semana','Período do relatório semanal: de sexta a quinta-feira.',''],
-  ['usos','Usos','Vouchers gerados na semana. Cada voucher gerado conta como 1 uso.','Ficam fora a conta de testes da equipe (ADMIN C) e as farmácias de resgate automático, como nos painéis mensais (Panvel conta). As semanas de contagem antiga e as enviadas antes de nov/2026 incluíam as farmácias.'],
+  ['usos','Usos','Vouchers gerados na semana. Cada voucher gerado conta como 1 uso.','Fica fora só a conta de testes da equipe (ADMIN C). As farmácias contam no Relatório semanal, diferente dos painéis mensais.'],
   ['usuarios-semana','Usuários únicos da semana','Pessoas diferentes que geraram pelo menos 1 voucher na semana.',''],
   ['usos-por-usuario','Usos por usuário','Usos dividido por usuários únicos da semana.',''],
   ['media-dia-semana','Média de usos por dia','Usos da semana dividido pelos 7 dias.',''],
@@ -749,7 +749,7 @@ const GL=[
   ['lacador','Laçador','Promoções do parceiro Laçador de Ofertas.',''],
   ['online','Lojas Online','Promoções das marcas Proxy Media, Hubconn e SponsorB.',''],
   ['premium','Benefícios Premium','Promoções exclusivas para sócios Premium: a descrição do benefício fala em sócios premium.',''],
-  ['contagem-antiga','Contagem antiga','Semanas de antes do primeiro envio pelo portal. Vieram do relatório antigo, que contava todas as linhas, inclusive a conta de testes e as farmácias de resgate automático; por isso ficam acima das semanas novas e não devem ser comparadas diretamente com elas.','Essas semanas têm só os totais, sem os rankings.'],
+  ['contagem-antiga','Contagem antiga','Semanas de antes do primeiro envio pelo portal. Vieram do relatório antigo, que contava todas as linhas, inclusive a conta de testes; por isso podem ficar um pouco acima.','Essas semanas têm só os totais, sem os rankings.'],
   ['status-mes','Status do mês','Se, no ritmo das últimas 2 semanas, o mês tende a superar, ficar no limite ou ficar abaixo do mês anterior e do mesmo mês do ano anterior.','"No limite" = a diferença está dentro da margem de erro da projeção.'],
   ['projecao-fechamento','Projeção de fechamento','Usos do mês até a data (base do mês) mais o ritmo diário das últimas 2 semanas multiplicado pelos dias que faltam.','Para usuários únicos, a projeção usa quanto esse número costuma crescer a partir do mesmo dia do mês, porque quem já usou não conta de novo.'],
   ['margem-erro','Margem de erro','Erro médio que a projeção teve quando foi feita no mesmo ponto do mês em meses que já fecharam.','Margem de ±7% quer dizer que, em média, o mês fechou 7% acima ou abaixo do projetado.'],
@@ -811,7 +811,7 @@ const GL=[
   ['link-convite','Link de cadastro','Quem não tem acesso pede pela tela de login (Solicitar acesso). Um administrador confere o e-mail, marca os painéis e aprova; o portal gera um link de cadastro, que o administrador manda à pessoa para ela criar a senha.','O link vale 7 dias e uma vez só. Gerar um link novo invalida o anterior.'],
  ]],
  ['Regras',[
-  ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora dos painéis mensais (Clube em números, Parceiros e Inativos), porque são gerados automaticamente.','Panvel continua contando. Vale também para o Relatório semanal desde nov/2026.'],
+  ['farmacias','Farmácias','Vouchers de Droga Raia, Drogasil, Pague Menos, Araujo, Pacheco e Drogaria São Paulo ficam fora dos painéis mensais (Clube em números, Parceiros e Inativos), porque são gerados automaticamente.','Panvel continua contando. No Relatório semanal todas as farmácias contam.'],
   ['relatorios-farmacia','Relatórios de farmácia','Relatórios mensais da Raia e da Panvel com o CPF, a data e o desconto de cada compra. Alimentam a Calculadora farmácia e a página Farmácias, em Clube em números.','Não entram nos números oficiais do Clube (vouchers, usuários únicos e penetração). Na Raia, o mês do relatório vai do dia 6 ao dia 5.'],
   ['admin-c','ADMIN C','Conta de testes da equipe. Fica fora de todos os números.',''],
   ['ressalva','Mês com ressalva','Mês com problema conhecido nos dados. Aparece com ⚠ nos gráficos e nos números.',''],
@@ -1378,8 +1378,8 @@ function colunasVoucher(campos,nome){const f=(campos||[]).map(x=>[x,normU(x)]);c
  const c={cpf:ach(x=>x[1]==='CPF'),marca:ach(x=>x[1]==='MARCA'),data:ach(x=>x[1].startsWith('DATA')),prod:ach(x=>x[1]==='PRODUTOS'||x[1].startsWith('QUANTIDADE')||x[1]==='QTD'),desc:ach(x=>x[1].startsWith('DESCRI')),tit:ach(x=>x[1].startsWith('TITULO')),nome:ach(x=>x[1].startsWith('NOME'))}; // quantidade de vouchers da linha: nunca ignorar
  if(!c.cpf||!c.marca||!c.data)throw new Error(`${nome} não parece um arquivo de vouchers (precisa das colunas CPF, Marca e Data).`);return c}
 function somarVoucher(cpfRaw,marcaRaw,dataRaw,prodRaw,est,descRaw,nomeRaw,titRaw){const ym=ymDe(dataRaw);if(!ym){est.semData++;return}
- /* números do mês do Relatório semanal: mesma base e mesma regra (sem farmácias de resgate automático e sem a conta de testes) */
- if(!ehAdminC(nomeRaw,cpfRaw)&&!FARMACIAS.has(normL(String(marcaRaw??'').trim()))){const ms=`${ym[0]}-${pad2(ym[1])}`;let q=CG.sem.get(ms);if(!q){q={usos:0,cpfs:new Set()};CG.sem.set(ms,q)}const pq=parseInt(prodRaw,10);q.usos+=pq>0?pq:1;const cs=cpf11(cpfRaw);if(cs)q.cpfs.add(cs)}
+ /* números do mês do Relatório semanal: mesma base, regra do semanal (farmácias contam; só a conta de testes sai) */
+ if(!ehAdminC(nomeRaw,cpfRaw)){const ms=`${ym[0]}-${pad2(ym[1])}`;let q=CG.sem.get(ms);if(!q){q={usos:0,cpfs:new Set()};CG.sem.set(ms,q)}const pq=parseInt(prodRaw,10);q.usos+=pq>0?pq:1;const cs=cpf11(cpfRaw);if(cs)q.cpfs.add(cs)}
  let marca=String(marcaRaw??'').trim();if(/^\d+\.0+$/.test(marca))marca=marca.replace(/\.0+$/,'');
  if(FARMACIAS.has(normL(marca))){est.farm++;return}
  const c=cpf11(cpfRaw);if(!c){est.semCpf++;return}
@@ -1635,8 +1635,9 @@ const MESN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agost
 const MES3=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const diasNoMes=(y,m)=>new Date(y,m,0).getDate();
 function plat(y,m){return (SEM.dados.plataforma||[]).find(r=>r.m===`${y}-${pad2(m)}`)||{}}
-/* números mensais do relatório: meses fechados vêm da base de vouchers de Clube em números › Enviar mês (sem farmácias de resgate
-   automático e sem a conta de testes); se faltar, a última base do mês enviada no próprio semanal. */
+/* números mensais do relatório: meses fechados vêm da base de vouchers de Clube em números › Enviar mês, com a regra do semanal (farmácias contam,
+   só a conta de testes sai); se faltar, a última base do mês enviada no próprio semanal.
+   Não usa os números do Clube em números, que seguem outras regras (sem farmácias). */
 function mtdDoMes(y,m){const k=`${y}-${pad2(m)}`;let r=null;for(const w of SEM.dados.semanas){const t=w.mtd;if(t&&!t.antiga&&(t.mes||w.f.slice(0,7))===k&&(!r||w.f>r.f))r={f:w.f,usos:t.usos,unicos:t.unicos}}return r}
 function mesNum(y,m,k,soFechado){const P=plat(y,m);const v=P[k==='usos'?'usos':'usuarios'];if(v!=null)return v;
  const t=soFechado?null:mtdDoMes(y,m);return t?(k==='usos'?t.usos:t.unicos):null}
@@ -1897,7 +1898,7 @@ async function lerSemana(file){let linhas;
   // quantidade de vouchers da linha (exportação da plataforma traz a coluna Produtos; a base do relatório traz uma linha por voucher)
   const q=iQ>=0?Math.max(1,parseInt(String(L[iQ]??'').replace(/\D/g,''),10)||1):1;
   if(ehAdminC(iN>=0?L[iN]:'',iC>=0?L[iC]:null)){admin+=q;continue} // conta de testes: "ADMIN C" ou "ADMIN CLUBE"
-  if(FARMACIAS.has(normL(marca))){farm+=q;continue} // farmácias de resgate automático ficam fora (os relatórios de farmácia são mensais)
+  if(FARMACIAS.has(normL(marca)))farm+=q; // farmácias contam no Relatório semanal (só informativo)
   // marca Clube do Assinante: só as ações de cortesia ficam como "Clube"; desconto no Planeta Atlântida vai para eventos; dica de filme, lojas etc. viram "Clube do Assinante (outros)"
   if(ehMarcaClube(marca)){const dd=iD>=0?L[iD]:'';if(ehCortesia(marca,dd,L[iT])){cort+=q;marca=CLUBE_MARCA}else marca=ehPlanetaDesconto(marca,dd,L[iT])?PLANETA:CLUBE_OUTROS}
   usos+=q;pess.add((iN>=0?normU(L[iN]):'')+'|'+lim(iC>=0?L[iC]:''));
@@ -1942,10 +1943,10 @@ function desenharEnvio(){const E=SEM.envio,box=document.getElementById('wprev');
  ${dd!==7?`<div class="note">O período tem ${dd} ${dd===1?'dia':'dias'}; a semana do relatório tem 7 (sexta a quinta).</div>`:''}
  ${sobre.length?`<div class="note">Vai substituir ${sobre.map(s=>`<b>${semLab(s)}</b>${s.so_total?' (contagem antiga)':''}`).join(', ')}.</div>`:''}
  <div class="label" style="margin-top:6px">Semana · ${esc(e.arquivo)}</div>
- <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Fora: farmácias automáticas')}</div>
+ <div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(e.usos),'')}${KPI('','usuarios-semana',fmt(e.unicos),'','','Usuários únicos')}${KPI('','usos-por-usuario',fmt(e.usos/e.unicos,2),'')}${KPI('','admin-c',fmt(e.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(e.farm),'','','Farmácias (incluídas)')}</div>
  <p class="hint">Top 5 parceiros da semana: ${top.map(p=>`${esc(p.k)} (${fmt(p.usos)})`).join(', ')}.</p>${(()=>{const nv=produtorasNovas(e.itens,mm?mm.itens:[]);return nv.length?`<p class="hint">Produtoras de eventos novas, reconhecidas pelo nome: <b>${nv.map(esc).join(', ')}</b>. Entram no ranking de Eventos ao salvar.</p>`:''})()}
  <div class="label" style="margin-top:14px">Mês até a data · ${mm?esc(mm.arquivo):'não enviada'}</div>
- ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Fora: farmácias automáticas')}${KPI('','cortesia',fmt(mm.cort),'','','Usos de cortesia no mês')}</div>${avisoMes}${avisoNomeMes}
+ ${mm?`<div class="sec" style="margin:8px 0 12px">${KPI('','usos',fmt(mm.usos),'','','Total do mês')}${KPI('','usuarios-semana',fmt(mm.unicos),'','','Usuários únicos do mês')}${KPI('','usos-por-usuario',fmt(mm.usos/mm.unicos,2),'')}${KPI('','admin-c',fmt(mm.admin),'','','Fora: conta de testes')}${KPI('','farmacias',fmt(mm.farm),'','','Farmácias (incluídas)')}${KPI('','cortesia',fmt(mm.cort),'','','Usos de cortesia no mês')}</div>${avisoMes}${avisoNomeMes}
   <p class="hint">Vai para o bloco de <b>${mesLab}</b>. Top 5 parceiros do mês: ${resumoMes(mm).parceiros.map(p=>`${esc(p[0])} (${fmt(p[1])})`).join(', ')}.</p>`
   :`<p class="hint">Sem a base do mês, o bloco do mês fica ${sobre.some(s=>s.i===E.inicio&&s.mtd)?'com o que já estava salvo':'vazio'}. Dá para enviar depois: é só mandar a semana de novo com as duas bases.</p>`}
  <button class="btn" id="wsalvar" type="button">Salvar semana</button> <span class="hint" id="wsmsg"></span></div>`;
@@ -2122,7 +2123,7 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
   <div class="tw"><table class="cmp td-fcat"><thead><tr><th>Fato</th><th>Causa</th><th>Ação</th>${ed?'<th></th>':''}</tr></thead><tbody>
   ${rows.map((x,j)=>ed?`<tr data-j="${j}"><td><textarea data-c="f" rows="4">${esc(x.f)}</textarea></td><td><textarea data-c="c" rows="6">${esc(x.c)}</textarea></td><td><textarea data-c="a" rows="4">${esc(x.a)}</textarea></td><td><button class="chip" data-del="${j}" type="button" title="Remover linha">×</button></td></tr>`
    :`<tr><td>${blocoHtml(x.f)}</td><td>${blocoHtml(x.c)}</td><td class="td-acao">${blocoHtml(x.a)}</td></tr>`).join('')||'<tr><td colspan="3" class="hint">Sem dados suficientes para o FCA desta semana.</td></tr>'}</tbody></table></div></div>`;
- const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: meses fechados pela base de vouchers enviada em Clube em números › Enviar mês.${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
+ const metodo=`<p class="hint">Como calculamos: a projeção soma os usos do mês até a data (base do mês) com o ritmo diário das últimas 2 semanas nos dias que faltam${P.projLin?` (no ritmo médio do mês, seria ${fmt(P.projLin)})`:''}. ${P.margem?`Nas semanas anteriores, a projeção feita nesta altura do mês errou em média ${fmt(P.margem.m,1)}% (${P.margem.n} projeções testadas contra o mês fechado). `:''}Usuários únicos não crescem em linha reta, porque quem já usou no mês não conta de novo: a projeção usa quanto o número de usuários costumou crescer a partir do mesmo ponto do mês (${P.metN||'—'}). As próximas semanas combinam a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior${prox.saz?'':' (sem o ano anterior completo, ficou só a média)'}. Referências: meses fechados pela base de vouchers enviada em Clube em números › Enviar mês (no semanal, farmácias contam).${s.mtd?.antiga?' O mês até a data desta semana veio do relatório original (contava todas as linhas).':''}</p>`;
  box.innerHTML=`<div class="td-status td-${cls}"><span>${T('status-mes','Status')} de ${P.mesLab}</span><p>${status}</p></div>
  ${kp?`<div class="td-kpis">${kp}</div>`:''}
  <div class="td-grid">${ritmo}${tend}</div>${fca}${metodo}`;
