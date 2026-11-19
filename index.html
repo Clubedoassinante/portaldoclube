@@ -574,6 +574,19 @@ small.up{color:var(--good,#2e7d32)}
 .dg-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;margin-right:4px;background:var(--chip);color:var(--ink);white-space:nowrap}
 .dg-saiu{background:#fbe0cf;color:#8a3a0e}.dg-novo{background:#dff1ec;color:#24584b}.dg-pontual{background:#efe1ea;color:#54143f}.dg-repete{background:#721a50;color:#fff}.dg-oscila{background:var(--chip);color:var(--muted)}
 table.dg-t td{vertical-align:top}tr.dg-det>td{background:var(--bg);padding:6px 10px 12px}tr.dg-row:hover td{background:color-mix(in srgb,var(--laranja) 6%,transparent)}
+
+.dg-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:12px}
+.dg-k{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.dg-k span{font-size:12px;color:var(--muted)}.dg-k b{font-size:26px;line-height:1.15}.dg-k small{font-size:12px;color:var(--muted)}
+.dg-k.neg b{color:var(--bad)}.dg-k.pos b{color:var(--good)}
+.dg-veredito{margin:4px 0 14px;font-size:16px}
+.dg-lista ul{list-style:none;margin:6px 0 0;padding:0}.dg-lista li{padding:10px 0;border-top:1px solid var(--line)}.dg-lista li:first-child{border-top:0}
+.dg-it-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.dg-it-top b{font-size:15px}
+.dg-d{font-size:18px;font-weight:700;white-space:nowrap}.dg-d.down{color:var(--bad)}.dg-d.up{color:var(--good)}
+.dg-it-sub{font-size:13px;color:var(--muted);margin-top:2px}.dg-it-mot{font-size:13px;margin-top:3px}
+.dg-chips{display:flex;flex-wrap:wrap;gap:8px}.dg-chip{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;background:var(--surface)}
+.dg-chip .down{color:var(--bad)}.dg-chip .up{color:var(--good)}
+.dg-com{background:#e3eefc;color:#1f4f8a}.dg-filtros{display:flex;flex-wrap:wrap;gap:16px;margin:4px 0 8px}
 </style>
 </head>
 <body>
@@ -765,7 +778,7 @@ const GL=[
   ['ritmo-necessario','Ritmo para superar','Quantos usos por dia faltam, nos dias que restam do mês, para passar o mês anterior e o mesmo mês do ano anterior, comparado com o ritmo das últimas 2 semanas.','Aceleração de +20% quer dizer que é preciso fazer, por dia, 20% a mais que o ritmo atual.'],
   ['tendencia-semanas','Próximas semanas','Projeção de usos das 3 semanas seguintes: combina a média das últimas 4 semanas com o desenho das mesmas semanas do ano anterior (feriados, férias, datas fortes).','O uso semanal oscila muito com eventos e ações; a página mostra o erro médio que essa projeção teve nas semanas anteriores. É uma referência de tendência, não uma meta.'],
   ['diagnostico','Diagnóstico','Aba do Relatório semanal que mostra de onde veio a diferença da semana: parceiro a parceiro e promoção a promoção, com o motivo provável.','Compara com a mesma semana do ano anterior (padrão), com a semana anterior ou com a média das 4 semanas anteriores. Quando as semanas têm tamanhos diferentes, a comparação é ajustada pelo número de dias.'],
-  ['motivo-diagnostico','Motivo provável','Saiu: encerrado ou pausado na lista de parceiros, ou sem uso há 4 semanas. Novo: sem uso antes. Pontual: um evento ou uma ação do Clube que existiu só numa das semanas. Se repete: nas 8 semanas anteriores o parceiro também estava 15% ou mais acima ou abaixo da comparação. Oscilação da semana: a diferença não aparece nas semanas anteriores.','É uma indicação automática para orientar a leitura; confirme com o time antes de concluir. O corte de 15% pode ser ajustado.'],
+  ['motivo-diagnostico','Motivo provável','Saiu: encerrado ou pausado na lista de parceiros, ou sem uso há 4 semanas. Novo: sem uso antes. Pontual: um evento ou uma ação do Clube que existiu só numa das semanas. Se repete: nas 8 semanas anteriores o parceiro também estava 15% ou mais acima ou abaixo da comparação. Só nesta semana: a diferença não aparece nas semanas anteriores.','É uma indicação automática para orientar a leitura; confirme com o time antes de concluir. O corte de 15% pode ser ajustado.'],
   ['fca','FCA','Fato, causa e ação. Fato: o que os números mostram. Causa: o que explica (parceiros, promoções e categorias que mais mudaram). Ação: o que fazer a partir disso.','O portal gera fato e causa a partir dos números; as ações são sugestões para o time revisar, editar e assinar com um responsável.'],
  ]],
  ['Parceiros',[
@@ -2159,7 +2172,7 @@ function renderTendencia(box,s){const P=projecao(s);const L=SEM.dados.semanas;co
    (saiu do Clube, novo, evento ou ação pontual, mudança que se repete ou oscilação da semana).
    Comparação: mesma semana do ano anterior (padrão), semana anterior ou média das 4 semanas anteriores.
    ===================================================================== */
-const DG={cmp:'ly',abre:null,todos:false};
+const DG={cmp:'ly',abre:null,todos:false,fm:new Set(),dir:''};
 const DG_CMP=[['ly','Mesma semana do ano anterior'],['prev','Semana anterior'],['m4','Média das 4 semanas anteriores']];
 const DG_LIM=15; // % para "mudança que se repete" nas 8 semanas anteriores
 const dgMarca=m=>{m=conserta(String(m||'').trim());return ehMarcaClube(m)||m===CLUBE_OUTROS?CLUBE_MARCA:m};
@@ -2193,18 +2206,18 @@ function dgCalc(s){const L=SEM.dados.semanas;const refW=dgRefSemanas(s,DG.cmp);c
   const zeros=ult8.slice(-4).filter(dgOk).every(w=>!(dgAgg(SEM.itens[w.i]).get(m)||{}).v);
   const naJanela=ult8.filter(dgOk).some(w=>(dgAgg(SEM.itens[w.i]).get(m)||{}).v);
   const naRef=J.R.filter(dgOk).some(w=>(dgAgg(SEM.itens[w.i]).get(m)||{}).v)||vb>0;
-  if(!va&&vb>0&&(info&&info.status==='Encerrado ou pausado')){tipo='saiu';mot='Saiu do Clube (encerrado ou pausado na lista de parceiros)'}
-  else if(!va&&vb>0&&zeros&&m!==CLUBE_MARCA){tipo='saiu';mot='Sem uso nesta semana nem nas 4 anteriores: parou ou saiu do Clube'}
-  else if(va>0&&!vb&&!naJanela&&!naRef){tipo='novo';mot='Novo no Clube (sem uso antes na comparação)'}
+  if(!va&&vb>0&&(info&&info.status==='Encerrado ou pausado')){tipo='saiu';mot='Encerrado ou pausado na lista de parceiros'}
+  else if(!va&&vb>0&&zeros&&m!==CLUBE_MARCA){tipo='saiu';mot='Sem uso nesta semana nem nas 4 anteriores'}
+  else if(va>0&&!vb&&!naJanela&&!naRef){tipo='novo';mot='Não existia na comparação'}
   else{const top=T[0];
    if(top&&Math.abs(d)>=5&&Math.sign(top.d)===Math.sign(d)&&Math.abs(top.d)>=0.6*Math.abs(d)&&(top.a===0||top.b===0)&&(g==='Eventos e shows'||g==='Ações do Clube')){
-    tipo='pontual';mot=`${g==='Ações do Clube'?'Ação do Clube':'Evento'} ${top.a===0?'que existiu só na comparação':'só nesta semana'}: «${top.t}» (${sinalN(Math.round(top.d))})`}
+    tipo='pontual';mot=`${g==='Ações do Clube'?'Ação':'Evento'} ${top.a===0?'só na comparação':'só nesta semana'}: ${top.t}`}
    else{const ta=dgTaxa(J.W,m),tb=dgTaxa(J.R,m);
-    if(ta!=null&&tb){const vr=(ta/tb-1)*100;if(Math.abs(vr)>=DG_LIM&&Math.sign(vr)===Math.sign(d)){tipo='repete';mot=`${d<0?'Queda':'Alta'} que se repete: nas 8 semanas anteriores estava ${sinalP(vr)} vs ${DG.cmp==='ly'?'o ano anterior':'as 8 semanas antes delas'}`}
-     else{tipo='oscila';mot=`Oscilação da semana: nas 8 semanas anteriores estava ${sinalP(vr)}`}}
-    else if(ta&&!tb){tipo=d>0?'novo':'oscila';mot=d>0?`Entrou ou voltou recentemente: não tinha uso ${DG.cmp==='ly'?'nas mesmas semanas do ano anterior':'nas 8 semanas antes delas'}`:'Oscilação da semana'}
-    else{tipo='oscila';mot='Oscilação da semana'}
-    if(top&&Math.abs(top.d)>=0.6*Math.abs(d)&&Math.abs(d)>=10&&T.length>1)mot+=`; principalmente «${top.t}» (${sinalN(Math.round(top.d))})`}}
+    if(ta!=null&&tb){const vr=(ta/tb-1)*100;if(Math.abs(vr)>=DG_LIM&&Math.sign(vr)===Math.sign(d)){tipo='repete';mot=`Já vinha ${d<0?'caindo':'crescendo'}: ${sinalP(vr)} nas 8 semanas anteriores`}
+     else{tipo='oscila';mot=`Só nesta semana (nas 8 anteriores: ${sinalP(vr)})`}}
+    else if(ta&&!tb){tipo=d>0?'novo':'oscila';mot=d>0?'Entrou ou voltou nas últimas semanas':'Só nesta semana'}
+    else{tipo='oscila';mot='Só nesta semana'}
+    if(top&&Math.abs(top.d)>=0.6*Math.abs(d)&&Math.abs(d)>=10&&T.length>1)mot+=` · mais em ${top.t}`}}
   const com=coms.filter(c=>(c.r&&c.r.linhas||[]).some(x=>dgMarca(x.marcaBase||x.marca)===m)).map(c=>`${c.canal} ${String(c.envio).slice(8,10)}/${String(c.envio).slice(5,7)}`);
   // tendência: últimas 9 semanas (8 anteriores + a analisada)
   const sp=[...ult8,s].map(w=>dgOk(w)?((dgAgg(SEM.itens[w.i]).get(m)||{}).v||0)*7/w.dias:null);
@@ -2238,29 +2251,52 @@ function dgBarras(rows,o={}){const n=rows.length;if(!n)return '';const W=560,lh=
 const dgSpark=v=>{const ok=v.filter(x=>x!=null);if(ok.length<2)return '';const mx=Math.max(1,...ok),W=90,H=24;const pts=v.map((x,j)=>x==null?null:[j*(W-6)/(v.length-1)+3,H-3-(x/mx)*(H-6)]).filter(Boolean);
  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><path d="${pts.map((p,j)=>(j?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('')}" fill="none" stroke="var(--vinho)" stroke-width="1.6"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.6" fill="#ed6e21"/></svg>`};
 const DG_TIPO={saiu:'Saiu ou parou',novo:'Novo',pontual:'Pontual',repete:'Se repete',oscila:'Oscilação'};
+const DG_TAG_TXT={saiu:'Saiu ou parou',novo:'Novo',pontual:'Pontual',repete:'Se repete',oscila:'Só nesta semana'};
+function dgResumo(X){const s=X.s,r=X.ref,pct=r.usos?(s.usos/r.usos-1)*100:null;const p=X.pes;
+ const k=(t,v,sub,cl)=>`<div class="dg-k ${cl||''}"><span>${t}</span><b>${v}</b><small>${sub||''}</small></div>`;
+ const porque=p?(Math.abs(p.dp)>=2*Math.abs(p.df)?(p.dp<0?'menos pessoas usaram':'mais pessoas usaram'):Math.abs(p.df)>=2*Math.abs(p.dp)?(p.df<0?'cada pessoa usou menos':'cada pessoa usou mais'):'mudaram as pessoas e a frequência'):null;
+ const it=p0=>`<li><div class="dg-it-top"><b>${esc(dgNome(p0.m))}</b><span class="dg-d ${p0.d<0?'down':'up'}">${sinalN(Math.round(p0.d))}</span></div>
+  <div class="dg-it-sub">${fmt(Math.round(p0.b))} → ${fmt(p0.a)} <span class="dg-tag dg-${p0.tipo}">${DG_TAG_TXT[p0.tipo]||''}</span>${p0.com.length?' <span class="dg-tag dg-com">divulgado</span>':''}</div>
+  <div class="dg-it-mot">${esc(p0.mot)}${p0.com.length?` · ${esc(p0.com.join(', '))}`:''}</div></li>`;
+ const dn=X.P.filter(q=>q.d<=-1).slice(0,5),up=X.P.filter(q=>q.d>=1).slice(0,5);
+ const rep=X.P.filter(q=>q.tipo==='repete'&&!dn.includes(q)&&!up.includes(q)).slice(0,8),sai=X.P.filter(q=>q.tipo==='saiu'&&!dn.includes(q)).slice(0,8);
+ const chip=q=>`<span class="dg-chip"><b>${esc(dgNome(q.m))}</b> <span class="${q.d<0?'down':'up'}">${sinalN(Math.round(q.d))}</span></span>`;
+ return `<div class="dg-kpis">${k('Usos na semana',fmt(s.usos),semLab(s))}${k('Na comparação',fmt(Math.round(r.usos)),X.nomeCmp.replace(/^a /,''))}
+  ${k('Variação',sinalP(pct),`${sinalN(Math.round(X.dU))} usos`,pct<0?'neg':'pos')}${p?k('Usuários únicos',fmt(p.ua),`${sinalP((p.ua/p.ub-1)*100)} vs ${fmt(Math.round(p.ub))}`,p.ua<p.ub?'neg':'pos'):''}${p?k('Usos por pessoa',fmt(p.fa,2),`contra ${fmt(p.fb,2)}`):''}</div>
+  ${porque?`<p class="dg-veredito">A semana ${X.dU<0?'caiu':'cresceu'} principalmente porque <b>${porque}</b>.${r.ws.some(w=>w.dias!==s.dias)?' Comparação ajustada pelo número de dias.':''}</p>`:''}
+  <div class="grid2">
+   <div class="card dg-lista"><h3>Puxaram para baixo</h3><p class="sub">${dn.length?`Estes ${dn.length} explicam ${fmt(100*dn.reduce((t,q)=>t+q.d,0)/(X.quedas||1),0)}% de todas as quedas.`:'Nenhum parceiro caiu.'}</p><ul>${dn.map(it).join('')}</ul></div>
+   <div class="card dg-lista"><h3>Puxaram para cima</h3><p class="sub">${up.length?`Estes ${up.length} explicam ${fmt(100*up.reduce((t,q)=>t+q.d,0)/(X.altas||1),0)}% de todas as altas.`:'Nenhum parceiro cresceu.'}</p><ul>${up.map(it).join('')}</ul></div>
+  </div>
+  ${rep.length||sai.length?`<div class="card"><h3>Fique de olho</h3>${rep.length?`<p class="sub">Outras mudanças que já vinham acontecendo nas semanas anteriores</p><div class="dg-chips">${rep.map(chip).join('')}</div>`:''}${sai.length?`<p class="sub" style="margin-top:10px">Também pararam ou saíram do Clube</p><div class="dg-chips">${sai.map(chip).join('')}</div>`:''}</div>`:''}`}
 function dgHtml(X){const bar=`<div class="card"><div class="fld"><span>Comparar com</span><div class="chips">${DG_CMP.map(([k,t])=>`<button class="chip ${DG.cmp===k?'on':''}" data-dgc="${k}" type="button">${t}</button>`).join('')}</div></div></div>`;
  if(X.semRef)return bar+`<div class="note">Não há ${X.nomeCmp} com detalhe no portal. Escolha outra comparação.</div>`;
- const B=dgBullets(X);const top=[...X.P.filter(p=>p.d<0).slice(0,8),...X.P.filter(p=>p.d>0).slice(0,8)].sort((a,b)=>a.d-b.d);
- const mov=X.P.filter(p=>Math.round(p.d)!==0);const lst=DG.todos?mov:mov.slice(0,15);
+ const top=[...X.P.filter(p=>p.d<0).slice(0,8),...X.P.filter(p=>p.d>0).slice(0,8)].sort((a,b)=>a.d-b.d);
+ const mov=dgFiltra(X);const lst=DG.todos?mov:mov.slice(0,15);
  return `${bar}
- <div class="card td-card"><h3>Diagnóstico da semana</h3><p class="sub">${semLab(X.s)} comparada com ${X.nomeCmp}. Usos (vouchers gerados), com a regra do Relatório semanal.</p><div class="dg-bul">${blocoHtml(B.join('\n'))}</div></div>
+ ${dgResumo(X)}
  <div class="grid2">
   <div class="card"><h3>Por grupo</h3><p class="sub">Quanto cada grupo somou (verde) ou tirou (laranja) em relação à comparação.</p>${dgBarras(X.G.map(g=>({lab:g.n,d:g.d})),{titulo:'Variação por grupo'})}</div>
   <div class="card"><h3>Parceiros que mais mudaram</h3><p class="sub">Até 8 que mais caíram e 8 que mais cresceram.</p>${dgBarras(top.map(p=>({lab:dgNome(p.m),d:p.d})),{titulo:'Variação por parceiro'})}</div>
  </div>
- <div class="card tablecard"><h3>Quem puxou para cima e para baixo</h3><p class="sub">Clique no parceiro para ver as promoções que mais mudaram. "Peso" = parte de todas as quedas (ou de todas as altas) da semana. Tendência = usos por semana nas 9 últimas semanas.</p>
+ <div class="card tablecard"><h3>Quem puxou para cima e para baixo</h3><div class="dg-filtros"><div class="fld"><span>Motivo <small>nenhum marcado = todos</small></span><div class="chips">${Object.entries(DG_TAG_TXT).map(([k,t])=>`<button class="chip ${DG.fm.has(k)?'on':''}" data-dgm="${k}" type="button">${t} <small>${X.P.filter(q=>Math.round(q.d)!==0&&q.tipo===k).length}</small></button>`).join('')}</div></div>
+  <div class="fld"><span>Direção</span><div class="chips">${[['','Todos'],['down','Caíram'],['up','Cresceram']].map(([k,t])=>`<button class="chip ${DG.dir===k?'on':''}" data-dgd="${k}" type="button">${t}</button>`).join('')}</div></div></div>
+  <p class="sub">${fmt(mov.length)} ${mov.length===1?'parceiro':'parceiros'}. Clique no parceiro para ver as promoções que mais mudaram. "Peso" = parte de todas as quedas (ou de todas as altas) da semana. Tendência = usos por semana nas 9 últimas semanas.</p>
   <div class="tw"><table class="cmp dg-t"><thead><tr><th>Parceiro</th><th>Grupo</th><th class="n">Semana</th><th class="n">Comparação</th><th class="n">Diferença</th><th class="n">Peso</th><th>Motivo provável</th><th>Tendência</th></tr></thead><tbody>
   ${lst.map((p,j)=>`<tr class="dg-row" data-dg="${j}" style="cursor:pointer"><td><b>${esc(dgNome(p.m))}</b>${p.com.length?`<small>divulgado: ${esc(p.com.join(', '))}</small>`:''}</td><td>${esc(p.g)}</td><td class="n">${fmt(p.a)}</td><td class="n" data-v="${p.b}">${fmt(Math.round(p.b))}</td>
-   <td class="n" data-v="${p.d}"><span class="${p.d>=0?'up':'down'}">${sinalN(Math.round(p.d))}</span></td><td class="n" data-v="${p.peso}">${fmt(100*p.peso,0)}%</td><td><span class="dg-tag dg-${p.tipo}">${DG_TIPO[p.tipo]||''}</span> ${esc(p.mot)}</td><td>${dgSpark(p.sp)}</td></tr>
+   <td class="n" data-v="${p.d}"><span class="${p.d>=0?'up':'down'}">${sinalN(Math.round(p.d))}</span></td><td class="n" data-v="${p.peso}">${fmt(100*p.peso,0)}%</td><td><span class="dg-tag dg-${p.tipo}">${DG_TAG_TXT[p.tipo]||''}</span> ${esc(p.mot)}</td><td>${dgSpark(p.sp)}</td></tr>
    ${DG.abre===p.m?`<tr class="dg-det"><td colspan="8"><table class="cmp"><thead><tr><th>Promoção</th><th class="n">Semana</th><th class="n">Comparação</th><th class="n">Diferença</th></tr></thead><tbody>${p.T.slice(0,10).map(t=>`<tr><td>${esc(t.t)}</td><td class="n">${fmt(t.a)}</td><td class="n">${fmt(Math.round(t.b))}</td><td class="n"><span class="${t.d>=0?'up':'down'}">${sinalN(Math.round(t.d))}</span></td></tr>`).join('')}</tbody></table></td></tr>`:''}`).join('')}
   </tbody></table></div>
   ${mov.length>15?`<p><button class="chip" id="dg-todos" type="button">${DG.todos?'Mostrar só os 15 maiores':`Mostrar todos os ${mov.length}`}</button></p>`:''}
-  <p class="hint">${T('motivo-diagnostico','Como o motivo é escolhido')}: saiu (encerrado na lista de parceiros ou sem uso há 4 semanas), novo (sem uso antes), pontual (um evento ou ação do Clube que existiu só numa das semanas), se repete (as 8 semanas anteriores também estão ${DG_LIM}% ou mais acima ou abaixo da comparação) ou oscilação da semana. "GZH" e "Clube do Assinante" contam como a mesma marca.</p></div>`}
+  <p class="hint">${T('motivo-diagnostico','Como o motivo é escolhido')}: saiu (encerrado na lista de parceiros ou sem uso há 4 semanas), novo (sem uso antes), pontual (um evento ou ação do Clube que existiu só numa das semanas), se repete (as 8 semanas anteriores também estão ${DG_LIM}% ou mais acima ou abaixo da comparação) ou só nesta semana. "GZH" e "Clube do Assinante" contam como a mesma marca.</p></div>`}
 async function renderDiagnostico(box,s){box.innerHTML='<p class="carregando">Montando o diagnóstico…</p>';
  try{await dgPrepara(s)}catch(e){box.innerHTML=`<div class="note">Não foi possível montar o diagnóstico: ${esc(e.message||e)}</div>`;return}
  if(SEM.sel!==s.i)return;const X=dgCalc(s);box.innerHTML=dgHtml(X);dgBind(box,s,X)}
-function dgBind(box,s,X){box.querySelectorAll('[data-dgc]').forEach(b=>b.onclick=()=>{DG.cmp=b.dataset.dgc;DG.abre=null;renderDiagnostico(box,s)});
- box.querySelectorAll('.dg-row').forEach(tr=>tr.onclick=()=>{const mv=X.P.filter(q=>Math.round(q.d)!==0);const p=(DG.todos?mv:mv.slice(0,15))[+tr.dataset.dg];DG.abre=DG.abre===p.m?null:p.m;box.innerHTML=dgHtml(X);dgBind(box,s,X)});
+function dgFiltra(X){return X.P.filter(q=>Math.round(q.d)!==0&&(!DG.fm.size||DG.fm.has(q.tipo))&&(!DG.dir||(DG.dir==='down'?q.d<0:q.d>0)))}
+function dgBind(box,s,X){const re=()=>{box.innerHTML=dgHtml(X);dgBind(box,s,X)};
+ box.querySelectorAll('[data-dgm]').forEach(b=>b.onclick=()=>{const k=b.dataset.dgm;DG.fm.has(k)?DG.fm.delete(k):DG.fm.add(k);DG.abre=null;re()});
+ box.querySelectorAll('[data-dgd]').forEach(b=>b.onclick=()=>{DG.dir=b.dataset.dgd;DG.abre=null;re()});box.querySelectorAll('[data-dgc]').forEach(b=>b.onclick=()=>{DG.cmp=b.dataset.dgc;DG.abre=null;renderDiagnostico(box,s)});
+ box.querySelectorAll('.dg-row').forEach(tr=>tr.onclick=()=>{const mv=dgFiltra(X);const p=(DG.todos?mv:mv.slice(0,15))[+tr.dataset.dg];DG.abre=DG.abre===p.m?null:p.m;box.innerHTML=dgHtml(X);dgBind(box,s,X)});
  const t=document.getElementById('dg-todos');if(t)t.onclick=()=>{DG.todos=!DG.todos;box.innerHTML=dgHtml(X);dgBind(box,s,X)}}
 /* aba "Diagnóstico" da planilha baixada */
 async function dgPlanilha(s,Z,get,put){await dgPrepara(s);const X=dgCalc(s);const rows=[];const R=(...v)=>rows.push(v);
@@ -2268,7 +2304,7 @@ async function dgPlanilha(s,Z,get,put){await dgPrepara(s);const X=dgCalc(s);cons
  dgBullets(X).forEach(b=>R(b.replace(/\*\*/g,'').replace(/^- /,'   • ')));R();
  if(!X.semRef){R({h:'Por grupo'},{h:'Semana'},{h:'Comparação'},{h:'Diferença'});X.G.forEach(g=>R(g.n,g.a,Math.round(g.b),Math.round(g.d)));R();
   R({h:'Parceiro'},{h:'Grupo'},{h:'Semana'},{h:'Comparação'},{h:'Diferença'},{h:'Peso no movimento'},{h:'Motivo provável'},{h:'Divulgado'});
-  X.P.filter(p=>Math.round(p.d)!==0).forEach(p=>R(dgNome(p.m),p.g,p.a,Math.round(p.b),Math.round(p.d),Math.round(1000*p.peso)/10+'%',`${DG_TIPO[p.tipo]||''}: ${p.mot}`,p.com.join(', ')))}
+  X.P.filter(p=>Math.round(p.d)!==0).forEach(p=>R(dgNome(p.m),p.g,p.a,Math.round(p.b),Math.round(p.d),Math.round(1000*p.peso)/10+'%',`${DG_TAG_TXT[p.tipo]||''}: ${p.mot}`,p.com.join(', ')))}
  const col=j=>n2col(j+1);
  const xml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="42" customWidth="1"/><col min="2" max="2" width="18" customWidth="1"/><col min="3" max="6" width="13" customWidth="1"/><col min="7" max="7" width="90" customWidth="1"/><col min="8" max="8" width="28" customWidth="1"/></cols><sheetData>${rows.map((r,i)=>`<row r="${i+1}">${r.map((v,j)=>{const ref=col(j)+(i+1);if(v&&typeof v==='object')return celXml(ref,'54',v.h);return celXml(ref,null,v)}).join('')}</row>`).join('')}</sheetData></worksheet>`;
  put('xl/worksheets/sheet8.xml',xml);
