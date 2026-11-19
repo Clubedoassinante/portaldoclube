@@ -29,7 +29,7 @@
   --good:#5cc79d; --bad:#f08a4b; --warn:#e3b04b; --rank:#f0b6d6; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
-body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;letter-spacing:-.005em}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;letter-spacing:-.025em}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--vinho-esc)}
 a{color:inherit}
 button,input,select{font:inherit;color:inherit}
@@ -39,7 +39,7 @@ button,input,select{font:inherit;color:inherit}
 /* cabeçalho */
 .top{background:var(--vinho-esc);color:var(--head-ink);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .top .wrap{display:flex;align-items:center;gap:14px;min-height:56px;padding-block:8px}
-.top img{height:38px;width:auto}
+.top img{height:50px;width:auto}
 .top .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .top .brand b{font-weight:700;letter-spacing:.2em;font-size:12px;text-transform:uppercase}
 .top .sp{flex:1}
@@ -566,7 +566,8 @@ small.up{color:var(--good,#2e7d32)}
 
 /* ajustes nov/2026: telas de 1024 a 1180 px (notebook) mostram os cartões um embaixo do outro, para nenhuma coluna de tabela ficar cortada */
 @media (max-width:1180px){.grid2{grid-template-columns:1fr}}
-.card>h3,.card .row-head h3{letter-spacing:.05em}
+.card>h3,.card .row-head h3,details.card>summary{text-transform:uppercase;letter-spacing:.06em;font-size:14px}
+.card>h3 small,.card .row-head h3 small{text-transform:none;letter-spacing:0}
 </style>
 </head>
 <body>
@@ -704,7 +705,7 @@ const GL=[
   ['plano-familia','Plano Família ativo','Parte da carteira ativa com o Plano Família ativo.',''],
  ]],
  ['Perfil',[
-  ['geracoes','Gerações','Faixas de idade usadas em todo o portal.','<table><tr><th>Geração</th><th>Idade</th></tr><tr><td>Gen Z</td><td>18 a 29</td></tr><tr><td>Millennials</td><td>30 a 45</td></tr><tr><td>Gen X</td><td>46 a 61</td></tr><tr><td>Baby Boomers</td><td>62 a 80</td></tr><tr><td>Pré-Boomer</td><td>81 a 85</td></tr><tr><td>86+</td><td>86 a 115</td></tr><tr><td>Idade não informada</td><td>sem idade no cadastro</td></tr></table>'],
+  ['geracoes','Gerações','Faixas de idade usadas em todo o portal.','<table><tr><th>Geração</th><th>Idade</th></tr><tr><td>Gen Z</td><td>18 a 29</td></tr><tr><td>Millennials</td><td>30 a 45</td></tr><tr><td>Gen X</td><td>46 a 61</td></tr><tr><td>Baby Boomers</td><td>62 a 80</td></tr><tr><td>Pré-Boomer</td><td>81 a 85</td></tr><tr><td>86+</td><td>86 a 115</td></tr><tr><td>Idade não informada</td><td>sem idade, 0 ou o código repetido da fonte</td></tr><tr><td>Erro na idade</td><td>menor de 18, acima de 115 ou valor inválido</td></tr></table>'],
   ['tempo-casa','Tempo de casa','Tempo desde a venda da assinatura.','<table><tr><th>Faixa</th><th>Tempo</th></tr><tr><td>Onboarding</td><td>0 a 6 meses</td></tr><tr><td>Consolidação</td><td>7 meses a 2 anos</td></tr><tr><td>Maturidade</td><td>3 a 5 anos</td></tr><tr><td>Lealdade</td><td>6 a 9 anos</td></tr><tr><td>Legado</td><td>10 anos ou mais</td></tr></table>'],
   ['idade-media','Idade média','Média da idade informada na carteira: de quem gerou voucher no mês e de todos os titulares da carteira ativa.','Idades não informadas (0 e o código repetido da fonte) ficam fora da média.'],
   ['vouchers-geracao','Uso por geração','Para cada geração: pessoas na carteira, quantas geraram voucher, penetração, vouchers e vouchers por pessoa no mês.','Vouchers por geração existem nos meses enviados depois do arquivo 15.'],
@@ -1150,7 +1151,7 @@ function renderComp(){const box=document.getElementById('res');for(const [a,b] o
 /* ---- relatório: perfil de quem usa ---- */
 const DIMS={produto:'Produto',modalidade:'Modalidade',geracao:'Geração',tempo:'Tempo de casa',familia:'Plano Família',safra:'Safra'};
 const DIMT={produto:'produto',modalidade:'modalidade',geracao:'geracoes',tempo:'tempo-casa',familia:'plano-familia',safra:'safra'};
-const ORD={geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido']};
+const ORD={geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada','Erro na idade'],tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido']};
 const BASE_MIN=500;
 function ordSafra(a,b){const k=s=>s==='Safras anteriores'?'0':s==='Sem data de venda'?'9':s.replace(/(\d)º sem\/(\d{4})/,'$2-$1');return k(a).localeCompare(k(b))}
 function perfilMeses(){const ia=idx(sp.a),ib=idx(sp.m);return M.slice(Math.min(ia,ib),Math.max(ia,ib)+1).map(r=>r.m)}
@@ -1323,11 +1324,14 @@ function modalidade2(raw){const n=normU(raw);if(!n)return null;
  if(n.startsWith('1 DIA'))return 'Combo SP';
  if(/^\d DIAS/.test(n)||RE_COMBO_DIAS.test(n)||/^DEGUSTACAO \d+ COMPLETA/.test(n))return 'Combo';
  return 'Impresso'}
-function geracao(idade,sent){if(typeof idade!=='number'||!isFinite(idade)||idade===0||idade===sent)return 'Idade não informada';
- const i=Math.trunc(idade);if(i<18||i>115)return 'Idade não informada';
+/* Idade não informada: vazia, 0 ou o código repetido da fonte (sent). Erro na idade: menor de 18, acima de 115 ou valor que não é número. */
+function geracao(idade,sent){if(idade==null||String(idade).trim()==='')return 'Idade não informada';
+ const n=typeof idade==='number'?idade:Number(String(idade).trim().replace(',','.'));if(!isFinite(n))return 'Erro na idade';
+ if(n===0||n===sent)return 'Idade não informada';
+ const i=Math.trunc(n);if(i<18||i>115)return 'Erro na idade';
  return i<=29?'Gen Z':i<=45?'Millennials':i<=61?'Gen X':i<=80?'Baby Boomers':i<=85?'Pré-Boomer':'86+'}
 function tempoCasa(v,ano,mes){if(!v)return 'Sem data de venda';const m=(ano-v[0])*12+mes-v[1];if(m<0)return 'Sem data de venda';
- return m<=6?'Onboarding (0 a 6 meses)':m<=24?'Consolidação (7 meses a 2 anos)':m<72?'Maturidade (3 a 5 anos)':m<120?'Lealdade (6 a 9 anos)':'Legado (10 anos ou mais)'}
+ return m<=6?'Onboarding (0 a 6 meses)':m<36?'Consolidação (7 meses a 2 anos)':m<72?'Maturidade (3 a 5 anos)':m<120?'Lealdade (6 a 9 anos)':'Legado (10 anos ou mais)'}
 function safra(v,ano,mes){if(!v)return 'Sem data de venda';if((ano*12+mes)-(v[0]*12+v[1])>36)return 'Safras anteriores';return `${v[1]<=6?'1º':'2º'} sem/${v[0]}`}
 
 /* cidade (autodeclarada) agrupada em regiões; vai para o banco só a cidade, sem endereço */
@@ -1362,7 +1366,7 @@ async function lerCarteira(file,mes){
   if(ativo){const fam=FAMILIA[normU(iF>=0?L[iF]:null)]||'Indefinido';
    row.pf_ativo=fam==='Ativo';row.produto=PRODUTO[normU(iSig>=0?L[iSig]:null)]||'Outros';
    row.modalidade=iMod>=0?(modalidade2(L[iMod])||'Não informado'):null;
-   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.idade=row.geracao==='Idade não informada'?null:Math.trunc(L[iI]);row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm);
+   row.geracao=geracao(iI>=0?L[iI]:null,sent);row.idade=row.geracao==='Idade não informada'||row.geracao==='Erro na idade'?null:Math.trunc(Number(L[iI]));row.tempo=tempoCasa(venda,ano,mm);row.familia=fam;row.safra=safra(venda,ano,mm);
    if(iCid>=0){const cid=nomeCidade(L[iCid]);row.cidade=cid;row.regiao=regiaoCidade(cid)}if(iEm>=0)row.email=/\S+@\S+\.\S+/.test(String(L[iEm]??''))}
   if(ativo&&!row.cpf)out.semCpf++;
   out.push(row)}
@@ -2533,7 +2537,7 @@ const DTERM={tempo:'tempo-casa',produto:'produto',modalidade:'modalidade',geraca
 const dimT=k=>DTERM[k]?T(DTERM[k],DIMS_I[k]):DIMS_I[k];
 const EST=[['mes','Usou no mês','#721a50','Gerou voucher no mês.'],['recente','Ativo recente','#a06a91','Último voucher 1 ou 2 meses antes.'],['esfriando','Esfriando','#ed9b6e','Último voucher de 3 a 5 meses antes.'],['parou','Parou de gerar','#C65911','Já gerou, mas está há 6 meses ou mais sem gerar.'],['nunca','Nunca gerou','#b9a9b2','Nenhum voucher desde jul/2023 (início do histórico).']];
 const DIMS_I={tempo:'Tempo de casa',produto:'Produto',modalidade:'Modalidade',geracao:'Geração',regiao:'Região',familia:'Plano Família',email:'E-mail no cadastro',assinaturas:'Assinaturas',safra:'Safra'};
-const ORD_I={tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido'],regiao:['Porto Alegre','Região Metropolitana','Serra','Litoral Norte','Interior e outros','Não informada']};
+const ORD_I={tempo:['Onboarding (0 a 6 meses)','Consolidação (7 meses a 2 anos)','Maturidade (3 a 5 anos)','Lealdade (6 a 9 anos)','Legado (10 anos ou mais)','Sem data de venda'],geracao:['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada','Erro na idade'],familia:['Ativo','Tem espaço','Inativo','Não tem direito','Indefinido'],regiao:['Porto Alegre','Região Metropolitana','Serra','Litoral Norte','Interior e outros','Não informada']};
 const pc1=v=>v==null||!isFinite(v)?'—':fmt(v,1)+'%';
 const usa=x=>(x.mes||0)+(x.recente||0), inat=x=>(x.parou||0)+(x.nunca||0);
 
@@ -2898,8 +2902,8 @@ function bindFca(h){const box=document.querySelector('.td-fca');const m=INA.fm;
    Clube em números — Idade e gerações / Churn do 1º ano
    ===================================================================== */
 const IC={id:null,ch:null,m:null,sa:null,sb:null};
-const GERS=['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada'];
-const FAIXA_G={'Gen Z':'18 a 29 anos','Millennials':'30 a 45','Gen X':'46 a 61','Baby Boomers':'62 a 80','Pré-Boomer':'81 a 85','86+':'86 anos ou mais','Idade não informada':''};
+const GERS=['Gen Z','Millennials','Gen X','Baby Boomers','Pré-Boomer','86+','Idade não informada','Erro na idade'];
+const FAIXA_G={'Gen Z':'18 a 29 anos','Millennials':'30 a 45','Gen X':'46 a 61','Baby Boomers':'62 a 80','Pré-Boomer':'81 a 85','86+':'86 anos ou mais','Idade não informada':'','Erro na idade':''};
 function linhaSvg(cats,series,o={}){const W=1000,H=o.h||220,Lm=46,R=14,T0=14,B=28;const all=series.flatMap(s=>s.v).filter(v=>v!=null);if(!all.length)return '';
  const mn=o.min??Math.min(...all)*.97,mx=Math.max(...all)*1.03;const x=j=>Lm+j*(W-Lm-R)/Math.max(cats.length-1,1),y=v=>T0+(1-(v-mn)/(mx-mn||1))*(H-T0-B);let g='';
  for(let k=0;k<=3;k++){const v=mn+(mx-mn)*k/3;g+=`<line x1="${Lm}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${Lm-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${o.f?o.f(v):fmt(v)}</text>`}
@@ -2918,7 +2922,7 @@ async function renderIdade(){const box=document.getElementById('ic-res');if(!box
  const tc=rows.reduce((t,x)=>t+x.cart,0),tu=rows.reduce((t,x)=>t+x.usou,0),tv=rows.reduce((t,x)=>t+(x.vou||0),0);
  const imC=r&&r.cn?r.cs/r.cn:null,imU=r&&r.un?r.us/r.un:null;const ant=R.find(x=>x.m===shift(m,-1));const imUa=ant&&ant.un?ant.us/ant.un:null;
  const serie=R.filter(x=>x.cn);const mx=Math.max(...rows.map(x=>x.usou/x.cart*100));
- const vMax=rows.filter(x=>x.vou).sort((a,b)=>b.vou/b.usou-a.vou/a.usou)[0];const pMax=rows.filter(x=>x.cart>=1000&&x.g!=='Idade não informada').sort((a,b)=>b.usou/b.cart-a.usou/a.cart)[0];
+ const vMax=rows.filter(x=>x.vou).sort((a,b)=>b.vou/b.usou-a.vou/a.usou)[0];const pMax=rows.filter(x=>x.cart>=1000&&x.g!=='Idade não informada'&&x.g!=='Erro na idade').sort((a,b)=>b.usou/b.cart-a.usou/a.cart)[0];
  box.innerHTML=`<div class="bar"><label class="fld"><span>Mês</span><select id="ic-m">${monthOpts(m,0)}</select></label></div>
  ${tem?'':`<div class="note">A idade média e os vouchers por geração de ${lab(m)} ainda não estão no portal: eles passam a ser guardados nos meses enviados depois do arquivo 15. Para ter este mês, reenvie a carteira e os vouchers de ${lab(m)} em Clube em números › Enviar mês. A tabela abaixo mostra as pessoas por geração, que já existiam.</div>`}
  ${tem?`<p class="answer">Em ${lab(m)}, quem gerou voucher tem em média <b>${fmt(imU,1)} anos</b>, contra <b>${fmt(imC,1)} anos</b> da carteira: ${imU<imC?`quem usa é ${fmt(imC-imU,1)} anos mais novo`:`quem usa é ${fmt(imU-imC,1)} anos mais velho`}.${pMax?` A geração que mais usa, proporcionalmente, é <b>${pMax.g}</b> (${fmt(pMax.usou/pMax.cart*100,1)}% geraram voucher).`:''}${vMax?` Quem mais repete é <b>${vMax.g}</b>, com ${fmt(vMax.vou/vMax.usou,2)} vouchers por pessoa.`:''}</p>
