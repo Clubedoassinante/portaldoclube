@@ -3976,8 +3976,10 @@ function faResumo(a,b){const k=a+'|'+b;if(FA.cache.has(k))return FA.cache.get(k)
  const pr=sb.rpc('dados_farmacia',{p_de:a+'-01',p_ate:b+'-01',p_serie:false}).then(({data,error})=>{if(error)throw error;return data});FA.cache.set(k,pr);pr.catch(()=>FA.cache.delete(k));return pr}
 async function faBloco(a,b,ca,cb,la,lb,vA,vB){const box=document.getElementById('fa-blk');if(!box)return;const tok=[a,b,ca,cb].join('|');box.dataset.tok=tok;
  box.innerHTML='<div class="card"><h3>Farmácias</h3><p class="carregando">Cruzando os relatórios da Raia e da Panvel…</p></div>';
- let X,Y=null;try{X=await faResumo(a,b);if(ca&&cb)Y=await faResumo(ca,cb)}
- catch(e){if(box.dataset.tok!==tok)return;box.innerHTML=/dados_farmacia|function|schema cache/i.test(e.message||'')?'':`<div class="card"><h3>Farmácias</h3><p class="hint">Não foi possível carregar: ${esc(e.message||e)}</p></div>`;return}
+ const lento=setTimeout(()=>{if(box.dataset.tok===tok&&box.querySelector('.carregando'))box.querySelector('.carregando').textContent='Cruzando os relatórios da Raia e da Panvel… está demorando mais que o normal; o resto da página já pode ser usado.'},12000);
+ let X,Y=null;try{[X,Y]=await Promise.all([faResumo(a,b),ca&&cb?faResumo(ca,cb):Promise.resolve(null)])}
+ catch(e){clearTimeout(lento);if(box.dataset.tok!==tok)return;const m=e.message||String(e);box.innerHTML=/dados_farmacia|schema cache|does not exist/i.test(m)?'':`<div class="card"><h3>Farmácias</h3><p class="hint">${/timeout|cancel/i.test(m)?'O banco demorou demais para cruzar as farmácias neste período. Confira se o arquivo 60_farmacia_rapida.sql já foi rodado no Supabase, ou escolha um período menor.':'Não foi possível carregar: '+esc(m)}</p></div>`;return}
+ clearTimeout(lento);
  if(!document.body.contains(box)||box.dataset.tok!==tok)return;
  const tem=D=>D&&(D.redes||[]).length;
  if(!tem(X)){box.innerHTML=`<div class="card"><h3>Farmácias</h3><p class="hint">Sem relatório da Raia ou da Panvel em ${la}.${ADMIN?' Envie em <a href="#clube-enviar-farmacia">Enviar farmácias</a>.':''}</p></div>`;return}
